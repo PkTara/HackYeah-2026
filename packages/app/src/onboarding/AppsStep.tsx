@@ -38,8 +38,8 @@ export function AppsStep({
   return (
     <Panel title="Your apps" badge={<Tag text="Optional" tone="muted" />}>
       <AppText>
-        Each app asks for your OK on its own. These connections are not built
-        yet, so agreeing only saves your choice. Nothing is read.
+        These connections are not built yet. Agreeing only saves your choice as
+        a demo, and nothing is read.
       </AppText>
       {apps.map(id => (
         <AppRow

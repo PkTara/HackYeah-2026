@@ -146,7 +146,7 @@ const LINES: Readonly<Record<Exclude<StepId, ConsentStepId>, string>> = {
   grade: 'What grade do you usually send? A rough guess is fine.',
   goal: 'What do you want most from climbing right now? Your goal shapes the quests I give you.',
   body: 'Want to add your height and arm span? It tells me about your reach. Skip it if you like.',
-  apps: 'Use other apps for training? You decide for each one. In this build it is only a demo, so nothing is read.',
+  apps: 'Use other apps for training? You decide for each one, and you can skip them all.',
   tests: 'Want a baseline? 6 quick tests at home, about 5 to 10 minutes. All optional.',
   'dead-hang': 'First, a dead hang. Straight arms, and keep breathing.',
   'pull-ups': 'Pull-ups next. Clean reps only, no kicking.',
