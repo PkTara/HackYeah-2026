@@ -24,6 +24,7 @@ Climbing Monkey's track and product brief is **Open: Sport & Healthcare** (see `
   - `data`: the `ClimbingBackend` contract, on-device backend and HTTP backend. Endpoints in `endpoints.ts`, JSON shapes in `wire.ts`.
   - `platform`: capability interfaces + `capabilities.ts` (Android, iOS) / `capabilities.web.ts`.
   - `ui`: jungle pixel UI kit; everything is drawn with Views (no SVG, images or font files).
+  - `vision`: on-device pose counters (pull-ups, dead hang, plank) and climbing-form observations. Pure TS with no react-native or MediaPipe import; the host passes the pose landmarker in. See its README.
   - `app`: screens, navigation, `<App/>`.
 - **Screens never fetch.** They use `useGame()`; data goes through the backend in `packages/data`.
 - **Platform-specific code** goes in `packages/platform` as `*.web.ts` siblings (or `*.android.ts` / `*.ios.ts` if the phones differ), behind an interface in `types.ts`. Don't use `Platform.OS` branches in screens.

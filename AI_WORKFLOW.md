@@ -14,7 +14,7 @@ The Codex design-drafting step used the `superpowers:using-superpowers` and `sup
 
 ## AI features in the app
 
-None yet. When the app gets an AI feature, document:
+No AI feature is in the app screens yet. `packages/vision` is ready for one: on-device pose counting with MediaPipe Pose Landmarker (log entry 18). Before it is wired in, document here:
 - the model or service;
 - the inference flow (on-device, remote or hybrid);
 - what data is sent and stored;
@@ -183,4 +183,40 @@ None yet. When the app gets an AI feature, document:
 **Validation:** Jest covers the flow (required answers, skips, results, back navigation, copy rules), the first-launch gate, the saved answers, and the reducer rules for results. Every step was screenshotted at 360, 390 and 1440px, in dark mode and with reduced motion.
 
 **Honesty notes:** App connections are demo only: the consent screen says this build cannot connect yet, and a connected app is tagged "Demo". Test results are self-reported, never scored, and the test text is a draft that needs coach review. No new libraries, models or APIs.
+
+### 16. App connected to the FastAPI backend (2026-10-03)
+
+**Prompts:** "Also there's a new backend 'origin/codex/climbing-monkey-backend'" and "Double-check that we aren't completing extra work - has Codex already cooked the backend? If it has, then don't do unnecessary work - handle the agents."
+
+**Output:** The Codex backend branch was merged as is. A planned second Python vision service was dropped because the backend already handles server-side pose. Backend: climbs take one or both styles, hold types and optional attempts; hand reports take spots and an optional pain rating (all optional, old clients keep working). Client: `packages/data` talks to the real `/v1` routes with an anonymous device token, keeps setup answers on the device, and reads the state back after each change so the server's quest shows straight away. Quests and XP come from the server when it is connected; the on-device demo keeps its own quest library.
+
+**Validation:** Canon TDD for the backend: 11 new tests and 14 rejected-input cases, each seen failing first; 137 backend tests pass and Ruff is clean. 33 client tests run against an in-memory fake of the routes. A Playwright run against the real server checked that climbs, flags, quest XP and setup answers come back after a reload (12 checks). No new libraries, models or APIs.
+
+### 17. Hand anatomy viewer and breadcrumbs (2026-10-03)
+
+**Prompts:** "Give a slider for hands - so we have a medically accurate skeleton view, muscle view, and tendon view. On a finger segment being pressed, it'll label and explain that specific segment." Then: "Add breadcrumbs for the hand bit... keep breadcrumb position consistent... The 'sore don't know where' should be in the same tray, and where things are linked, there should be in the same tray but with dividers if necessary."
+
+**Output:** A palm-side hand drawn in code with three layers (skeleton, muscle, tendon and pulleys), 93 tappable parts, and a slider between layers. Each part has its name, plain words, what it is and why climbers care. Breadcrumbs sit top-left on every pushed screen and follow where a screen belongs, not the history. The finger close-up is one tray split by dividers, with "Sore, not sure where" next to the spot picker.
+
+**Validation:** Unit tests check the content and the drawing (tendons end on the right bones, each pulley sits over its bone or joint, carpals in order), the slider's keyboard and screen-reader behaviour, and the breadcrumb trails. Screens were checked at 360, 390 and 1280px in light and dark.
+
+**Sources and honesty notes:** Content follows standard references (Gray's Anatomy 42nd ed., Netter's Atlas, Moore's Clinically Oriented Anatomy; Doyle 1988 and Doyle and Blythe 1977 on pulleys; Schweizer 2001 and 2003, Vigouroux et al. 2006, Schoeffl et al. 2003 on climbing loads and injuries). These were cited from the model's knowledge, not re-read, and the drawing is schematic. A physio or anatomist should review it before release.
+
+### 18. On-device pose counters (2026-10-03)
+
+**Prompts:** "Spawn an agent to work on a backend module for camera stuff - we want to have computer vision (try https://github.com/jeremyipark/vision-demos)" and "The computer vision stuff is for analysing climbing form, and also we need computer vision stuff for analysing pullups for the test and plank time etc."
+
+**Output:** `packages/vision`, plain TypeScript that runs on the device: a pull-up counter, dead hang and plank timers, and descriptive climbing-form observations from pose landmarks (no grades). A capture that is too poor returns a reason and no number, so it can never be saved as a score. The web host passes in MediaPipe Pose Landmarker; the package itself imports neither MediaPipe nor react-native. It is not wired into the app screens yet.
+
+**External code and models:** `@mediapipe/tasks-vision` 1.0.1 (Apache-2.0) in `apps/web`; MediaPipe Pose Landmarker models (Apache-2.0), downloaded at runtime and not committed. Design ideas from jeremyipark/vision-demos (Apache-2.0), rewritten rather than copied and credited in the source.
+
+**Validation:** 55 unit tests on synthetic poses, a 40-seed stress run at 15 and 30 fps with jitter, a native release bundle check, and headless-browser runs with real MediaPipe on one public photo.
+
+**Privacy and limitations:** Pose detection runs on the device, but the MediaPipe web runtime sends usage metrics to Google; this must be disclosed or blocked before the camera feature ships. Thresholds have not been compared with a person counting or timing by hand, and speed on phones is unknown. A Python service using a hosted vision API was tried and removed without being called (no key, and the backend already had pose).
+
+### 19. Submission image (2026-10-03)
+
+**Prompt:** "Generate 'The visual image of the idea - we recommend adding one image describing the idea/project'", then higher resolution and changes to the wording.
+
+**Output:** `docs/assets/climbing-monkey-idea.png`, 3840x2160: four real app screens (setup, log, profile, data) captured in Chromium, framed and labelled with the app's own pixel font and monkey sprite on an HTML page rendered by Playwright. No image-generation model was used.
 

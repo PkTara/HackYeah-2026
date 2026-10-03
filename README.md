@@ -37,6 +37,8 @@ packages/            Shared code, imported as @hackyeah/<name>
   platform/          Capability interfaces + one implementation per OS
   ui/                Jungle pixel UI kit (react-native primitives only, see its README)
   app/               Screens, navigation, root <App/>
+  vision/            On-device pose: pull-up counter, dead hang and plank timers, climbing form
+                     observations (plain TypeScript; the web host passes MediaPipe in)
 context/             Hackathon brief, rules and judging criteria (Markdown)
 ```
 
