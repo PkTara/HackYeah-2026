@@ -11,7 +11,8 @@
  *      least `straightHipDeg`. When it is not, the hint says whether the hips
  *      sag below the line or lift above it.
  *   The side facing the camera is used and only switches when the other side
- *   is clearly more visible, so the measurement does not flip between hips.
+ *   is clearly more visible, so the measurement does not flip between hips
+ *   (the idea of vision-demos, deadlift/src/reps.py `orientation`, Apache 2.0).
  *
  * Dead hang, filmed from the front:
  *   1. hands overhead: wrists above the shoulders by at least

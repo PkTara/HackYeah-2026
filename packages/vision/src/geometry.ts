@@ -5,7 +5,8 @@
  * measured on raw normalised numbers is squashed on a portrait frame. Every
  * helper here scales back to pixels first. Only angles and ratios of lengths
  * leave this file, never raw pixel distances, so results do not depend on how
- * far the camera is.
+ * far the camera is. (The same correction as vision-demos,
+ * deadlift/src/reps.py `hinge_points`, Apache 2.0.)
  */
 import type { LandmarkName, PoseFrame } from './pose';
 

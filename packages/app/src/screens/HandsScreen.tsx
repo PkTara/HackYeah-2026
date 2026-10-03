@@ -20,6 +20,7 @@ import {
   handRows,
   spacing,
   useContentWidth,
+  useLayout,
 } from '@hackyeah/ui';
 import { PageHeader } from '../components/PageHeader';
 import { TabScreen } from '../components/TabScreen';
@@ -65,9 +66,22 @@ export function HandsScreen() {
     flags.filter(f => f.side === side).map(f => f.finger);
   const open = (side: Side, finger: Finger) =>
     navigate('Finger', { side, finger });
-  // The anatomy tray: which hand, and the part picked on it.
+  // The anatomy tray: which hand, and the part picked on it. Phones show it
+  // under the hands; wide screens give it the full width below both
+  // columns, so the explanation can sit beside the hand.
+  const wide = useLayout().columns === 2;
   const [anatomySide, setAnatomySide] = useState<Side>('right');
   const [part, setPart] = useState<string | null>(null);
+  const anatomy = (
+    <HandAnatomy
+      title="Hand anatomy"
+      side={anatomySide}
+      onSideChange={setAnatomySide}
+      selected={part}
+      onSelect={setPart}
+      onOpenFinger={finger => open(anatomySide, finger)}
+    />
+  );
 
   return (
     <TabScreen>
@@ -94,15 +108,7 @@ export function HandsScreen() {
               Palms up. Tap a finger or its name to mark where it hurts.
             </AppText>
           </Panel>
-
-          <HandAnatomy
-            title="Hand anatomy"
-            side={anatomySide}
-            onSideChange={setAnatomySide}
-            selected={part}
-            onSelect={setPart}
-            onOpenFinger={finger => open(anatomySide, finger)}
-          />
+          {wide ? null : anatomy}
         </Column>
 
         <Column>
@@ -187,6 +193,7 @@ export function HandsScreen() {
           </Panel>
         </Column>
       </Columns>
+      {wide ? anatomy : null}
     </TabScreen>
   );
 }
