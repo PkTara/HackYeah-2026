@@ -161,6 +161,32 @@ describe('App', () => {
   });
 });
 
+describe('links', () => {
+  it('a link to a finger close-up shows the Hands tab as current', async () => {
+    const capabilities = createFakeCapabilities();
+    let renderer!: Renderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(
+        <App
+          capabilities={capabilities}
+          backend={createLocalBackend(capabilities.storage, SET_UP)}
+          today="2026-10-03"
+          initialRoute="Finger"
+        />,
+      );
+    });
+    const tab = (label: string) =>
+      renderer.root.find(
+        n =>
+          n.props.accessibilityLabel === label &&
+          n.props['aria-selected'] !== undefined,
+      ).props['aria-selected'];
+    expect(tab('Hands')).toBe(true);
+    expect(tab('Profile')).toBe(false);
+    act(() => renderer.unmount());
+  });
+});
+
 describe('first launch', () => {
   it('runs setup first, and remembers a skip', async () => {
     const capabilities = createFakeCapabilities();

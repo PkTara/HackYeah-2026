@@ -62,7 +62,8 @@ const GLYPHS: Record<string, string> = {
 
 export const GLYPH_HEIGHT = 7;
 const LETTER_GAP = 1;
-const LINE_GAP = 3;
+/** Empty art pixels between two lines of text. */
+export const LINE_GAP = 3;
 
 function glyph(ch: string): string[] {
   return (GLYPHS[ch.toUpperCase()] ?? GLYPHS['?']).split(' ');

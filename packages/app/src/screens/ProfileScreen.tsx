@@ -89,7 +89,10 @@ export function ProfileScreen() {
                 {log.sample ? ' (example)' : ''}
               </AppText>
             </View>
-            <Tag text={log.sent ? 'Sent' : 'Not yet'} tone={log.sent ? 'new' : 'muted'} />
+            <Tag
+              text={log.sent ? 'Sent' : 'Not yet'}
+              tone={log.sent ? 'new' : 'muted'}
+            />
           </View>
         ))
       )}
@@ -118,14 +121,20 @@ export function ProfileScreen() {
             <Meter
               value={pet.xpInLevel / XP_PER_QUEST}
               segments={STEPS}
-              accessibilityLabel={`${pet.xpInLevel} of ${XP_PER_LEVEL} XP to level ${pet.level + 1}`}
+              accessibilityLabel={`${
+                pet.xpInLevel
+              } of ${XP_PER_LEVEL} XP to level ${pet.level + 1}`}
             />
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <View
+              style={{ flexDirection: 'row', justifyContent: 'space-between' }}
+            >
               <AppText variant="caption">
                 {pet.xpInLevel} / {XP_PER_LEVEL} XP
               </AppText>
               <AppText variant="caption" muted>
-                {questsToGo === 1 ? '1 quest to level up' : `${questsToGo} quests to level up`}
+                {questsToGo === 1
+                  ? '1 quest to level up'
+                  : `${questsToGo} quests to level up`}
               </AppText>
             </View>
           </View>
@@ -139,21 +148,24 @@ export function ProfileScreen() {
         <Column>
           {/* The one thing to work on */}
           <Panel variant="banana" title="Your focus">
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+            >
               <Icon name={TERRAIN_ICON[focus.terrain]} scale={3} />
               <PixelText text={TERRAIN_NAME[focus.terrain]} scale={4} heading />
             </View>
             {focus.kind === 'practice' ? (
               <AppText>
                 You sent {focus.tally.sent} of the {focus.tally.logged}{' '}
-                {TERRAIN_NAME[focus.terrain].toLowerCase()} climbs you logged. That
-                is your lowest of the three walls.
+                {TERRAIN_NAME[focus.terrain].toLowerCase()} climbs you logged.
+                That is your lowest of the three walls.
               </AppText>
             ) : (
               <AppText>
-                Only {focus.tally.logged} {TERRAIN_NAME[focus.terrain].toLowerCase()}{' '}
-                {focus.tally.logged === 1 ? 'climb' : 'climbs'} logged. Log 3 and
-                the monkey can compare it with the other walls.
+                Only {focus.tally.logged}{' '}
+                {TERRAIN_NAME[focus.terrain].toLowerCase()}{' '}
+                {focus.tally.logged === 1 ? 'climb' : 'climbs'} logged. Log 3
+                and the monkey can compare it with the other walls.
               </AppText>
             )}
             <AppText variant="caption" muted>
@@ -175,14 +187,27 @@ export function ProfileScreen() {
           >
             {quest.quest ? (
               <>
-                <PixelText text={quest.quest.title} scale={3} heading />
+                {/* Server quests can have long titles, so they wrap. */}
+                <PixelText text={quest.quest.title} scale={3} heading wrap />
                 <AppText>{quest.quest.task}</AppText>
-                <View style={{ flexDirection: 'row', gap: 16, flexWrap: 'wrap' }}>
-                  <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                <View
+                  style={{ flexDirection: 'row', gap: 16, flexWrap: 'wrap' }}
+                >
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      gap: 6,
+                      alignItems: 'center',
+                    }}
+                  >
                     <Icon name="clock" />
-                    <AppText variant="caption">{quest.quest.minutes} min</AppText>
+                    <AppText variant="caption">
+                      {quest.quest.minutes} min
+                    </AppText>
                   </View>
-                  <AppText variant="caption">Needs: {quest.quest.equipment}</AppText>
+                  <AppText variant="caption">
+                    Needs: {quest.quest.equipment}
+                  </AppText>
                 </View>
                 <AppText variant="caption" muted>
                   Why: {quest.quest.why}
@@ -190,8 +215,8 @@ export function ProfileScreen() {
               </>
             ) : (
               <AppText>
-                Nothing left for this focus. Log your next session and the monkey
-                will find a new quest.
+                Nothing left for this focus. Log your next session and the
+                monkey will find a new quest.
               </AppText>
             )}
 
@@ -243,14 +268,21 @@ export function ProfileScreen() {
               {state.flags.map(f => (
                 <View
                   key={`${f.side}-${f.finger}`}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 10,
+                  }}
                 >
                   <AppText style={{ flex: 1 }}>{flagText(f, today)}</AppText>
                   <Button
                     title="Edit"
                     variant="secondary"
                     small
-                    accessibilityLabel={`Edit ${fingerLabel(f.side, f.finger).toLowerCase()}`}
+                    accessibilityLabel={`Edit ${fingerLabel(
+                      f.side,
+                      f.finger,
+                    ).toLowerCase()}`}
                     onPress={() =>
                       navigate('Finger', { side: f.side, finger: f.finger })
                     }
@@ -258,8 +290,8 @@ export function ProfileScreen() {
                 </View>
               ))}
               <AppText variant="caption" muted>
-                Finger-loading quests are paused. Your climbing profile stays the
-                same.
+                Finger-loading quests are paused. Your climbing profile stays
+                the same.
               </AppText>
               <Button
                 title="Update hands"
@@ -294,7 +326,12 @@ export function ProfileScreen() {
           <Panel title="Style">
             {MOVEMENTS.map(m => (
               <View key={m} style={{ gap: 6 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                  }}
+                >
                   <PixelText text={MOVEMENT_NAME[m]} />
                   <AppText variant="caption" muted>
                     {moves[m].sent} of {moves[m].logged} sent
@@ -318,7 +355,9 @@ export function ProfileScreen() {
                 marginVertical: 4,
               }}
             />
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <View
+              style={{ flexDirection: 'row', justifyContent: 'space-between' }}
+            >
               <PixelText text="Movement radar" />
               <Tag text="Example" />
             </View>
@@ -345,7 +384,9 @@ export function ProfileScreen() {
                 <View style={{ height: 56, justifyContent: 'flex-end' }}>
                   <Gazelle scale={2} locked />
                 </View>
-                <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                <View
+                  style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}
+                >
                   <Icon name="lock" />
                   <PixelText text="Gazelle" />
                 </View>
