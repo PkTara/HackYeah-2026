@@ -6,7 +6,8 @@ LLM-friendly digest of all hackathon materials. Original PDFs are in `source-pdf
 
 - **Event:** HackYeah 2026, 3–4 October 2026, Tauron Arena Kraków. Organizer: PROIDEA sp. z o.o.
 - **Teams:** 1–6 people, all registered HackYeah participants.
-- **Deadline:** submit by **11:00 PM, 4 October 2026**. Edits after the deadline are ignored.
+- **Deadline:** submit by **11:00 AM, 4 October 2026**. Edits after the deadline are ignored.
+  - The rules PDFs say 11:00 PM, but the confirmed deadline is **11:00 AM**. Plan for 11:00 AM.
 - **Start:** the rules say work may start "no earlier than 11:00 PM on October 3rd". This is almost certainly a typo for 11:00 AM. Confirm with the organizers if it matters.
 - **Submission platform:** the rules PDFs say **HackTribe**; the open-task descriptions say **Challenge Rocket**. Use whichever the organizers point to.
 - **Language:** English or Polish for most tracks. **Huawei requires English.** The general upload form also asks for English, so default to English.

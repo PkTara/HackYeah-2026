@@ -1,6 +1,6 @@
 # HackYeah 2026 project
 
-Hackathon project for HackYeah 2026 (3–4 Oct 2026, Kraków). **Submission deadline: 11:00 PM, 4 October 2026.**
+Hackathon project for HackYeah 2026 (3–4 Oct 2026, Kraków). **Submission deadline: 11:00 AM, 4 October 2026.** (The rules PDFs say 11:00 PM; 11:00 AM is the confirmed deadline.)
 
 Read `context/00-OVERVIEW.md` first. It has the track comparison, prizes, judging weights, the submission checklist and the known inconsistencies in the materials.
 

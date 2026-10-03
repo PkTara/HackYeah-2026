@@ -40,7 +40,7 @@ Existing repositories, materials and other resources are allowed **if properly c
 
 ## Competition terms (the same for every open task)
 
-- Team of 1–6. Work starts "no earlier than 11:00 PM on October 3rd" (probably a typo for AM) and must be submitted by **11:00 PM on October 4th**.
+- Team of 1–6. Work starts "no earlier than 11:00 PM on October 3rd" (probably a typo for AM) and must be submitted by **11:00 AM on October 4th** (the PDF says 11:00 PM; 11:00 AM is the confirmed deadline).
 - Submissions go to the HackTribe platform (the descriptions say Challenge Rocket) in English or Polish.
 - People related to jury members or sponsor employees are excluded.
 - Judging has two phases:
