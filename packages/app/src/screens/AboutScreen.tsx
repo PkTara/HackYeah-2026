@@ -1,5 +1,14 @@
 import { StyleSheet, View } from 'react-native';
-import { AppText, Icon, Monkey, Panel, PixelText } from '@hackyeah/ui';
+import {
+  AppText,
+  Column,
+  Columns,
+  Icon,
+  Monkey,
+  Panel,
+  PixelText,
+  useLayout,
+} from '@hackyeah/ui';
 import { useCapabilities } from '../capabilities';
 import { BackButton } from '../components/BackButton';
 import { PageHeader } from '../components/PageHeader';
@@ -38,6 +47,7 @@ const HONEST_BITS = [
 export function AboutScreen() {
   const { platform, platformLabel, haptics } = useCapabilities();
   const { backendKind } = useGame();
+  const wide = useLayout().columns === 2;
 
   return (
     <TabScreen>
@@ -47,41 +57,58 @@ export function AboutScreen() {
         subtitle="Climbing Monkey, a HackYeah 2026 prototype."
       />
 
-      <Panel title="Platform">
-        <Fact label="Adapter" value={platform} />
-        <Fact label="OS" value={platformLabel} />
-        <Fact
-          label="Haptics"
-          value={haptics.isAvailable ? 'Available' : 'Not available'}
-        />
-        <Fact
-          label="Data"
-          value={
-            backendKind === 'local'
-              ? 'Stored on this device'
-              : 'Synced with the server'
-          }
-        />
-        <AppText variant="caption" muted>
-          Each OS plugs in its own adapter. The screens never check which one
-          they run on.
-        </AppText>
-      </Panel>
+      {/* Wide screens put the honest bits under Platform, so the two columns
+          come out about even. Phones keep them last, after How it is built. */}
+      <Columns>
+        <Column>
+          <Panel title="Platform">
+            <Fact label="Adapter" value={platform} />
+            <Fact label="OS" value={platformLabel} />
+            <Fact
+              label="Haptics"
+              value={haptics.isAvailable ? 'Available' : 'Not available'}
+            />
+            <Fact
+              label="Data"
+              value={
+                backendKind === 'local'
+                  ? 'Stored on this device'
+                  : 'Synced with the server'
+              }
+            />
+            <AppText variant="caption" muted>
+              Each OS plugs in its own adapter. The screens never check which
+              one they run on.
+            </AppText>
+          </Panel>
+          {wide ? <HonestBits /> : null}
+        </Column>
 
-      <Panel title="How it is built">
-        {PACKAGES.map(p => (
-          <View key={p.name} style={styles.pkg}>
-            <View style={styles.pkgName}>
-              <PixelText text={p.name} />
-              <AppText variant="caption" muted>
-                packages/{p.name}
-              </AppText>
-            </View>
-            <AppText>{p.text}</AppText>
-          </View>
-        ))}
-      </Panel>
+        <Column>
+          <Panel title="How it is built">
+            {PACKAGES.map(p => (
+              <View key={p.name} style={styles.pkg}>
+                <View style={styles.pkgName}>
+                  <PixelText text={p.name} />
+                  <AppText variant="caption" muted>
+                    packages/{p.name}
+                  </AppText>
+                </View>
+                <AppText>{p.text}</AppText>
+              </View>
+            ))}
+          </Panel>
+          {wide ? null : <HonestBits />}
+        </Column>
+      </Columns>
+    </TabScreen>
+  );
+}
 
+/** The caveats panel and the AI credit line under it. */
+function HonestBits() {
+  return (
+    <>
       <Panel title="Honest bits">
         {HONEST_BITS.map(line => (
           <View key={line} style={styles.bullet}>
@@ -98,7 +125,7 @@ export function AboutScreen() {
           and how we checked it.
         </AppText>
       </View>
-    </TabScreen>
+    </>
   );
 }
 

@@ -15,6 +15,8 @@ import {
   AppText,
   Button,
   Chip,
+  Column,
+  Columns,
   Icon,
   PX,
   Panel,
@@ -74,69 +76,77 @@ export function EvidenceScreen() {
         ))}
       </View>
 
-      <Panel
-        title={name}
-        icon={TERRAIN_ICON[terrain]}
-        badge={isFocus ? <Tag text="Your focus" tone="focus" /> : undefined}
-      >
-        <PixelText
-          text={
-            tally.logged === 0
-              ? 'None logged'
-              : `${tally.sent} of ${tally.logged} sent`
-          }
-          scale={4}
-        />
-        {tally.rate === null ? (
-          <AppText>
-            Needs {toGo} more logged {toGo === 1 ? 'climb' : 'climbs'} before it
-            is compared with the other walls.
-          </AppText>
-        ) : null}
-        {isFocus ? (
-          <AppText>
-            {focus.kind === 'practice'
-              ? 'This is your focus: the lowest share of sends of the three walls.'
-              : 'This is your focus: it has the fewest logged climbs, so the monkey asks for more here first.'}
-          </AppText>
-        ) : null}
-        {climbs.length > 0 ? (
-          <AppText variant="caption" muted>
-            Last logged {ageLabel(climbs[0].date, today)},{' '}
-            {shortDate(climbs[0].date)}.
-          </AppText>
-        ) : null}
-        <AppText variant="caption" muted>
-          The focus goes to the wall with the lowest share of sends once every
-          wall has at least {MIN_LOGS} logged climbs.
-        </AppText>
-      </Panel>
+      {/* Wide screens: the numbers on the left, the climbs behind them on
+          the right. */}
+      <Columns>
+        <Column>
+          <Panel
+            title={name}
+            icon={TERRAIN_ICON[terrain]}
+            badge={isFocus ? <Tag text="Your focus" tone="focus" /> : undefined}
+          >
+            <PixelText
+              text={
+                tally.logged === 0
+                  ? 'None logged'
+                  : `${tally.sent} of ${tally.logged} sent`
+              }
+              scale={4}
+            />
+            {tally.rate === null ? (
+              <AppText>
+                Needs {toGo} more logged {toGo === 1 ? 'climb' : 'climbs'} before it
+                is compared with the other walls.
+              </AppText>
+            ) : null}
+            {isFocus ? (
+              <AppText>
+                {focus.kind === 'practice'
+                  ? 'This is your focus: the lowest share of sends of the three walls.'
+                  : 'This is your focus: it has the fewest logged climbs, so the monkey asks for more here first.'}
+              </AppText>
+            ) : null}
+            {climbs.length > 0 ? (
+              <AppText variant="caption" muted>
+                Last logged {ageLabel(climbs[0].date, today)},{' '}
+                {shortDate(climbs[0].date)}.
+              </AppText>
+            ) : null}
+            <AppText variant="caption" muted>
+              The focus goes to the wall with the lowest share of sends once every
+              wall has at least {MIN_LOGS} logged climbs.
+            </AppText>
+          </Panel>
 
-      <Panel
-        title="Wall x moves"
-        badge={hasSample ? <Tag text="Example" /> : undefined}
-      >
-        <StyleGrid logs={state.logs} selected={terrain} />
-        <AppText variant="caption" muted>
-          Each box shows sent / logged. A dash means none logged yet. The framed
-          column is {name.toLowerCase()}.
-        </AppText>
-      </Panel>
+          <Panel
+            title="Wall x moves"
+            badge={hasSample ? <Tag text="Example" /> : undefined}
+          >
+            <StyleGrid logs={state.logs} selected={terrain} />
+            <AppText variant="caption" muted>
+              Each box shows sent / logged. A dash means none logged yet. The framed
+              column is {name.toLowerCase()}.
+            </AppText>
+          </Panel>
+        </Column>
 
-      <Panel
-        title="Climbs"
-        icon="log"
-        badge={
-          climbs.some(log => log.sample) ? <Tag text="Example" /> : undefined
-        }
-      >
-        {climbs.length === 0 ? (
-          <AppText>No {name.toLowerCase()} climbs logged yet.</AppText>
-        ) : (
-          climbs.map(log => <ClimbRow key={log.id} log={log} />)
-        )}
-        <Button title="Log a climb" icon="log" onPress={() => reset('Log')} />
-      </Panel>
+        <Column>
+          <Panel
+            title="Climbs"
+            icon="log"
+            badge={
+              climbs.some(log => log.sample) ? <Tag text="Example" /> : undefined
+            }
+          >
+            {climbs.length === 0 ? (
+              <AppText>No {name.toLowerCase()} climbs logged yet.</AppText>
+            ) : (
+              climbs.map(log => <ClimbRow key={log.id} log={log} />)
+            )}
+            <Button title="Log a climb" icon="log" onPress={() => reset('Log')} />
+          </Panel>
+        </Column>
+      </Columns>
     </TabScreen>
   );
 }

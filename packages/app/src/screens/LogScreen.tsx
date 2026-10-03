@@ -11,6 +11,8 @@ import {
   AppText,
   Button,
   Chip,
+  Column,
+  Columns,
   Icon,
   PX,
   Panel,
@@ -94,142 +96,149 @@ export function LogScreen() {
     <TabScreen>
       <PageHeader title="Log" subtitle="Tap through it between climbs." />
 
-      <Panel title="Log a climb">
-        <View style={styles.form}>
-          <Group label="Wall">
-            <View style={styles.row}>
-              {TERRAINS.map(t => (
-                <WallTile
-                  key={t}
-                  terrain={t}
-                  selected={terrain === t}
-                  onPress={() => setTerrain(t)}
-                />
-              ))}
-            </View>
-          </Group>
-
-          <Group label="Moves">
-            <View style={styles.row}>
-              {MOVEMENTS.map(m => (
-                <View key={m} style={styles.cell}>
-                  <Chip
-                    label={MOVEMENT_NAME[m]}
-                    selected={movement === m}
-                    onPress={() => setMovement(m)}
-                  />
+      {/* Wide screens: the form on the left, today's climbs next to it. */}
+      <Columns>
+        <Column>
+          <Panel title="Log a climb">
+            <View style={styles.form}>
+              <Group label="Wall">
+                <View style={styles.row}>
+                  {TERRAINS.map(t => (
+                    <WallTile
+                      key={t}
+                      terrain={t}
+                      selected={terrain === t}
+                      onPress={() => setTerrain(t)}
+                    />
+                  ))}
                 </View>
-              ))}
-            </View>
-            <AppText variant="caption" muted>
-              Controlled is steady, hold to hold. Dynamic uses momentum, like
-              jumps and dynos.
-            </AppText>
-          </Group>
+              </Group>
 
-          <Group label="Grade">
-            <View style={[styles.row, styles.wrap]}>
-              {GRADES.map(g => (
-                <View key={g} style={styles.gradeCell}>
-                  <Chip
-                    label={g}
-                    selected={grade === g}
-                    onPress={() => setGrade(g)}
-                  />
+              <Group label="Moves">
+                <View style={styles.row}>
+                  {MOVEMENTS.map(m => (
+                    <View key={m} style={styles.cell}>
+                      <Chip
+                        label={MOVEMENT_NAME[m]}
+                        selected={movement === m}
+                        onPress={() => setMovement(m)}
+                      />
+                    </View>
+                  ))}
                 </View>
-              ))}
-            </View>
-          </Group>
-
-          <Group label="Result">
-            <View style={styles.row}>
-              <View style={styles.cell}>
-                <Chip
-                  label="Sent"
-                  selected={sent === true}
-                  onPress={() => setSent(true)}
-                />
-              </View>
-              <View style={styles.cell}>
-                <Chip
-                  label="Not yet"
-                  selected={sent === false}
-                  onPress={() => setSent(false)}
-                />
-              </View>
-            </View>
-          </Group>
-        </View>
-
-        <Button
-          title="Save climb"
-          icon="check"
-          disabled={!draft}
-          onPress={save}
-          accessibilityHint={
-            draft ? undefined : `Still to pick: ${missing.join(', ')}`
-          }
-        />
-        {/* Fixed height, so the list below does not jump as this changes. */}
-        <View style={styles.status}>
-          {/* Screen readers announce the confirmation when it appears. */}
-          <View accessibilityLiveRegion="polite">
-            {saved ? (
-              <View style={styles.inline}>
-                <Icon name="check" />
-                <AppText variant="caption">
-                  Saved: {climbName(saved)},{' '}
-                  {saved.sent ? 'sent' : 'not sent yet'}.
+                <AppText variant="caption" muted>
+                  Controlled is steady, hold to hold. Dynamic uses momentum, like
+                  jumps and dynos.
                 </AppText>
-              </View>
-            ) : null}
-          </View>
-          {!saved && missing.length > 0 ? (
-            <AppText variant="caption" muted>
-              Still to pick: {missing.join(', ')}.
-            </AppText>
-          ) : null}
-        </View>
-      </Panel>
+              </Group>
 
-      <Panel title="Today" icon="log">
-        {todays.length === 0 ? (
-          <AppText>No climbs logged today yet.</AppText>
-        ) : (
-          todays.map(log => (
-            <View key={log.id} style={styles.inline}>
-              <Icon name={TERRAIN_ICON[log.terrain]} />
-              <View style={styles.rowText}>
-                <AppText>{describe(log)}</AppText>
-                <Tag
-                  text={log.sent ? 'Sent' : 'Not yet'}
-                  tone={log.sent ? 'new' : 'muted'}
-                />
+              <Group label="Grade">
+                <View style={[styles.row, styles.wrap]}>
+                  {GRADES.map(g => (
+                    <View key={g} style={styles.gradeCell}>
+                      <Chip
+                        label={g}
+                        selected={grade === g}
+                        onPress={() => setGrade(g)}
+                      />
+                    </View>
+                  ))}
+                </View>
+              </Group>
+
+              <Group label="Result">
+                <View style={styles.row}>
+                  <View style={styles.cell}>
+                    <Chip
+                      label="Sent"
+                      selected={sent === true}
+                      onPress={() => setSent(true)}
+                    />
+                  </View>
+                  <View style={styles.cell}>
+                    <Chip
+                      label="Not yet"
+                      selected={sent === false}
+                      onPress={() => setSent(false)}
+                    />
+                  </View>
+                </View>
+              </Group>
+            </View>
+
+            <Button
+              title="Save climb"
+              icon="check"
+              disabled={!draft}
+              onPress={save}
+              accessibilityHint={
+                draft ? undefined : `Still to pick: ${missing.join(', ')}`
+              }
+            />
+            {/* Fixed height, so the list below does not jump as this changes. */}
+            <View style={styles.status}>
+              {/* Screen readers announce the confirmation when it appears. */}
+              <View accessibilityLiveRegion="polite">
+                {saved ? (
+                  <View style={styles.inline}>
+                    <Icon name="check" />
+                    <AppText variant="caption">
+                      Saved: {climbName(saved)},{' '}
+                      {saved.sent ? 'sent' : 'not sent yet'}.
+                    </AppText>
+                  </View>
+                ) : null}
               </View>
+              {!saved && missing.length > 0 ? (
+                <AppText variant="caption" muted>
+                  Still to pick: {missing.join(', ')}.
+                </AppText>
+              ) : null}
+            </View>
+          </Panel>
+        </Column>
+
+        <Column>
+          <Panel title="Today" icon="log">
+            {todays.length === 0 ? (
+              <AppText>No climbs logged today yet.</AppText>
+            ) : (
+              todays.map(log => (
+                <View key={log.id} style={styles.inline}>
+                  <Icon name={TERRAIN_ICON[log.terrain]} />
+                  <View style={styles.rowText}>
+                    <AppText>{describe(log)}</AppText>
+                    <Tag
+                      text={log.sent ? 'Sent' : 'Not yet'}
+                      tone={log.sent ? 'new' : 'muted'}
+                    />
+                  </View>
+                  <Button
+                    title="Remove"
+                    variant="secondary"
+                    small
+                    accessibilityLabel={`Remove ${describe(log)}`}
+                    onPress={() => removeClimb(log.id)}
+                  />
+                </View>
+              ))
+            )}
+          </Panel>
+
+          <Panel variant="quiet">
+            <View style={styles.inline}>
+              <AppText style={styles.grow}>Fingers feeling it?</AppText>
               <Button
-                title="Remove"
+                title="Check hands"
                 variant="secondary"
                 small
-                accessibilityLabel={`Remove ${describe(log)}`}
-                onPress={() => removeClimb(log.id)}
+                onPress={() => reset('Hands')}
+                accessibilityHint="Opens the Hands tab"
               />
             </View>
-          ))
-        )}
-      </Panel>
-
-      <Panel variant="quiet">
-        <View style={styles.inline}>
-          <AppText style={styles.grow}>Fingers feeling it?</AppText>
-          <Button
-            title="Check hands"
-            variant="secondary"
-            small
-            onPress={() => reset('Hands')}
-            accessibilityHint="Opens the Hands tab"
-          />
-        </View>
-      </Panel>
+          </Panel>
+        </Column>
+      </Columns>
     </TabScreen>
   );
 }
