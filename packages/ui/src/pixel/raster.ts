@@ -14,9 +14,10 @@ export type PixelRect = Readonly<{
   key: string;
 }>;
 
-const cache = new Map<string, PixelRect[]>();
+const cache = new Map<string, readonly PixelRect[]>();
 
-export function gridToRects(rows: readonly string[]): PixelRect[] {
+/** Results are cached and shared, so the list is read-only. */
+export function gridToRects(rows: readonly string[]): readonly PixelRect[] {
   const cacheKey = rows.join('\n');
   const hit = cache.get(cacheKey);
   if (hit) {
@@ -106,7 +107,7 @@ export class PixelCanvas {
   }
 
   get(x: number, y: number): string {
-    return this.cells[y]?.[x] ?? '.';
+    return this.cells[Math.round(y)]?.[Math.round(x)] ?? '.';
   }
 
   set(x: number, y: number, key: string): void {
@@ -127,6 +128,9 @@ export class PixelCanvas {
 
   /** Bresenham line. With `dash`, draws `dash` pixels then skips `dash`. */
   line(x0: number, y0: number, x1: number, y1: number, key: string, dash = 0) {
+    if (![x0, y0, x1, y1].every(Number.isFinite)) {
+      return; // a NaN end point would never be reached
+    }
     let x = Math.round(x0);
     let y = Math.round(y0);
     const xe = Math.round(x1);
@@ -155,11 +159,14 @@ export class PixelCanvas {
     }
   }
 
-  /** Fills a convex or concave polygon (even-odd rule, pixel centres). */
+  /**
+   * Fills a polygon (even-odd rule). Pixel (x, y) is tested at (x, y), the
+   * same point set() and line() round to, so the fill meets its outline.
+   */
   polygon(points: readonly (readonly [number, number])[], key: string) {
     for (let y = 0; y < this.height; y++) {
       for (let x = 0; x < this.width; x++) {
-        if (inside(points, x + 0.5, y + 0.5)) {
+        if (inside(points, x, y)) {
           this.set(x, y, key);
         }
       }

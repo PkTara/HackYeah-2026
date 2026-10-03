@@ -75,13 +75,18 @@ export function jungleScene(
 ): SceneLayout {
   const c = new PixelCanvas(cols, height);
   const rand = random(20261003);
+  // Stars and fireflies draw from their own generator, so the jungle is the
+  // same shape by day and by night.
+  const sky = random(7031962);
   const trunkWidth = 12;
   const trunkX = cols - trunkWidth - 12;
 
-  // Sky in three flat bands.
-  c.rect(0, 0, cols, Math.round(height * 0.38), '1');
-  c.rect(0, Math.round(height * 0.38), cols, Math.round(height * 0.3), '2');
-  c.rect(0, Math.round(height * 0.68), cols, height, '3');
+  // Sky in three flat bands that share their edges.
+  const band2 = Math.round(height * 0.38);
+  const band3 = band2 + Math.round(height * 0.3);
+  c.rect(0, 0, cols, band2, '1');
+  c.rect(0, band2, cols, band3 - band2, '2');
+  c.rect(0, band3, cols, height - band3, '3');
 
   // Sun (or moon) low on the left.
   const sx = Math.round(cols * 0.36);
@@ -95,7 +100,7 @@ export function jungleScene(
   }
   if (opts.night) {
     for (let i = 0; i < 26; i++) {
-      c.set(Math.floor(rand() * cols), Math.floor(rand() * height * 0.5), 'u');
+      c.set(Math.floor(sky() * cols), Math.floor(sky() * height * 0.5), 'u');
     }
   }
 
@@ -167,8 +172,8 @@ export function jungleScene(
 
   if (opts.night) {
     for (let i = 0; i < 12; i++) {
-      const x = Math.floor(rand() * (trunkX - 4));
-      const y = Math.floor(height * 0.3 + rand() * height * 0.5);
+      const x = Math.floor(sky() * (trunkX - 4));
+      const y = Math.floor(height * 0.3 + sky() * height * 0.5);
       c.set(x, y, 'y');
     }
   }

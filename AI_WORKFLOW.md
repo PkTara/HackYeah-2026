@@ -129,6 +129,7 @@ None yet. When the app gets an AI feature, document:
 
 **How the output was validated:**
 - `npm run check` (typecheck, lint, Jest) passes.
+- The pixel engine has 261 unit tests, including a lossless check that rebuilds 53 pictures from their rectangles. The test agent seeded 34 deliberate bugs into a scratch copy to confirm the tests catch them, and found two real ones (chart fill half a pixel off its outline, a possible gap in the sky at some heights), which were then fixed.
 - Every screen was rendered in Chromium through the web host at phone width, in light and dark mode, and inspected from screenshots.
 - `react-native bundle-harmony` builds a bundle and resolves `capabilities.harmony.ts`.
 - Not yet verified: running on a HarmonyOS device or emulator, and performance with the number of Views the pixel art uses (about 3,400 on the profile in the web build).

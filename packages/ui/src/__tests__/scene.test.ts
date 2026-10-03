@@ -103,9 +103,8 @@ describe('jungleScene', () => {
   // at some heights the last band starts one row below where the middle band
   // ends and that row stays transparent: row 25 at 38 rows, 32 at 48 and 43 at
   // 64. The hero's 62 rows are not affected.
-  // Change `it.failing` to `it` once the bands share their boundaries.
-  it.failing(
-    'covers every pixel at other heights too (known bug, expected to fail)',
+  it(
+    'covers every pixel at other heights too',
     () => {
       for (const height of [38, 48, 64]) {
         const scene = jungleScene(90, height, { night: false, holdRows: [] });
