@@ -22,29 +22,31 @@ export interface ClimbingBackend {
   /** Everything the app shows: climbs, flags, quest progress, reach. */
   load(): Promise<GameState>;
 
-  /** The id and date are made on the device, so a retried call is safe. */
-  addClimb(log: ClimbLog): Promise<void>;
-  removeClimb(id: string): Promise<void>;
-
-  /**
-   * Completing twice must not count twice (XP comes from unique ids).
-   * A backend that picks the quests itself answers with the new state, so
-   * the next quest shows straight away. The on-device backend answers nothing.
+  /*
+   * Writes. A backend that picks quests itself may answer any write with the
+   * new state. The app shows it once no other change is still saving. The
+   * on-device backend answers nothing.
    */
+
+  /** The id and date are made on the device, so a retried call is safe. */
+  addClimb(log: ClimbLog): Promise<GameState | void>;
+  removeClimb(id: string): Promise<GameState | void>;
+
+  /** Completing twice must not count twice (XP comes from unique ids). */
   completeQuest(questId: string): Promise<GameState | void>;
   skipQuest(questId: string): Promise<GameState | void>;
 
   /** Sets a finger flag on or off. Not a toggle, so retries are harmless. */
-  setHandFlag(flag: HandFlag, flagged: boolean): Promise<void>;
+  setHandFlag(flag: HandFlag, flagged: boolean): Promise<GameState | void>;
 
-  saveReach(reach: Reach): Promise<void>;
+  saveReach(reach: Reach): Promise<GameState | void>;
 
   /** First-run setup. Finishing also saves the reach, if one was given. */
-  finishOnboarding(result: OnboardingResult): Promise<void>;
-  skipOnboarding(): Promise<void>;
+  finishOnboarding(result: OnboardingResult): Promise<GameState | void>;
+  skipOnboarding(): Promise<GameState | void>;
 
   /** One home test done again from the Tests tab. Replaces that test's result. */
-  saveBaseline(result: BaselineResult): Promise<void>;
+  saveBaseline(result: BaselineResult): Promise<GameState | void>;
 
   /** Demo only: restore the sample data. Servers can leave this out. */
   resetDemo?(): Promise<GameState>;

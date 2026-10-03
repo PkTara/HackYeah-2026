@@ -404,7 +404,7 @@ function PartButton({
           shade={selected ? undefined : c.surfaceShade}
           shadow={c.backgroundDeep}
           lift={state.pressed || selected ? 0 : PX}
-          style={{ marginTop: state.pressed || selected ? PX : 0 }}
+          style={state.pressed || selected ? styles.sunk : null}
           contentStyle={styles.partInside}
         >
           <AppText style={[styles.partText, { color: selected ? c.onPrimary : c.text }]}>
@@ -437,4 +437,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   partText: { fontWeight: '700' },
+  sunk: { marginTop: PX },
 });

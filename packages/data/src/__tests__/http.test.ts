@@ -188,15 +188,20 @@ describe('climbs', () => {
     await Promise.all([backend.addClimb(climb), backend.removeClimb(climb.id)]);
 
     expect(api.only().climbs).toEqual([]);
-    const [added, deleted] = requests(api).slice(-2);
+    const [added, deleted, ...others] = requests(api).filter(r =>
+      /^(POST|DELETE) \/v1\/me\/climbs/.test(r),
+    );
     expect(added).toBe('POST /v1/me/climbs');
     expect(deleted).toMatch(/^DELETE \/v1\/me\/climbs\/climbs-\d+$/);
+    expect(others).toEqual([]);
   });
 
   it('counts a climb the server no longer has as removed', async () => {
     const { api, backend } = setup();
 
-    await expect(backend.removeClimb('gone')).resolves.toBeUndefined();
+    await expect(backend.removeClimb('gone')).resolves.toMatchObject({
+      logs: [],
+    });
     expect(requests(api)).toContain('DELETE /v1/me/climbs/gone');
   });
 
@@ -558,6 +563,102 @@ describe('setup and home tests', () => {
       ['plank', 75],
       ['push-ups', 20],
     ]);
+  });
+});
+
+describe('answers to changes', () => {
+  const flag: HandFlag = {
+    side: 'left',
+    finger: 'index',
+    date: '2026-10-03',
+    spots: ['a2', 'pip'],
+  };
+
+  it("answers a change with the fresh state, so the server's next quest shows", async () => {
+    const { api, backend } = setup();
+    const first = (await backend.load()).assigned!.id;
+    // What the server does once a finger is flagged: the assessment quest no
+    // longer fits, and a check-in comes next.
+    api.markStale(first);
+    api.queueQuests({
+      kind: 'recovery_checkin',
+      title: 'Check in with your hands',
+    });
+
+    const state = await backend.setHandFlag(flag, true);
+
+    expect(state).toMatchObject({
+      flags: [flag],
+      assigned: { kind: 'checkin', title: 'Check in with your hands' },
+    });
+  });
+
+  it('answers with server ids for climbs logged on the device', async () => {
+    const { api, backend } = setup();
+
+    const state = await backend.addClimb(climb);
+
+    expect(state && state.logs.map(l => l.id)).toEqual([
+      api.only().climbs[0].id,
+    ]);
+  });
+
+  it('adds a climb once when the same log is sent again', async () => {
+    const { api, backend } = setup();
+
+    await backend.addClimb(climb);
+    await backend.addClimb(climb);
+
+    expect(bodiesTo(api, '/v1/me/climbs')).toHaveLength(1);
+  });
+
+  it('answers nothing for changes that stay on the device', async () => {
+    const { api, backend } = setup();
+
+    await expect(backend.skipOnboarding()).resolves.toBeUndefined();
+    await expect(
+      backend.saveBaseline({
+        testId: 'plank',
+        value: 60,
+        unit: 'seconds',
+        method: 'stopwatch',
+        date: '2026-10-03',
+      }),
+    ).resolves.toBeUndefined();
+    expect(api.calls).toEqual([]);
+  });
+
+  it('answers nothing when the change was saved but reading back failed', async () => {
+    const api = createFakeApi();
+    let reading = true;
+    const fetch: FetchLike = (url, init) =>
+      reading || init.method !== 'GET'
+        ? api.fetch(url, init)
+        : Promise.reject(new Error('network down'));
+    const { backend } = setup({ api: { ...api, fetch } });
+    await backend.load();
+    reading = false;
+
+    await expect(backend.addClimb(climb)).resolves.toBeUndefined();
+    expect(api.only().climbs).toHaveLength(1);
+  });
+
+  it('needs the read back after a quest that no longer fits', async () => {
+    const api = createFakeApi();
+    let reading = true;
+    const fetch: FetchLike = (url, init) =>
+      reading || init.method !== 'GET'
+        ? api.fetch(url, init)
+        : Promise.reject(new Error('network down'));
+    const { backend } = setup({ api: { ...api, fetch } });
+    const first = (await backend.load()).assigned!.id;
+    api.markStale(first);
+    reading = false;
+
+    // The app showed the quest as done; without the read back it must reload.
+    await expect(backend.completeQuest(first)).rejects.toMatchObject({
+      status: 0,
+    });
   });
 });
 

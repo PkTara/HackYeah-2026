@@ -1,4 +1,4 @@
-import { View, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { PX, useTheme } from '../theme';
 
 type Props = {
@@ -14,21 +14,22 @@ type Props = {
  */
 export function Divider({ vertical = false, style }: Props) {
   const c = useTheme().colors;
-  const line = vertical ? { width: PX } : { height: PX };
+  const line = vertical ? styles.vertical : styles.horizontal;
   return (
     <View
       aria-hidden
       importantForAccessibility="no-hide-descendants"
-      style={[
-        {
-          flexDirection: vertical ? 'row' : 'column',
-          alignSelf: 'stretch',
-        },
-        style,
-      ]}
+      style={[vertical ? styles.row : styles.column, style]}
     >
-      <View style={[line, vertical ? { alignSelf: 'stretch' } : null, { backgroundColor: c.surfaceShade }]} />
-      <View style={[line, vertical ? { alignSelf: 'stretch' } : null, { backgroundColor: c.surfaceLight }]} />
+      <View style={[line, { backgroundColor: c.surfaceShade }]} />
+      <View style={[line, { backgroundColor: c.surfaceLight }]} />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  row: { flexDirection: 'row', alignSelf: 'stretch' },
+  column: { flexDirection: 'column', alignSelf: 'stretch' },
+  vertical: { width: PX, alignSelf: 'stretch' },
+  horizontal: { height: PX },
+});
