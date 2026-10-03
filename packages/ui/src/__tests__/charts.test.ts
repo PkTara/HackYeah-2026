@@ -298,9 +298,8 @@ describe('radialChart', () => {
     // up and left of the outline drawn through the same points (it samples at
     // x + 0.5 while line() rounds), so fill pixels poke out past the edge and
     // empty pixels are left just inside it. See raster.test.ts.
-    // Change `it.failing` to `it` once polygon() samples at (x, y).
-    it.failing(
-      'keeps the fill inside the edge (known bug, expected to fail)',
+    it(
+      'keeps the fill inside the edge',
       () => {
         const { rows } = chart({ striped: true });
         const out = outside(rows, 'E');

@@ -310,9 +310,8 @@ describe('PixelCanvas', () => {
     // through the same points: it pokes out past the top and left edges and
     // leaves holes along the bottom and right ones. Here (2, 0) is filled
     // outside the outline and (1, 2) stays empty inside it.
-    // Change `it.failing` to `it` once polygon() samples at (x, y).
-    it.failing(
-      'fills exactly the pixels its outline encloses (known bug, expected to fail)',
+    it(
+      'fills exactly the pixels its outline encloses',
       () => {
         const triangle: Point[] = [
           [4, 0],
@@ -342,5 +341,14 @@ describe('PixelCanvas', () => {
       'x',
     );
     expect(c.rows()).toEqual(['xxxx.', 'x..x.', 'x..x.', 'xxxx.', '.....']);
+  });
+});
+
+describe('PixelCanvas.line with bad input', () => {
+  it('returns at once for a NaN or infinite end point instead of hanging', () => {
+    const c = new PixelCanvas(5, 5);
+    c.line(0, 0, Number.NaN, 2, 'x');
+    c.line(0, 0, 3, Number.POSITIVE_INFINITY, 'x');
+    expect(c.rows().join('')).not.toContain('x');
   });
 });
