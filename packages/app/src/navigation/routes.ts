@@ -4,6 +4,7 @@ import { AnatomyScreen } from '../screens/AnatomyScreen';
 import { EvidenceScreen } from '../screens/EvidenceScreen';
 import { FingerScreen } from '../screens/FingerScreen';
 import { HandsScreen } from '../screens/HandsScreen';
+import { HomeTestScreen } from '../screens/HomeTestScreen';
 import { LogScreen } from '../screens/LogScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { TestsScreen } from '../screens/TestsScreen';
@@ -20,6 +21,8 @@ export const screens = {
   /** Params: side ('left' | 'right') and finger. */
   Finger: FingerScreen,
   Anatomy: AnatomyScreen,
+  /** Params: id, a home test id from core's BASELINE_TESTS. */
+  Test: HomeTestScreen,
 } satisfies Record<string, ComponentType>;
 
 export type RouteName = keyof typeof screens;

@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
-import { ageLabel, shortDate, type Reach } from '@hackyeah/core';
+import {
+  AREA_LABEL,
+  BASELINE_TESTS,
+  ageLabel,
+  formatResult,
+  shortDate,
+  type BaselineResult,
+  type BaselineTest,
+  type Reach,
+} from '@hackyeah/core';
 import {
   AppText,
   Button,
@@ -17,6 +26,7 @@ import { PageHeader } from '../components/PageHeader';
 import { TabScreen } from '../components/TabScreen';
 import { useNavigation } from '../navigation/Navigator';
 import type { RouteName } from '../navigation/routes';
+import { useSetup } from '../onboarding/OnboardingGate';
 import { useGame } from '../state/GameProvider';
 
 const MIN_CM = 100;
@@ -35,14 +45,17 @@ const NOT_BUILT = [
     text: 'This camera test will compare your left and right shoulder.',
   },
   {
-    title: 'Pulling',
-    text: 'You will enter reps or hang time once we pick a test protocol.',
-  },
-  {
     title: 'Finger strength',
     text: 'This needs a hangboard or a force gauge, and it is never guessed from a photo.',
   },
 ] as const;
+
+/** How a result was taken, in the words the climber used. */
+const METHOD_TEXT: Record<BaselineResult['method'], string> = {
+  stopwatch: 'timed',
+  counter: 'counted',
+  typed: 'typed in',
+};
 
 /** Whole centimetres from 100 to 250, otherwise null. */
 function parseCm(text: string): number | null {
@@ -69,23 +82,25 @@ function signedCm(cm: number): string {
 }
 
 /**
- * Assessments. Only the manual reach test works in this prototype; the
- * camera and strength tests are shown as honest "not built yet" cards.
+ * Assessments: the home tests from setup, manual reach, and honest "not
+ * built yet" cards for the camera and strength tests.
  */
 export function TestsScreen() {
   const { navigate } = useNavigation<RouteName>();
   const { backendKind } = useGame();
+  const { redoSetup } = useSetup();
 
   return (
     <TabScreen>
       <PageHeader
         title="Tests"
-        subtitle="Optional checks that add to your profile. Only reach works in this build."
+        subtitle="Optional checks you do yourself. They add to your profile and are never scored."
       />
 
-      {/* Wide screens: the working test on the left, the rest next to it. */}
+      {/* Wide screens: the working tests on the left, the rest next to it. */}
       <Columns>
         <Column>
+          <HomeTestsPanel />
           <ReachPanel />
         </Column>
 
@@ -108,6 +123,12 @@ export function TestsScreen() {
               small
               onPress={() => navigate('About')}
             />
+            <Button
+              title="Redo setup"
+              variant="secondary"
+              small
+              onPress={redoSetup}
+            />
             {/* Only the on-device demo store can be reset. */}
             {backendKind === 'local' ? <ResetDemo /> : null}
           </Panel>
@@ -117,7 +138,74 @@ export function TestsScreen() {
   );
 }
 
-/** Manual arm span and height. The only test that works in this build. */
+/** The six home tests from setup: latest result each, and a way to redo one. */
+function HomeTestsPanel() {
+  const { navigate } = useNavigation<RouteName>();
+  const { state, today } = useGame();
+  const { colors: c } = useTheme();
+  const done = state.baseline.length;
+
+  return (
+    <Panel
+      title="Home tests"
+      badge={<Tag text={`${done} of ${BASELINE_TESTS.length}`} tone="muted" />}
+    >
+      <AppText variant="caption" muted>
+        About a minute each, no gear beyond a bar and a ruler. What you
+        measured, not a score.
+      </AppText>
+      {BASELINE_TESTS.map(test => (
+        <View key={test.id}>
+          {/* Linked rows share one tray, split by a rule. */}
+          <View style={[styles.rule, { backgroundColor: c.surfaceShade }]} />
+          <HomeTestRow
+            test={test}
+            result={state.baseline.find(r => r.testId === test.id)}
+            today={today}
+            onPress={() => navigate('Test', { id: test.id })}
+          />
+        </View>
+      ))}
+    </Panel>
+  );
+}
+
+function HomeTestRow({
+  test,
+  result,
+  today,
+  onPress,
+}: {
+  test: BaselineTest;
+  result: BaselineResult | undefined;
+  today: string;
+  onPress: () => void;
+}) {
+  const name = test.name.toLowerCase();
+  return (
+    <View style={styles.testRow}>
+      <View style={styles.grow}>
+        <AppText>{test.name}</AppText>
+        <AppText variant="caption" muted>
+          {result
+            ? `${formatResult(result.unit, result.value)}, ${
+                METHOD_TEXT[result.method]
+              } ${ageLabel(result.date, today)}`
+            : `Not done yet. ${AREA_LABEL[test.area]}.`}
+        </AppText>
+      </View>
+      <Button
+        title={result ? 'Redo' : 'Do it'}
+        variant={result ? 'secondary' : 'primary'}
+        small
+        accessibilityLabel={`${result ? 'Redo' : 'Do'} ${name}`}
+        onPress={onPress}
+      />
+    </View>
+  );
+}
+
+/** Manual arm span and height. */
 function ReachPanel() {
   const { state, today, saveReach, syncError } = useGame();
   const reach = state.reach;
@@ -363,4 +451,11 @@ const styles = StyleSheet.create({
   stats: { flexDirection: 'row', gap: 16 },
   stat: { flex: 1, gap: 4 },
   rule: { height: PX },
+  testRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingTop: 10,
+  },
+  grow: { flex: 1, gap: 2 },
 });

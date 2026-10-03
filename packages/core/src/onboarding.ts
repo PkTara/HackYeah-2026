@@ -155,10 +155,10 @@ export function connectionsFor(
     platform === 'ios'
       ? ['apple-health']
       : platform === 'android'
-        ? ['health-connect']
-        : platform === 'harmony'
-          ? []
-          : ['apple-health', 'health-connect'];
+      ? ['health-connect']
+      : platform === 'harmony'
+      ? []
+      : ['apple-health', 'health-connect'];
   return ['strava', 'huawei-health', ...store, 'garmin'];
 }
 
@@ -260,7 +260,8 @@ export const BASELINE_TESTS: readonly BaselineTest[] = [
     id: 'sit-and-reach',
     name: 'Sit and reach',
     area: 'flexibility',
-    measures: 'How far you can fold forward, which needs loose hamstrings and lower back.',
+    measures:
+      'How far you can fold forward, which needs loose hamstrings and lower back.',
     unit: 'cm',
     input: 'counter',
     equipment: 'Some floor and a ruler or tape measure. A friend helps.',
@@ -275,7 +276,8 @@ export const BASELINE_TESTS: readonly BaselineTest[] = [
     id: 'plank',
     name: 'Plank',
     area: 'body-tension',
-    measures: 'How long you can keep your body straight and stiff, like on a steep wall.',
+    measures:
+      'How long you can keep your body straight and stiff, like on a steep wall.',
     unit: 'seconds',
     input: 'stopwatch',
     equipment: 'Some floor. A mat if you have one.',
@@ -305,7 +307,8 @@ export const BASELINE_TESTS: readonly BaselineTest[] = [
     id: 'push-ups',
     name: 'Push-ups',
     area: 'pushing-strength',
-    measures: 'How strong your pushing muscles are. Climbing mostly pulls, so these often lag behind.',
+    measures:
+      'How strong your pushing muscles are. Climbing mostly pulls, so these often lag behind.',
     unit: 'reps',
     input: 'counter',
     equipment: 'Some floor.',
@@ -416,7 +419,10 @@ export function isValidBody(body: Body): boolean {
 }
 
 /** Error for a test result, or null when it is fine. */
-export function baselineError(test: BaselineTest, value: number): string | null {
+export function baselineError(
+  test: BaselineTest,
+  value: number,
+): string | null {
   const { min, max } = BASELINE_LIMITS[test.unit];
   return rangeError(value, min, max);
 }
@@ -477,6 +483,57 @@ export function buildOnboardingResult(
     baseline,
     skippedTests,
   };
+}
+
+/**
+ * Accepts a saved result only if it has the shape buildOnboardingResult makes;
+ * anything else reads as "setup not done" so the flow simply runs again.
+ */
+export function parseOnboardingResult(value: unknown): OnboardingResult | null {
+  const v = value as Partial<OnboardingResult> | null | undefined;
+  const details = v?.details as Partial<ClimberDetails> | undefined;
+  const ok =
+    v?.version === ONBOARDING_VERSION &&
+    typeof v.date === 'string' &&
+    Array.isArray(v.connections) &&
+    Array.isArray(v.baseline) &&
+    Array.isArray(v.skippedTests) &&
+    Array.isArray(details?.places) &&
+    typeof details?.experience === 'string' &&
+    typeof details?.grade === 'string' &&
+    typeof details?.goal === 'string';
+  return ok ? (v as OnboardingResult) : null;
+}
+
+/** Keeps only well-formed results; a bad entry is dropped, not the lot. */
+export function parseBaselineResults(value: unknown): BaselineResult[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter(
+    (r): r is BaselineResult =>
+      BASELINE_TESTS.some(t => t.id === r?.testId && t.unit === r?.unit) &&
+      typeof r.value === 'number' &&
+      Number.isFinite(r.value) &&
+      typeof r.method === 'string' &&
+      typeof r.date === 'string',
+  );
+}
+
+/**
+ * Newer results replace older ones for the same test. The list stays in
+ * test order, so screens can show it as is.
+ */
+export function mergeBaseline(
+  old: readonly BaselineResult[],
+  incoming: readonly BaselineResult[],
+): BaselineResult[] {
+  return BASELINE_TESTS.flatMap(test => {
+    const r =
+      incoming.find(x => x.testId === test.id) ??
+      old.find(x => x.testId === test.id);
+    return r ? [r] : [];
+  });
 }
 
 // Wording

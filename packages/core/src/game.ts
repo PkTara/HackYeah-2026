@@ -3,6 +3,14 @@
  * The UI derives the profile, focus, quest and monkey level from this state.
  */
 import { normalizeClimbLog, type ClimbLog } from './climbing';
+import {
+  mergeBaseline,
+  parseBaselineResults,
+  parseOnboardingResult,
+  type BaselineResult,
+  type OnboardingResult,
+} from './onboarding';
+import type { Quest } from './quests';
 
 export type Side = 'left' | 'right';
 export type Finger = 'thumb' | 'index' | 'middle' | 'ring' | 'little';
@@ -39,6 +47,17 @@ export type GameState = Readonly<{
   /** Ids of quests the climber swapped away, oldest first. */
   skipped: readonly string[];
   reach: Reach | null;
+  /** First-run setup answers. Null until setup is finished. */
+  onboarding: OnboardingResult | null;
+  /** The climber skipped setup, so the app stops asking. */
+  onboardingSkipped: boolean;
+  /** Latest home test result per test, from setup or the Tests tab. */
+  baseline: readonly BaselineResult[];
+  /**
+   * The quest a server picked. Undefined means the app picks one from its own
+   * library (the on-device backend). Null means the server has none right now.
+   */
+  assigned?: Quest | null;
 }>;
 
 export type GameAction =
@@ -49,6 +68,10 @@ export type GameAction =
   /** Explicit on/off (not a toggle) so repeating it is harmless. */
   | { type: 'setFlag'; flag: HandFlag; flagged: boolean }
   | { type: 'saveReach'; reach: Reach }
+  /** Also saves the reach and the test results from setup. */
+  | { type: 'finishOnboarding'; result: OnboardingResult }
+  | { type: 'skipOnboarding' }
+  | { type: 'saveBaseline'; result: BaselineResult }
   | { type: 'load'; state: GameState }
   | { type: 'reset'; state: GameState };
 
@@ -59,7 +82,15 @@ export const emptyGame: GameState = {
   completed: [],
   skipped: [],
   reach: null,
+  onboarding: null,
+  onboardingSkipped: false,
+  baseline: [],
 };
+
+/** A server quest that was just completed or skipped is no longer on offer. */
+function dropAssigned(state: GameState, questId: string): GameState {
+  return state.assigned?.id === questId ? { ...state, assigned: null } : state;
+}
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
@@ -71,19 +102,25 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (state.completed.includes(action.questId)) {
         return state; // already counted, no double XP
       }
-      return {
-        ...state,
-        completed: [...state.completed, action.questId],
-        skipped: state.skipped.filter(id => id !== action.questId),
-      };
+      return dropAssigned(
+        {
+          ...state,
+          completed: [...state.completed, action.questId],
+          skipped: state.skipped.filter(id => id !== action.questId),
+        },
+        action.questId,
+      );
     case 'skipQuest':
-      return {
-        ...state,
-        skipped: [
-          ...state.skipped.filter(id => id !== action.questId),
-          action.questId,
-        ],
-      };
+      return dropAssigned(
+        {
+          ...state,
+          skipped: [
+            ...state.skipped.filter(id => id !== action.questId),
+            action.questId,
+          ],
+        },
+        action.questId,
+      );
     case 'setFlag': {
       const same = (f: HandFlag) =>
         f.side === action.flag.side && f.finger === action.flag.finger;
@@ -100,6 +137,24 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     }
     case 'saveReach':
       return { ...state, reach: action.reach };
+    case 'finishOnboarding': {
+      const { body } = action.result.details;
+      return {
+        ...state,
+        onboarding: action.result,
+        onboardingSkipped: false,
+        reach: body ? { ...body, date: action.result.date } : state.reach,
+        // Tests skipped this time keep their earlier results.
+        baseline: mergeBaseline(state.baseline, action.result.baseline),
+      };
+    }
+    case 'skipOnboarding':
+      return { ...state, onboardingSkipped: true };
+    case 'saveBaseline':
+      return {
+        ...state,
+        baseline: mergeBaseline(state.baseline, [action.result]),
+      };
     case 'load':
     case 'reset':
       return action.state;
@@ -119,14 +174,21 @@ export function parseGameState(json: string | null): GameState | null {
       Array.isArray(value.flags) &&
       Array.isArray(value.completed) &&
       Array.isArray(value.skipped);
-    return ok
-      ? {
-          ...emptyGame,
-          ...value,
-          logs: value.logs.map(normalizeClimbLog),
-          flags: value.flags.map(withSpots),
-        }
-      : null;
+    if (!ok) {
+      return null;
+    }
+    const saved: GameState = {
+      ...emptyGame,
+      ...value,
+      logs: value.logs.map(normalizeClimbLog),
+      flags: value.flags.map(withSpots),
+      onboarding: parseOnboardingResult(value.onboarding),
+      onboardingSkipped: value.onboardingSkipped === true,
+      baseline: parseBaselineResults(value.baseline),
+    };
+    // Only a server picks quests, and it is asked again on every load.
+    delete (saved as { assigned?: unknown }).assigned;
+    return saved;
   } catch {
     return null;
   }

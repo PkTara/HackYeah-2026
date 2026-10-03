@@ -50,7 +50,16 @@ export const sampleGame: GameState = {
   version: 1,
   logs: sampleLogs,
   flags: [],
-  completed: ['sample-onboarding', 'sample-first-log', 'sample-reach', 'sample-checkin'],
+  completed: [
+    'sample-onboarding',
+    'sample-first-log',
+    'sample-reach',
+    'sample-checkin',
+  ],
   skipped: [],
   reach: null,
+  // Setup still runs on first launch of the demo.
+  onboarding: null,
+  onboardingSkipped: false,
+  baseline: [],
 };

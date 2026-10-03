@@ -1,7 +1,11 @@
 import ReactTestRenderer, { act } from 'react-test-renderer';
+import { sampleGame, type GameState } from '@hackyeah/core';
 import { createLocalBackend, type ClimbingBackend } from '@hackyeah/data';
 import { createMemoryStore, type Capabilities } from '@hackyeah/platform';
 import { App } from '../App';
+
+/** The demo data with setup already skipped, so the app opens on the profile. */
+const SET_UP: GameState = { ...sampleGame, onboardingSkipped: true };
 
 function createFakeCapabilities(): Capabilities {
   return {
@@ -14,14 +18,16 @@ function createFakeCapabilities(): Capabilities {
 
 type Renderer = ReactTestRenderer.ReactTestRenderer;
 
-/** Finds a pressable by its accessibilityLabel and presses it. */
-function press(renderer: Renderer, label: string) {
-  const target = renderer.root.find(
-    node =>
-      typeof node.props.onPress === 'function' &&
-      node.props.accessibilityLabel === label,
-  );
-  act(() => target.props.onPress());
+/** Finds each pressable by its accessibilityLabel and presses them in turn. */
+function press(renderer: Renderer, ...labels: string[]) {
+  for (const label of labels) {
+    const target = renderer.root.find(
+      node =>
+        typeof node.props.onPress === 'function' &&
+        node.props.accessibilityLabel === label,
+    );
+    act(() => target.props.onPress());
+  }
 }
 
 function screenText(renderer: Renderer) {
@@ -30,7 +36,7 @@ function screenText(renderer: Renderer) {
 
 async function renderApp(
   capabilities = createFakeCapabilities(),
-  backend?: ClimbingBackend,
+  backend: ClimbingBackend = createLocalBackend(capabilities.storage, SET_UP),
 ) {
   let renderer!: Renderer;
   await act(async () => {
@@ -95,7 +101,7 @@ describe('App', () => {
   });
 
   it('puts the saved state back and says so when a save fails', async () => {
-    const local = createLocalBackend(createMemoryStore());
+    const local = createLocalBackend(createMemoryStore(), SET_UP);
     const backend: ClimbingBackend = {
       ...local,
       kind: 'remote',
@@ -109,6 +115,103 @@ describe('App', () => {
 
     expect(screenText(renderer)).toContain('Could not save that change');
     expect(screenText(renderer)).toContain('Lvl 1');
+    act(() => renderer.unmount());
+  });
+
+  it('shows the quest a server picked instead of one from the library', async () => {
+    const assigned = {
+      id: 'srv-1',
+      kind: 'checkin' as const,
+      title: 'Check in with your hands',
+      task: 'Record how your hand feels today.',
+      why: 'Current hand discomfort was reported.',
+      minutes: 1,
+      equipment: 'None',
+      loadsFingers: false,
+    };
+    const next = {
+      ...assigned,
+      id: 'srv-2',
+      title: 'Understand your starting point',
+    };
+    const local = createLocalBackend(createMemoryStore(), {
+      ...SET_UP,
+      assigned,
+    });
+    const backend: ClimbingBackend = {
+      ...local,
+      kind: 'remote',
+      // The server answers a completion with its next pick.
+      completeQuest: async id => ({
+        ...SET_UP,
+        completed: [...SET_UP.completed, id],
+        assigned: next,
+      }),
+    };
+    const renderer = await renderApp(createFakeCapabilities(), backend);
+    expect(screenText(renderer)).toContain('Check in with your hands');
+    expect(screenText(renderer)).not.toContain('Quiet feet');
+
+    press(renderer, 'Done');
+    press(renderer, 'Nice');
+    await act(async () => {});
+    expect(screenText(renderer)).toContain('Understand your starting point');
+    expect(screenText(renderer)).toContain('Lvl 2');
+    act(() => renderer.unmount());
+  });
+});
+
+describe('first launch', () => {
+  it('runs setup first, and remembers a skip', async () => {
+    const capabilities = createFakeCapabilities();
+    const fresh = () => createLocalBackend(capabilities.storage);
+    const renderer = await renderApp(capabilities, fresh());
+    expect(screenText(renderer)).toContain('Skip setup');
+    expect(screenText(renderer)).not.toContain('Quiet feet');
+
+    press(renderer, 'Skip setup');
+    expect(screenText(renderer)).toContain('Quiet feet');
+    await act(async () => {});
+    act(() => renderer.unmount());
+
+    // Opened again: straight to the profile.
+    const again = await renderApp(capabilities, fresh());
+    expect(screenText(again)).toContain('Quiet feet');
+    expect(screenText(again)).not.toContain('Skip setup');
+    act(() => again.unmount());
+  });
+
+  it('saves the answers, and can run setup again from Tests', async () => {
+    const capabilities = createFakeCapabilities();
+    const renderer = await renderApp(
+      capabilities,
+      createLocalBackend(capabilities.storage),
+    );
+    press(renderer, 'Start');
+    press(renderer, 'Outdoors', 'Next');
+    press(renderer, '2 to 5 years', 'Next');
+    press(renderer, 'V4', 'Next');
+    press(renderer, 'Get stronger fingers', 'Next');
+    press(renderer, 'Skip reach', 'Skip apps', 'Skip for now');
+    press(renderer, 'Go to my profile');
+    expect(screenText(renderer)).toContain('Quiet feet');
+    await act(async () => {});
+
+    const saved = async () =>
+      JSON.parse(
+        (await capabilities.storage.getItem('climbing-monkey/game/v1')) ?? '{}',
+      );
+    expect((await saved()).onboarding.details.goal).toBe('finger-strength');
+
+    // A rerun that is skipped keeps the first answers.
+    press(renderer, 'Tests');
+    press(renderer, 'Redo setup');
+    expect(screenText(renderer)).toContain('Skip setup');
+    press(renderer, 'Skip setup');
+    await act(async () => {});
+    expect(screenText(renderer)).not.toContain('Skip setup');
+    expect((await saved()).onboarding.details.goal).toBe('finger-strength');
+    expect((await saved()).onboardingSkipped).toBe(false);
     act(() => renderer.unmount());
   });
 });

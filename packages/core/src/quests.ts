@@ -6,7 +6,8 @@
  */
 import type { Focus, Terrain } from './climbing';
 
-export type QuestKind = 'log' | 'practice' | 'plan' | 'checkin';
+/** 'assess' only comes from a server: record a measurement. */
+export type QuestKind = 'log' | 'practice' | 'plan' | 'checkin' | 'assess';
 
 export type Quest = Readonly<{
   id: string;
@@ -154,7 +155,8 @@ export function pickQuest(
   const fitsFocus = (q: Quest) =>
     focus.kind === 'explore'
       ? q.kind === 'log' && q.terrain === focus.terrain
-      : q.kind !== 'log' && (q.terrain === undefined || q.terrain === focus.terrain);
+      : q.kind !== 'log' &&
+        (q.terrain === undefined || q.terrain === focus.terrain);
 
   const candidates = QUESTS.filter(
     q =>

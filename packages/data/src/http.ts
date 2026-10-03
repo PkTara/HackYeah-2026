@@ -4,12 +4,7 @@
  */
 import { BackendError, type ClimbingBackend } from './backend';
 import { endpoints, type Route } from './endpoints';
-import {
-  fromProfileDto,
-  toClimbDto,
-  toHandFlagDto,
-  toReachDto,
-} from './wire';
+import { fromProfileDto, toClimbDto, toHandFlagDto, toReachDto } from './wire';
 
 /** The part of fetch we use. Typed locally so tests can pass a fake. */
 export type FetchLike = (
@@ -59,7 +54,10 @@ export function createHttpBackend(opts: HttpBackendOptions): ClimbingBackend {
     const controller = globals.AbortController
       ? new globals.AbortController()
       : null;
-    const timer = setTimeout(() => controller?.abort(), opts.timeoutMs ?? 10_000);
+    const timer = setTimeout(
+      () => controller?.abort(),
+      opts.timeoutMs ?? 10_000,
+    );
     const what = `${route.method} ${route.path}`;
     let response;
     try {
@@ -76,7 +74,10 @@ export function createHttpBackend(opts: HttpBackendOptions): ClimbingBackend {
     }
 
     if (!response.ok) {
-      throw new BackendError(`${what} failed with ${response.status}`, response.status);
+      throw new BackendError(
+        `${what} failed with ${response.status}`,
+        response.status,
+      );
     }
     const text = await response.text();
     return text ? JSON.parse(text) : null;
@@ -106,5 +107,9 @@ export function createHttpBackend(opts: HttpBackendOptions): ClimbingBackend {
     saveReach: async reach => {
       await call(endpoints.saveReach(), toReachDto(reach));
     },
+    // Placeholder until the real API is wired in the next change.
+    finishOnboarding: async () => {},
+    skipOnboarding: async () => {},
+    saveBaseline: async () => {},
   };
 }
