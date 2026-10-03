@@ -193,7 +193,7 @@ Provide labeled controls, screen-reader summaries of charts, non-color state ind
 
 ## Proposed technical shape
 
-Use the repository's existing React Native structure, with HarmonyOS as the current native target and web as a supporting host.
+Use the repository's existing React Native structure: one codebase for Android, iOS and the web.
 
 | Layer | Responsibility |
 |---|---|
@@ -206,7 +206,7 @@ Use the repository's existing React Native structure, with HarmonyOS as the curr
 
 Data flow: camera/manual/imported input → quality checks and normalization → confirmed observation → persisted history → profile rules → explained result.
 
-Backend implementation now exists for anonymous profiles, confirmed records, descriptive style summaries, assessment trends, private hand photos, historical discomfort maps, eligible journal/reflection quests, pet XP and optional pose analysis. The React Native UI is still the scaffold and is not yet wired to those APIs. Server measurements and stored records are opt-in capabilities; the client must show what leaves the device and obtain upload/retention consent.
+Backend implementation now exists for anonymous profiles, confirmed records, descriptive style summaries, assessment trends, private hand photos, historical discomfort maps, eligible journal/reflection quests, pet XP and optional pose analysis. The web app saves to the FastAPI backend when `VITE_MONKEY_API_URL` is set. Climbs, finger flags, reach, the setup goal and two home tests go to the server; quests and XP come from it. Other setup answers and home tests stay on the device. Server measurements and stored records are opt-in capabilities; the client must show what leaves the device and obtain upload/retention consent.
 
 Core records: `ClimberProfile`, `AssessmentResult`, `ActivityRecord`, `HandObservation`, `PhotoAsset` and `ProfileInsight`. An insight references the observations and rule version that produced it. A hand observation records side, view, anatomical region, timestamp, symptoms and optional photo; hand landmark detection must not silently decide the affected region.
 
@@ -214,7 +214,7 @@ Gamification records: `PetProgress`, versioned `QuestDefinition`, `AssignedQuest
 
 MediaPipe is a candidate, not a settled dependency. Google documents body landmarks in image/world coordinates and hand landmark detection, which could support overlays and movement estimates. Those capabilities do not themselves provide calibrated anthropometry or injury assessment. See the [Pose Landmarker guide](https://developers.google.com/edge/mediapipe/solutions/vision/pose_landmarker) and [Hand Landmarker guide](https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker).
 
-The documentation reviewed does not establish a ready-to-use HarmonyOS/RNOH integration. The Python backend now provides an optional MediaPipe Tasks image adapter; real inference on an official sample succeeded outside the macOS sandbox. This does not establish on-device HarmonyOS feasibility. Validate native capture, client consent, latency and any native inference bridge separately. Manual assessment entry remains available; demonstration data must be labeled.
+The documentation reviewed does not establish a ready-to-use React Native integration for Android or iOS. The Python backend now provides an optional MediaPipe Tasks image adapter; real inference on an official sample succeeded outside the macOS sandbox. This does not establish on-device feasibility on phones. Validate native capture, client consent, latency and any native inference bridge separately. Manual assessment entry remains available; demonstration data must be labeled.
 
 ## Privacy and failure behavior
 
@@ -237,17 +237,15 @@ The documentation reviewed does not establish a ready-to-use HarmonyOS/RNOH inte
 
 **Later:** broader assessments, clinically reviewed pain routing, recovery guidance and richer climbing-video coaching.
 
-Success for the first demo means the connected loop works on the demonstrated host, every profile statement links to its evidence, poor captures fail clearly, and the hand/wellbeing journal visibly changes relevant quest eligibility. Users should be able to name one focus, explain why it was suggested and choose an achievable action. Mocked inputs must be labeled. Running on HarmonyOS is a separate verification requirement if that host is presented as working.
+Success for the first demo means the connected loop works on the demonstrated host, every profile statement links to its evidence, poor captures fail clearly, and the hand/wellbeing journal visibly changes relevant quest eligibility. Users should be able to name one focus, explain why it was suggested and choose an achievable action. Mocked inputs must be labeled. Running on Android or iOS is a separate verification requirement if a phone build is presented as working.
 
 ### Fit with the supplied hackathon context
 
 The primary product brief is **Open: Sport & Healthcare**. Its criteria are innovation 30%, category fit 20%, usability 20%, design 20% and completeness/implementation value 10%. The profile, achievable quests, accessible presentation and sustainable monkey progression directly support the brief. The jungle theme supports design quality but cannot replace practical value. See the [sports track digest](../context/tracks/open-sport-healthcare.md).
 
-Prioritize a working connected flow using climb records, one assessment and a wellbeing observation. Manual data entry can demonstrate this connection; real Strava/health integrations and live inference are stretch goals, not track eligibility conditions. Keep the existing HarmonyOS implementation choice, but do not trade away the user journey merely to maximize native features.
+Prioritize a working connected flow using climb records, one assessment and a wellbeing observation. Manual data entry can demonstrate this connection; real Strava/health integrations and live inference are stretch goals, not track eligibility conditions. Do not trade away the user journey merely to maximize native features.
 
 Sports submission: title, team, members, description and a PDF deck of at most 10 slides. The track permits Polish or English; the supplied general upload form requires English fields/materials, a title of at most five words, description of at most 500 words and at least one gallery image. Prepare to those narrower limits. A repository, demo link and up-to-60-second video are optional for sports; disclosure of significant AI/external resources is required. Keep `AI_WORKFLOW.md` as our disclosure log. See [submission constraints](../context/ProjectSubmissionUpload.md). The start-time wording and submission-platform mismatch remain organizer questions.
-
-**Separate Huawei option:** only if submitting there, apply its API 20+, working `.hap`, device/emulator demo, public repository, recorded demo, reproducibility and `AI_WORKFLOW.md` requirements. Native platform capability has a separate 20% weight there. These do not transfer to the sports open task. See [Huawei requirements](../context/tracks/huawei-harmonyos.md).
 
 ## Further features from research
 
@@ -269,7 +267,7 @@ These are candidates, not additional commitments for the first version. The char
 - Check that users can identify a terrain strength, an unknown style and a next action from the overview; verify charts preserve independent abilities and do not imply a validated grade prediction.
 - Check that symptom flags pause the intended suggestions and cannot be interpreted as medical clearance.
 - Verify quests reference supporting evidence, respect exclusions and can be skipped; completion awards XP once, persists across restarts and never changes ability scores without new evidence.
-- Validate camera/inference and storage on HarmonyOS hardware or the appropriate emulator; assess privacy and performance before adding remote services.
+- Validate camera/inference and storage on Android and iOS phones or emulators; assess privacy and performance before adding remote services.
 
 ## Decisions for the next discussion
 

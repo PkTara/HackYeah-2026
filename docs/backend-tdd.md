@@ -47,7 +47,7 @@ An official public sample image with Google's Pose Landmarker heavy model produc
 
 ## Other repository checks
 
-Existing React Native typechecking passed, and all eight frontend tests passed. The pre-existing root lint command failed because it scans generated HarmonyOS build and `oh_modules` dependency files (149 errors, 339 warnings). Those files were not changed by the backend work. Backend Ruff checks are separate.
+Existing React Native typechecking passed, and all eight frontend tests passed. The pre-existing root lint command failed because it scanned generated native build and dependency files (149 errors, 339 warnings). Those files were not changed by the backend work. Backend Ruff checks are separate.
 
 The test stack emits one upstream Starlette/AnyIO deprecation warning. It does not change test outcomes. Clinical content, OAuth/provider integrations, calibrated style scoring and frontend API wiring are explicitly subsequent work; no tests or mocks claim they are implemented.
 

@@ -8,7 +8,7 @@ Date: 3 October 2026. Assessment of the **design**, not a claim that proposed fe
 
 The main risk is a visually attractive collection of disconnected features. A triangle, pose test, hand photo and monkey only become a strong solution when the demo shows how their information changes a real decision. A grade-like shape alone is not enough, and the current documents do not establish a validated style score or effective personalized training program.
 
-The primary source is the [sports-track digest](../context/tracks/open-sport-healthcare.md), with page references and links to both supplied PDFs. The [product design](climbing-app-design.md) now uses that brief. HarmonyOS remains the existing engineering target, while Huawei's competition conditions are kept separate.
+The primary source is the [sports-track digest](../context/tracks/open-sport-healthcare.md), with page references and links to both supplied PDFs. The [product design](climbing-app-design.md) now uses that brief.
 
 ## Requirement-to-design mapping
 
@@ -69,11 +69,11 @@ For a 60-second video, compress this into the visible decision loop. A video is 
 
 **Later:** broad form coaching, clinical symptom routing, diagnostic claims, calibrated grade predictions and personalized exercise prescriptions. These introduce validation work that is unnecessary for the open task's central need.
 
-## Track and submission distinction
+## Track and submission requirements
 
-Sports has no required OS or native feature. Keep the current HarmonyOS build if it is the best available demonstration route; a functioning web prototype can also fit the sports brief. A web demo does not prove a HarmonyOS feature works.
+Sports has no required OS or native feature. Demonstrate on whichever host runs the full loop most reliably: an Android or iOS build and a functioning web prototype both fit the sports brief. A web demo does not prove a phone-only feature works.
 
-Sports weights are **30/20/20/20/10** for innovation/category/usability/design/completeness. Huawei uses different criteria and additional technical deliverables. Do not claim the sports judges allocate 20% to native platform capabilities.
+Sports weights are **30/20/20/20/10** for innovation/category/usability/design/completeness. No criterion scores native platform capabilities.
 
 Required track materials: title, team, 1–6 members, description and a PDF deck of at most 10 slides. Prepare to the supplied upload form's English requirements, five-word title limit, 500-word description limit and required gallery image. “Climbing Monkey” fits the title limit. Significant AI/external-resource disclosure is required; maintain the existing AI log.
 
