@@ -58,7 +58,7 @@ export function HomeTestScreen() {
         />
         <TestStep
           test={test}
-          index={index + 1}
+          title="How it works"
           result={draft}
           onResult={(value, method) =>
             setDraft(value === null ? undefined : { value, method })
