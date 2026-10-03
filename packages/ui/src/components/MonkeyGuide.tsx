@@ -9,7 +9,7 @@ import { PixelArt } from './PixelArt';
 import { SpeechBubble } from './SpeechBubble';
 
 /** Height of the jungle strip in art pixels. */
-export const GUIDE_HEIGHT = 44;
+export const GUIDE_HEIGHT = 48;
 
 /**
  * The guide monkey is the companion sprite without its climbing hold: it
@@ -29,8 +29,11 @@ const REACH_RIGHT = FIST.to - GRIP_X;
 /** Sprite column of the face, where the bubble's tail points. */
 const FACE_X = 13;
 
-/** Fist row for each perch, so the vines hang to different lengths. */
-const GRIP_ROWS = [12, 15, 10, 14, 11, 16, 13];
+/**
+ * Fist row for each perch, so the vines hang to different lengths. High
+ * enough that the feet dangle well above the bushes.
+ */
+const GRIP_ROWS = [10, 12, 8, 11, 9, 12, 10];
 
 /** A hop is HOP_FRAMES steps of HOP_MS. */
 export const HOP_FRAMES = 10;
@@ -144,9 +147,9 @@ export function guideStrip(
   for (let x = 0; x < cols; x++) {
     const hill = stepped(9 + 3 * Math.sin(x / 6) + 2 * Math.sin(x / 2.7 + 1));
     c.rect(x, height - hill, 1, hill, 'f');
-    const drop = stepped(7 + 2 * Math.sin(x / 4.5 + 1) + 2 * Math.sin(x / 1.9));
+    const drop = stepped(5 + 2 * Math.sin(x / 4.5 + 1) + Math.sin(x / 1.9));
     c.rect(x, 0, 1, drop, 'f');
-    const top = stepped(4 + 2 * Math.sin(x / 3.3 + 2));
+    const top = stepped(3 + 1.5 * Math.sin(x / 3.3 + 2));
     c.rect(x, 0, 1, top, 'm');
     const bush = stepped(5 + 2 * Math.sin(x / 4 + 0.5));
     c.rect(x, height - bush, 1, bush, 'm');
