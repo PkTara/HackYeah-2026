@@ -1,10 +1,27 @@
 /**
- * Backend that talks to a JSON HTTP API. Paths live in endpoints.ts and
- * payload shapes in wire.ts; this file only does the requests.
+ * Backend that talks to the Climbing Monkey API (the FastAPI service in
+ * backend/). Routes are in endpoints.ts, JSON shapes and their mapping in
+ * wire.ts, and what stays on the device in device.ts. This file makes the
+ * requests: identity, the order of writes, and the two answers that are not
+ * errors for the climber (404 on a delete, 409 on a quest).
  */
+import { mergeBaseline, type GameState } from '@hackyeah/core';
+import type { KeyValueStore } from '@hackyeah/platform';
 import { BackendError, type ClimbingBackend } from './backend';
+import { API_TOKEN_KEY, createDeviceStore } from './device';
 import { endpoints, type Route } from './endpoints';
-import { fromProfileDto, toClimbDto, toHandFlagDto, toReachDto } from './wire';
+import {
+  SERVER_GOAL,
+  baselineAssessment,
+  onboardingAssessments,
+  reachAssessments,
+  toClimbBody,
+  toGameState,
+  toHandReportBody,
+  type AssessmentBody,
+  type NewClimberBody,
+  type NewClimberDto,
+} from './wire';
 
 /** The part of fetch we use. Typed locally so tests can pass a fake. */
 export type FetchLike = (
@@ -18,19 +35,25 @@ export type FetchLike = (
 ) => Promise<{ ok: boolean; status: number; text(): Promise<string> }>;
 
 export type HttpBackendOptions = Readonly<{
-  /** API root, e.g. "https://api.example.com/v1". */
+  /** Server root, e.g. "http://127.0.0.1:8000". Routes start with /v1. */
   baseUrl: string;
-  /** Sent as "Authorization: Bearer <token>" when it returns a value. */
-  getAuthToken?: () => string | null | Promise<string | null>;
-  /** Give up after this long. Default 10 seconds. */
+  /** Platform store for the API token and the device-only data. */
+  storage: KeyValueStore;
+  /** Give up on a request after this long. Default 10 seconds. */
   timeoutMs?: number;
   /** Defaults to the global fetch (available in React Native and browsers). */
   fetch?: FetchLike;
+  /** Clock for the timestamps sent. Tests pass a fixed one. */
+  now?: () => Date;
 }>;
 
 type AbortControllerLike = { signal: unknown; abort(): void };
 
-export function createHttpBackend(opts: HttpBackendOptions): ClimbingBackend {
+const hasStatus = (error: unknown, status: number) =>
+  error instanceof BackendError && error.status === status;
+
+/** One request: JSON in and out, any failure as a BackendError. */
+function createRequester(opts: HttpBackendOptions) {
   const globals = globalThis as {
     fetch?: FetchLike;
     AbortController?: new () => AbortControllerLike;
@@ -38,17 +61,20 @@ export function createHttpBackend(opts: HttpBackendOptions): ClimbingBackend {
   const doFetch = opts.fetch ?? globals.fetch;
   const base = opts.baseUrl.replace(/\/+$/, '');
 
-  async function call(route: Route, body?: unknown): Promise<unknown> {
+  return async function request(
+    route: Route,
+    body: unknown,
+    bearer: string | null,
+  ): Promise<unknown> {
     if (!doFetch) {
       throw new BackendError('fetch is not available on this platform', 0);
     }
-    const token = await opts.getAuthToken?.();
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (body !== undefined) {
       headers['Content-Type'] = 'application/json';
     }
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
+    if (bearer) {
+      headers.Authorization = `Bearer ${bearer}`;
     }
 
     const controller = globals.AbortController
@@ -80,36 +106,204 @@ export function createHttpBackend(opts: HttpBackendOptions): ClimbingBackend {
       );
     }
     const text = await response.text();
-    return text ? JSON.parse(text) : null;
+    try {
+      return text ? JSON.parse(text) : null;
+    } catch {
+      throw new BackendError(
+        `${what} answered with something other than JSON`,
+        response.status,
+      );
+    }
+  };
+}
+
+export function createHttpBackend(opts: HttpBackendOptions): ClimbingBackend {
+  const request = createRequester(opts);
+  const device = createDeviceStore(opts.storage);
+  const now = opts.now ?? (() => new Date());
+
+  // Identity. The device has one anonymous server profile, made on first
+  // use. Everyone shares one token promise, so requests made together
+  // create one climber between them, not one each.
+  let token: Promise<string> | null = null;
+
+  function share(next: Promise<string>): Promise<string> {
+    token = next;
+    // If it fails (no signal), the next request tries again.
+    next.catch(() => {
+      if (token === next) {
+        token = null;
+      }
+    });
+    return next;
+  }
+
+  async function savedOrNewToken(): Promise<string> {
+    return (await opts.storage.getItem(API_TOKEN_KEY)) || newClimber();
+  }
+
+  async function newClimber(): Promise<string> {
+    // Normally the goal comes later, from setup. After a server reset the
+    // device may already know it.
+    const { onboarding } = await device.read();
+    const body: NewClimberBody = {
+      name: 'Climber',
+      goal: onboarding ? SERVER_GOAL[onboarding.details.goal] : 'general',
+    };
+    const answer = (await request(
+      endpoints.createClimber(),
+      body,
+      null,
+    )) as Partial<NewClimberDto> | null;
+    if (typeof answer?.token !== 'string' || !answer.token) {
+      throw new BackendError('The server made a climber without a token', 200);
+    }
+    await opts.storage.setItem(API_TOKEN_KEY, answer.token);
+    return answer.token;
+  }
+
+  /** A request as this device's climber. */
+  async function api(route: Route, body?: unknown): Promise<unknown> {
+    const used = token ?? share(savedOrNewToken());
+    try {
+      return await request(route, body, await used);
+    } catch (error) {
+      if (!hasStatus(error, 401)) {
+        throw error;
+      }
+      // The server no longer knows the token, for example after its data was
+      // reset. Forget it, make one new climber for everyone who got the same
+      // answer, and try this request once more.
+      const fresh =
+        token && token !== used
+          ? token
+          : share(opts.storage.removeItem(API_TOKEN_KEY).then(newClimber));
+      return request(route, body, await fresh);
+    }
+  }
+
+  // Writes go out one at a time, in the order they were made, so a quick
+  // add then delete reaches the server in that order. load() waits for the
+  // writes already made, so it never answers with a state from before them.
+  let writes: Promise<unknown> = Promise.resolve();
+  function inOrder<T>(task: () => Promise<T>): Promise<T> {
+    const run = writes.then(task);
+    writes = run.catch(() => {});
+    return run;
+  }
+
+  // The server makes its own climb ids. Climbs logged since the last load
+  // still have the app's id, so remember which server id each one got.
+  const serverIds = new Map<string, string>();
+
+  async function readState(): Promise<GameState> {
+    const [climbs, hands, assessments, quests, assigned, saved] =
+      await Promise.all([
+        api(endpoints.listClimbs()),
+        api(endpoints.listHandReports()),
+        api(endpoints.listAssessments()),
+        api(endpoints.listQuests()),
+        // Answers with the quest already assigned while it still fits.
+        api(endpoints.assignQuest()),
+        device.read(),
+      ]);
+    return toGameState({ climbs, hands, assessments, quests, assigned }, saved);
+  }
+
+  /** Completes or skips a quest, then answers with the server's next one. */
+  function questAction(route: Route): Promise<GameState> {
+    return inOrder(async () => {
+      try {
+        await api(route);
+      } catch (error) {
+        // 409: the quest no longer fits what was logged, or it was already
+        // completed. Nothing to fix: the fresh state shows what fits now.
+        if (!hasStatus(error, 409)) {
+          throw error;
+        }
+      }
+      return readState();
+    });
+  }
+
+  async function postAssessments(bodies: readonly AssessmentBody[]) {
+    for (const body of bodies) {
+      await api(endpoints.addAssessment(), body);
+    }
   }
 
   return {
     kind: 'remote',
-    load: async () => fromProfileDto(await call(endpoints.loadProfile())),
-    addClimb: async log => {
-      await call(endpoints.addClimb(), toClimbDto(log));
-    },
-    removeClimb: async id => {
-      await call(endpoints.removeClimb(id));
-    },
-    completeQuest: async questId => {
-      await call(endpoints.completeQuest(questId));
-    },
-    skipQuest: async questId => {
-      await call(endpoints.skipQuest(questId));
-    },
-    setHandFlag: async (flag, flagged) => {
-      await call(
-        endpoints.setHandFlag(flag.side, flag.finger, flagged),
-        flagged ? toHandFlagDto(flag) : undefined,
-      );
-    },
-    saveReach: async reach => {
-      await call(endpoints.saveReach(), toReachDto(reach));
-    },
-    // Placeholder until the real API is wired in the next change.
-    finishOnboarding: async () => {},
-    skipOnboarding: async () => {},
-    saveBaseline: async () => {},
+    load: () => writes.then(readState),
+
+    addClimb: log =>
+      inOrder(async () => {
+        const saved = (await api(endpoints.addClimb(), toClimbBody(log))) as {
+          id?: unknown;
+        } | null;
+        if (typeof saved?.id !== 'string') {
+          throw new BackendError('The server saved a climb without an id', 200);
+        }
+        serverIds.set(log.id, saved.id);
+      }),
+
+    removeClimb: id =>
+      inOrder(async () => {
+        try {
+          await api(endpoints.removeClimb(serverIds.get(id) ?? id));
+        } catch (error) {
+          // 404: already gone, which is what we wanted.
+          if (!hasStatus(error, 404)) {
+            throw error;
+          }
+        }
+        serverIds.delete(id);
+      }),
+
+    completeQuest: questId => questAction(endpoints.completeQuest(questId)),
+    skipQuest: questId => questAction(endpoints.skipQuest(questId)),
+
+    setHandFlag: (flag, flagged) =>
+      inOrder(async () => {
+        await api(
+          endpoints.addHandReport(),
+          toHandReportBody(flag, flagged, now()),
+        );
+      }),
+
+    saveReach: reach =>
+      inOrder(() => postAssessments(reachAssessments(reach, now()))),
+
+    finishOnboarding: result =>
+      inOrder(async () => {
+        // Kept here first: most answers have no place on the server.
+        await device.update(old => ({
+          ...old,
+          onboarding: result,
+          onboardingSkipped: false,
+          baseline: mergeBaseline(old.baseline, result.baseline),
+        }));
+        await api(endpoints.updateMe(), {
+          goal: SERVER_GOAL[result.details.goal],
+        });
+        await postAssessments(onboardingAssessments(result, now()));
+      }),
+
+    skipOnboarding: () =>
+      inOrder(() =>
+        device.update(old => ({ ...old, onboardingSkipped: true })),
+      ),
+
+    saveBaseline: result =>
+      inOrder(async () => {
+        await device.update(old => ({
+          ...old,
+          baseline: mergeBaseline(old.baseline, [result]),
+        }));
+        const body = baselineAssessment(result, now());
+        if (body) {
+          await api(endpoints.addAssessment(), body);
+        }
+      }),
   };
 }

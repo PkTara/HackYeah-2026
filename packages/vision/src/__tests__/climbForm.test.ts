@@ -26,7 +26,7 @@ describe('climb form analysis', () => {
   it('accepts a clean clip and finds the part on the wall', () => {
     expect(report.verdict).toBe('ok');
     expect(report.reasons).toEqual([]);
-    expect(report.capture.view).toBe('back');
+    expect(report.capture.view).toBe('face_on');
     expect(report.capture.climbWindowFound).toBe(true);
     expect(report.capture.climbStartS).toBeGreaterThan(1.0);
     expect(report.capture.climbStartS).toBeLessThan(1.8);
@@ -116,7 +116,7 @@ describe('climb form analysis', () => {
   it('notices a side view and trusts the arm angles less', () => {
     const side = analyzeClimbForm(syntheticClimbSession({ view: 'side' }));
 
-    expect(side.capture.view).toBe('side');
+    expect(side.capture.view).toBe('side_on');
     expect(find(side.observations, 'straight_arms').confidence).toBeLessThan(
       find(report.observations, 'straight_arms').confidence,
     );
@@ -152,6 +152,24 @@ describe('climb form quality gates', () => {
     expect(result.verdict).toBe('low_confidence');
     expect(result.reasons.map(r => r.code)).toContain('low_visibility');
     expect(result.observations).toEqual([]);
+  });
+
+  it('rejects keypoints that wobble too much to trust, even when they look visible', () => {
+    // A model that misreads a pose can report high visibility for points it
+    // keeps moving around; 25 px of jitter on a 240 px torso is that case.
+    const result = analyzeClimbForm(syntheticClimbSession({ noisePx: 25 }));
+
+    expect(result.verdict).toBe('low_confidence');
+    expect(result.reasons.map(r => r.code)).toContain('unstable_keypoints');
+    expect(result.capture.keypointJitterTL).toBeGreaterThan(0.08);
+    expect(result.capture.meanVisibility).toBeGreaterThan(0.9);
+  });
+
+  it('reports a small wobble for steady keypoints', () => {
+    const steady = analyzeClimbForm(syntheticClimbSession({ noisePx: 2 }));
+
+    expect(steady.capture.keypointJitterTL).toBeGreaterThan(0);
+    expect(steady.capture.keypointJitterTL).toBeLessThan(0.04);
   });
 
   it('rejects a clip where the climber is missing most of the time', () => {

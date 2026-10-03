@@ -4,15 +4,24 @@ import { createHttpBackend } from './http';
 import { createLocalBackend } from './local';
 
 /**
- * Where the app gets its data.
- *
- * null: everything stays on the device, starting from the sample climbs.
- * A URL: the app loads and saves through that API (see endpoints.ts).
+ * The API the native app saves to, e.g. "http://192.168.1.20:8000" (the
+ * FastAPI server in backend/). null keeps everything on the device, starting
+ * from the sample climbs. The web host passes VITE_MONKEY_API_URL instead.
  */
 export const API_BASE_URL: string | null = null;
 
-export function createBackend(storage: KeyValueStore): ClimbingBackend {
-  return API_BASE_URL
-    ? createHttpBackend({ baseUrl: API_BASE_URL })
+export type BackendConfig = Readonly<{
+  /** Server root. Left out or null: API_BASE_URL. Empty: on the device. */
+  apiBaseUrl?: string | null;
+}>;
+
+/** The HTTP backend when an API URL is set, otherwise the on-device one. */
+export function createBackend(
+  storage: KeyValueStore,
+  config: BackendConfig = {},
+): ClimbingBackend {
+  const baseUrl = (config.apiBaseUrl ?? API_BASE_URL)?.trim();
+  return baseUrl
+    ? createHttpBackend({ baseUrl, storage })
     : createLocalBackend(storage);
 }

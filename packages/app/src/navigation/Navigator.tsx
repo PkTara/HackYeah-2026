@@ -22,6 +22,44 @@ import { BackHandler, Platform } from 'react-native';
 type Params = Readonly<Record<string, string>>;
 type Entry<Route extends string> = Readonly<{ route: Route; params: Params }>;
 
+/** One level of a breadcrumb trail: a screen and the params that pick it. */
+export type TrailStep<Route extends string> = Readonly<{
+  route: Route;
+  params?: Params;
+}>;
+
+/** True when the entry is that screen, with at least those params. */
+function isStep<Route extends string>(
+  entry: Entry<Route>,
+  step: TrailStep<Route>,
+): boolean {
+  return (
+    entry.route === step.route &&
+    Object.entries(step.params ?? {}).every(([k, v]) => entry.params[k] === v)
+  );
+}
+
+/**
+ * The stack after going back to the last step of `trail`: popped to that
+ * screen when the stack has it, otherwise the trail itself (after a web
+ * link straight to a pushed screen, for example).
+ */
+export function stackBackTo<Route extends string>(
+  stack: readonly Entry<Route>[],
+  trail: readonly TrailStep<Route>[],
+): Entry<Route>[] {
+  const target = trail[trail.length - 1];
+  if (!target) {
+    return [...stack];
+  }
+  for (let i = stack.length - 1; i >= 0; i--) {
+    if (isStep(stack[i], target)) {
+      return stack.slice(0, i + 1);
+    }
+  }
+  return trail.map(step => ({ route: step.route, params: step.params ?? {} }));
+}
+
 type NavigationApi<Route extends string> = {
   route: Route;
   /** The first screen of the stack, i.e. the active tab. */
@@ -31,6 +69,8 @@ type NavigationApi<Route extends string> = {
   navigate: (route: Route, params?: Params) => void;
   reset: (route: Route) => void;
   goBack: () => void;
+  /** Goes back to the last step of a breadcrumb trail; see stackBackTo. */
+  backTo: (trail: readonly TrailStep<Route>[]) => void;
 };
 
 const NavigationContext = createContext<NavigationApi<string> | null>(null);
@@ -70,6 +110,10 @@ export function Navigator<Route extends string>({
     () => setStack(s => (s.length > 1 ? s.slice(0, -1) : s)),
     [],
   );
+  const backTo = useCallback(
+    (trail: readonly TrailStep<Route>[]) => setStack(s => stackBackTo(s, trail)),
+    [],
+  );
 
   useEffect(() => {
     if (Platform.OS === 'web') {
@@ -99,8 +143,9 @@ export function Navigator<Route extends string>({
       navigate,
       reset,
       goBack,
+      backTo,
     }),
-    [top, root, canGoBack, navigate, reset, goBack],
+    [top, root, canGoBack, navigate, reset, goBack, backTo],
   );
   const ScreenComponent: ComponentType = screens[top.route];
 

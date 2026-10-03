@@ -2,6 +2,16 @@ export * from './theme';
 export { ToneContext, useTone, type Tone } from './tone';
 export { useReducedMotion, useTicker } from './hooks';
 export { AppText } from './components/AppText';
+export { Breadcrumbs, fitCrumbs, type Crumb } from './components/Breadcrumbs';
+export { Divider } from './components/Divider';
+export { HandAnatomy } from './components/HandAnatomy';
+export {
+  LayerSlider,
+  nearestStop,
+  positionAt,
+  stepStop,
+  type SliderStop,
+} from './components/LayerSlider';
 export { Button } from './components/Button';
 export { Chip } from './components/Chip';
 export {

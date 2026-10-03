@@ -10,7 +10,7 @@ import {
   useLayout,
 } from '@hackyeah/ui';
 import { useCapabilities } from '../capabilities';
-import { BackButton } from '../components/BackButton';
+import { Crumbs } from '../components/Crumbs';
 import { PageHeader } from '../components/PageHeader';
 import { TabScreen } from '../components/TabScreen';
 import { useGame } from '../state/GameProvider';
@@ -51,7 +51,7 @@ export function AboutScreen() {
 
   return (
     <TabScreen>
-      <BackButton />
+      <Crumbs />
       <PageHeader
         title="About"
         subtitle="Climbing Monkey, a HackYeah 2026 prototype."

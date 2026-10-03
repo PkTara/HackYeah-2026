@@ -30,7 +30,15 @@ import type {
   KeypointSourceInfo,
 } from './sources';
 
-/** Official model files (Apache 2.0, BlazePose GHUM 3D model card). Lite is about 5.8 MB. */
+/**
+ * Official model files (Apache 2.0, BlazePose GHUM 3D model card). Use
+ * `full` (about 9.4 MB) by default. On a real photo of the top of a chin-up,
+ * `lite` (about 5.8 MB) put the wrists at the waist and wobbled by up to 70 px
+ * between identical frames, while `full` placed every joint within about
+ * 20 px and wobbled under 3 px. `heavy` (about 31 MB) had outlier frames in
+ * the same check. That was one image, so measure on real clips before
+ * trusting any of them.
+ */
 export const MEDIAPIPE_POSE_MODELS = {
   lite: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',
   full: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task',

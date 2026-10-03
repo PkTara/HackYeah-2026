@@ -23,12 +23,17 @@ import {
   type PoseFrame,
 } from '@hackyeah/vision';
 
-const MODEL_VERSION = 'tasks-vision 1.0.1, pose_landmarker_lite float16/1';
-// "?model=/models/pose_landmarker_lite.task" uses a local copy (offline use).
+// "full" by default; see MEDIAPIPE_POSE_MODELS for why not "lite".
+// "?model=/models/pose_landmarker_full.task" uses a local copy (offline use).
 const MODEL_URL =
-  new URLSearchParams(location.search).get('model') ?? MEDIAPIPE_POSE_MODELS.lite;
+  new URLSearchParams(location.search).get('model') ??
+  MEDIAPIPE_POSE_MODELS.full;
+const MODEL_VERSION = `tasks-vision 1.0.1, ${
+  MODEL_URL.split('/').pop() ?? 'unknown model'
+}`;
 
-const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+const $ = <T extends HTMLElement>(id: string) =>
+  document.getElementById(id) as T;
 const testSelect = $<HTMLSelectElement>('test');
 const video = $<HTMLVideoElement>('video');
 const canvas = $<HTMLCanvasElement>('overlay');
@@ -39,8 +44,11 @@ const clip = $<HTMLInputElement>('clip');
 
 type Counter = { push(frame: PoseFrame): unknown; finish(): unknown };
 
-let running: { source: KeypointSource; counter: Counter; landmarker?: PoseLandmarker } | null =
-  null;
+let running: {
+  source: KeypointSource;
+  counter: Counter;
+  landmarker?: PoseLandmarker;
+} | null = null;
 
 /**
  * A new landmarker per run: VIDEO mode needs increasing timestamps, and the
@@ -142,7 +150,10 @@ function stop(): void {
   stopCamera();
 }
 
-async function run(source: KeypointSource, landmarker?: PoseLandmarker): Promise<void> {
+async function run(
+  source: KeypointSource,
+  landmarker?: PoseLandmarker,
+): Promise<void> {
   const counter = counterFor(testSelect.value as LiveTestId, source.info);
   running = { source, counter, landmarker };
   result.textContent = 'Running. Press "Stop and show result" when done.';
@@ -169,11 +180,17 @@ $<HTMLButtonElement>('camera').onclick = async () => {
     await video.play();
     const landmarker = await createLandmarker();
     await run(
-      createMediaPipeSource({ landmarker, video, info: { modelVersion: MODEL_VERSION } }),
+      createMediaPipeSource({
+        landmarker,
+        video,
+        info: { modelVersion: MODEL_VERSION },
+      }),
       landmarker,
     );
   } catch (error) {
-    live.textContent = `Could not start the camera or the model: ${String(error)}`;
+    live.textContent = `Could not start the camera or the model: ${String(
+      error,
+    )}`;
   }
 };
 
@@ -190,6 +207,17 @@ $<HTMLButtonElement>('simulate').onclick = () => {
 $<HTMLButtonElement>('stop').onclick = stop;
 
 // Climbing form from a local video file: every frame stays on this device.
+// The clip is stepped through at a fixed rate by seeking, not played, so a
+// slow device analyses the same frames as a fast one.
+const ANALYSIS_FPS = 15;
+
+function seek(time: number): Promise<void> {
+  return new Promise(resolve => {
+    video.addEventListener('seeked', () => resolve(), { once: true });
+    video.currentTime = time;
+  });
+}
+
 clip.onchange = async () => {
   const file = clip.files?.[0];
   if (!file) {
@@ -199,41 +227,38 @@ clip.onchange = async () => {
   result.textContent = 'Loading the model...';
   const landmarker = await createLandmarker();
   const frames: PoseFrame[] = [];
-  let lastT = -1;
   video.srcObject = null;
   video.src = URL.createObjectURL(file);
-  await video.play();
-  result.textContent = 'Analysing the clip as it plays...';
-  const step = () => {
-    if (video.ended) {
-      landmarker.close();
-      const report = analyzeClimbForm(frames, {
-        source: {
-          id: 'mediapipe-web',
-          model: 'MediaPipe Pose Landmarker (BlazePose GHUM 3D)',
-          modelVersion: MODEL_VERSION,
-          landmarkSet: 'mediapipe-33',
-          runsOn: 'device',
-          simulated: false,
-        },
-      });
-      result.textContent = JSON.stringify(report, null, 2);
-      return;
-    }
-    const t = video.currentTime * 1000;
-    if (t > lastT && video.videoWidth > 0) {
-      const frame = fromMediaPipeResult(
-        landmarker.detectForVideo(video, t),
-        t,
-        video.videoWidth,
-        video.videoHeight,
-      );
-      frames.push(frame);
-      draw(frame);
-      live.textContent = `${frames.length} frames analysed`;
-      lastT = t;
-    }
-    requestAnimationFrame(step);
-  };
-  requestAnimationFrame(step);
+  await new Promise(resolve =>
+    video.addEventListener('loadeddata', resolve, { once: true }),
+  );
+  video.pause();
+  result.textContent = 'Analysing the clip...';
+  for (let i = 0; i / ANALYSIS_FPS <= video.duration; i += 1) {
+    const time = i / ANALYSIS_FPS;
+    await seek(time);
+    // VIDEO mode needs increasing timestamps; start at 1 ms.
+    const t = 1 + Math.round(time * 1000);
+    const frame = fromMediaPipeResult(
+      landmarker.detectForVideo(video, t),
+      t,
+      video.videoWidth,
+      video.videoHeight,
+    );
+    frames.push(frame);
+    draw(frame);
+    live.textContent = `${frames.length} frames analysed`;
+  }
+  landmarker.close();
+  const report = analyzeClimbForm(frames, {
+    source: {
+      id: 'mediapipe-web',
+      model: 'MediaPipe Pose Landmarker (BlazePose GHUM 3D)',
+      modelVersion: MODEL_VERSION,
+      landmarkSet: 'mediapipe-33',
+      runsOn: 'device',
+      simulated: false,
+    },
+  });
+  result.textContent = JSON.stringify(report, null, 2);
 };

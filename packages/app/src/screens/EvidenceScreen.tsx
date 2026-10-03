@@ -24,7 +24,7 @@ import {
   Tag,
   useTheme,
 } from '@hackyeah/ui';
-import { BackButton } from '../components/BackButton';
+import { Crumbs } from '../components/Crumbs';
 import { PageHeader } from '../components/PageHeader';
 import { TabScreen } from '../components/TabScreen';
 import {
@@ -66,7 +66,7 @@ export function EvidenceScreen() {
 
   return (
     <TabScreen>
-      <BackButton />
+      <Crumbs />
       <PageHeader
         title="Evidence"
         subtitle="The climbs behind each wall on your profile."

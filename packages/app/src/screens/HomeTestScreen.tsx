@@ -7,7 +7,7 @@ import {
   type ResultMethod,
 } from '@hackyeah/core';
 import { AppText, Button, spacing } from '@hackyeah/ui';
-import { BackButton } from '../components/BackButton';
+import { Crumbs } from '../components/Crumbs';
 import { PageHeader } from '../components/PageHeader';
 import { TabScreen } from '../components/TabScreen';
 import { useNavigation } from '../navigation/Navigator';
@@ -44,7 +44,7 @@ export function HomeTestScreen() {
   return (
     <TabScreen>
       <View style={styles.column}>
-        <BackButton />
+        <Crumbs />
         <PageHeader
           title={test.name}
           subtitle={
