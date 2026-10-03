@@ -23,6 +23,7 @@ type Props = {
 };
 
 const SCALE = 4;
+const CHART_WIDTH = 61; // art pixels
 // Clockwise from the top, matching the design sketch.
 const AXES: readonly TerrainKey[] = ['vertical', 'overhang', 'slab'];
 const ANGLES = [-90, 30, 150].map(d => (d * Math.PI) / 180);
@@ -42,7 +43,7 @@ export function TerrainTriangle({ stats, focus, onSelect }: Props) {
   const chart = useMemo(
     () =>
       radialChart({
-        width: 61,
+        width: CHART_WIDTH,
         height: 52,
         cx: 30,
         cy: 34,
@@ -81,11 +82,13 @@ export function TerrainTriangle({ stats, focus, onSelect }: Props) {
     <View style={{ alignItems: 'center', gap: 4 }}>
       {label('vertical', 'center')}
       <PixelArt rows={chart.rows} colors={colors} scale={SCALE} />
+      {/* Keeps the bottom labels near their corners on wide panels. */}
       <View
         style={{
           flexDirection: 'row',
           justifyContent: 'space-between',
-          alignSelf: 'stretch',
+          width: CHART_WIDTH * SCALE + 120,
+          maxWidth: '100%',
         }}
       >
         {label('slab', 'flex-start')}
