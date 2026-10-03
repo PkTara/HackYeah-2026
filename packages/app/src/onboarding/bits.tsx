@@ -10,6 +10,9 @@ import {
   useTheme,
 } from '@hackyeah/ui';
 
+/** Unlit digits on the dark scoreboard. */
+const DIM_DIGITS = '#6E5A2A';
+
 /** A banana square with a pixel number, for numbered lists. */
 export function NumberBadge({ n }: { n: number }) {
   const { colors: c } = useTheme();
@@ -81,10 +84,13 @@ export function Scoreboard({
   text,
   label,
   caption,
+  dim = false,
 }: {
   text: string;
   label?: string;
   caption?: string;
+  /** Dim digits for "nothing entered yet". */
+  dim?: boolean;
 }) {
   const { colors: c } = useTheme();
   return (
@@ -102,7 +108,12 @@ export function Scoreboard({
         importantForAccessibility={label ? 'auto' : 'no-hide-descendants'}
         style={styles.boardText}
       >
-        <PixelText text={text} scale={7} color={c.primary} accessible={false} />
+        <PixelText
+          text={text}
+          scale={7}
+          color={dim ? DIM_DIGITS : c.primary}
+          accessible={false}
+        />
         {caption ? (
           <PixelText text={caption} color="#E8CFA6" accessible={false} />
         ) : null}

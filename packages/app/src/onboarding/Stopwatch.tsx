@@ -90,12 +90,13 @@ export function Stopwatch({ value, onChange, max = 600, label }: Props) {
         text={formatClock(shown)}
         caption={running ? 'Timing' : value === null ? 'Min : sec' : 'Your time'}
         label={`${label} time: ${formatResult('seconds', shown)}`}
+        dim={!running && value === null}
       />
 
       {typing ? (
         <>
           <NumberField
-            label="Your time"
+            label="Time"
             unit="seconds"
             value={text}
             onChangeText={type}

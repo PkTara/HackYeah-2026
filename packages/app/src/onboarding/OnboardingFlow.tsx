@@ -83,17 +83,17 @@ export function OnboardingFlow({ onFinish, onSkip, today }: Props) {
       return { ...d, connections };
     });
 
+  /** A test's result, or null to clear it. */
   const setResult = (
     id: BaselineTestId,
-    value: number | null,
-    method: ResultMethod,
+    entry: Readonly<{ value: number; method: ResultMethod }> | null,
   ) =>
     setDraft(d => {
       const results = { ...d.results };
-      if (value === null) {
-        delete results[id];
+      if (entry) {
+        results[id] = entry;
       } else {
-        results[id] = { value, method };
+        delete results[id];
       }
       return { ...d, results };
     });
@@ -148,28 +148,29 @@ export function OnboardingFlow({ onFinish, onSkip, today }: Props) {
         test={test}
         index={BASELINE_TESTS.indexOf(test) + 1}
         result={result}
-        onResult={(value, method) => setResult(step, value, method)}
+        onResult={(value, method) =>
+          setResult(step, value === null ? null : { value, method })
+        }
       />,
       {
         skip: {
           label: 'Skip',
           accessibilityLabel: 'Skip this one',
           onPress: () => {
-            setResult(step, null, 'typed');
+            setResult(step, null);
             forward();
           },
         },
+        // Next needs a result; without one, Skip says so honestly.
         next: {
           label: 'Next',
-          disabled: timed && !result,
-          hint: timed && !result ? 'Time it or type your time in first' : undefined,
-          onPress: () => {
-            // A counter shows 0 until you change it, and 0 is a real result.
-            if (!result) {
-              setResult(step, 0, 'counter');
-            }
-            forward();
-          },
+          disabled: !result,
+          hint: result
+            ? undefined
+            : timed
+              ? 'Time it or type your time in first'
+              : 'Count it or type it in first',
+          onPress: forward,
         },
       },
     );
