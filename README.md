@@ -8,6 +8,8 @@
 
 ![Climbing Monkey screens: profile, evidence, level up, night mode, log, hands, paused quest, tests](docs/assets/jungle-ui-screens.png)
 
+![Climbing Monkey on phone and desktop: profile, finger close-up, desktop profile with side rail, desktop climb log](docs/assets/jungle-ui-web.png)
+
 A React Native app for **HarmonyOS / OpenHarmony**, built with [React Native for OpenHarmony (RNOH)](https://gitcode.com/CPF-RN/ohos_react_native). The same code also runs on Android, iOS and the web.
 
 | | Version |
