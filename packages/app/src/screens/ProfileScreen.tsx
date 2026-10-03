@@ -6,7 +6,6 @@ import {
   movementTallies,
   shortDate,
   terrainTallies,
-  ageLabel,
 } from '@hackyeah/core';
 import {
   AppText,
@@ -35,6 +34,7 @@ import {
   TERRAIN_ICON,
   TERRAIN_NAME,
   fingerLabel,
+  flagText,
   styleText,
 } from '../labels';
 import { useNavigation } from '../navigation/Navigator';
@@ -241,9 +241,21 @@ export function ProfileScreen() {
           {state.flags.length > 0 ? (
             <Panel variant="alert" title="Hands" icon="flag">
               {state.flags.map(f => (
-                <AppText key={`${f.side}-${f.finger}`}>
-                  {fingerLabel(f.side, f.finger)} flagged {ageLabel(f.date, today)}.
-                </AppText>
+                <View
+                  key={`${f.side}-${f.finger}`}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+                >
+                  <AppText style={{ flex: 1 }}>{flagText(f, today)}</AppText>
+                  <Button
+                    title="Edit"
+                    variant="secondary"
+                    small
+                    accessibilityLabel={`Edit ${fingerLabel(f.side, f.finger).toLowerCase()}`}
+                    onPress={() =>
+                      navigate('Finger', { side: f.side, finger: f.finger })
+                    }
+                  />
+                </View>
               ))}
               <AppText variant="caption" muted>
                 Finger-loading quests are paused. Your climbing profile stays the

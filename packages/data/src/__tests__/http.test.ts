@@ -91,7 +91,7 @@ describe('http backend', () => {
     const { climbs, ...rest } = profile;
     const older = {
       ...rest,
-      climbs: climbs.map(({ movements, holds, ...c }) => ({ ...c, movement: movements[0] })),
+      climbs: climbs.map(({ movements, holds: _holds, ...c }) => ({ ...c, movement: movements[0] })),
     };
     const backend = createHttpBackend({
       baseUrl: 'https://api.test',
