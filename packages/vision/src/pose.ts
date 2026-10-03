@@ -163,7 +163,9 @@ export function fromMediaPipeLandmarks(
         return;
       }
       const visibility =
-        reported && typeof p.visibility === 'number' ? clamp01(p.visibility) : 1;
+        reported && typeof p.visibility === 'number'
+          ? clamp01(p.visibility)
+          : 1;
       landmarks[name] = { x: p.x, y: p.y, visibility };
     });
   }
