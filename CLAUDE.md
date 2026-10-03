@@ -2,6 +2,8 @@
 
 Hackathon project for HackYeah 2026 (3–4 Oct 2026, Kraków). **Submission deadline: 11:00 AM, 4 October 2026.** (The rules PDFs say 11:00 PM; 11:00 AM is the confirmed deadline.)
 
+**Team strategy:** build one project and enter it in **two categories**: one **sponsor track** (the `context/tracks/` files without the `open-` prefix: AI Control Layer, Solana, Huawei HarmonyOS) and one **open task** (the `open-*.md` files: AI, ImpactHer, Defence, Smart City). The idea must satisfy both sets of judging criteria. See "Team strategy" in `context/00-OVERVIEW.md`.
+
 Read `context/00-OVERVIEW.md` first. It has the track comparison, prizes, judging weights, the submission checklist and the known inconsistencies in the materials.
 
 - Per-track details are in `context/tracks/*.md`. Original PDFs are in `context/source-pdfs/`.

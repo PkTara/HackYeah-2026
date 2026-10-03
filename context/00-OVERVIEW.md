@@ -17,6 +17,21 @@ LLM-friendly digest of all hackathon materials. Original PDFs are in `source-pdf
   - A project needs **at least 50% of the points in phase 1** to win a prize. Jury decisions are final.
 - **Jury names** will be posted on the HackYeah Discord by 4 October.
 
+## Team strategy: one sponsor track + one open task
+
+The tracks fall into two categories:
+
+- **Sponsor tracks:** AI Control Layer, Finance Without Intermediaries (Solana), Huawei HarmonyOS. These are the `tracks/` files without the `open-` prefix.
+- **Open tasks:** Artificial Intelligence, ImpactHer, Defence, Smart City. These are the `tracks/open-*.md` files.
+
+We build **one project** and enter it in **one task from each category**. So the idea must:
+- meet the sponsor track's hard requirements and criteria, and
+- fit the open task's theme ("Relation to Category" is 20%) and look good ("Design" is 20%, "Idea & Innovation" 30%).
+
+Open questions to confirm with the organizers:
+- The task PDFs don't say whether one project may enter two tasks. The general HackYeah 2026 Rules, which are not in this folder, decide that.
+- The upload form has a single "Category" field, so it is probably **two separate submissions** of the same project, each with its own description and deck.
+
 ## Track comparison
 
 | Track | File | Sponsor | Prize | Judging weights | Hard requirements beyond the base submission |
