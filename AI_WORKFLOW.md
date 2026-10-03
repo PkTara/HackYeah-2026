@@ -8,7 +8,7 @@ Use this file for significant AI/external-resource disclosure in the Sport & Hea
 |---|---|---|
 | Claude Code (VS Code extension) | Claude Opus 5.5 (`claude-opus-5-5`) | Converting the challenge PDFs to Markdown, researching RNOH, scaffolding the project, writing code and docs |
 | Codex desktop | GPT-6 | Drafting the climbing app product design and checking MediaPipe capability documentation |
-| Claude Code (claude.ai cloud session, with parallel subagents) | Claude | Pixel-art pets, the jungle pixel UI kit, the climbing profile rules and the app screens |
+| Claude Code (claude.ai cloud session, with parallel subagents) | Claude | Pixel-art pets, the jungle pixel UI kit, the climbing profile rules, the app screens, the web layout, onboarding, and connecting the app to the backend |
 
 The Codex design-drafting step used the `superpowers:using-superpowers` and `superpowers:brainstorming` skills, plus web browsing of official MediaPipe documentation.
 
@@ -157,3 +157,40 @@ None yet. When the app gets an AI feature, document:
 **Privacy and limitations:** Tokens are hashed at rest. Uploaded pose images are transient; retained hand photos require explicit upload/retention consent, are normalized without EXIF and remain owner-bound. Confirmed camera assessments are user reports, not independently verified measurements. No model binaries, personal records or runtime database are committed. Native MediaPipe initialization aborts inside this macOS sandbox but succeeds outside it. No production deployment, real provider OAuth, medical diagnosis, healing prediction or reviewed stretching prescription was implemented.
 
 **Final backend checks:** 114 tests passed with 99% statement coverage; Ruff and dependency checks passed. Fresh core-only installation: 112 tests passed, two optional MediaPipe-container tests skipped. Independent scoped re-review approved the fixes. The local HTTP smoke passed against 22 documented paths. The backend branch has not been deployed.
+
+### 12. Phone and desktop web layout (2026-10-03)
+
+**Prompt:** "Make it work on browser too - currently format is just for mobile. Make it react native - web UI support as above."
+
+**Output:** The same React Native screens adapt to the window. From 760px wide a wooden side rail replaces the bottom tab bar; when two 360px columns fit, screens split into two columns (`useLayout`, `Columns` and `Column` in `packages/ui/src/layout.tsx`). Buttons, chips, tabs and rail items show hover and keyboard focus on the web.
+
+**Validation:** Screenshots at 360, 390, 1024 and 1440px, light and dark, from Chromium; phone layouts were checked to be unchanged. Typecheck, lint and Jest pass.
+
+### 13. Finger close-up and warning sign (2026-10-03)
+
+**Prompts:** "For the hand check, make sure you can click on the specific part of the hand - have another view, where you can click on the pulley/tendon/finger segment that hurts." Then: add a pixel danger sign to the "this is your own note" disclaimer.
+
+**Output:** Tapping a finger on the Hands screen opens a close-up with three layers (segments and joints, pulleys, tendons). Spots are saved with the flag (`packages/core/src/spots.ts`), shown in plain words ("A2 pulley"), and an empty list means "sore, not sure where". A pixel warning sign marks the not-a-diagnosis notes.
+
+**Validation:** Spot ids and labels have unit tests; saved flags from before spots existed still load. Screens were checked in the browser on phone and desktop widths.
+
+**Honesty notes:** It records where the climber says it hurts. It does not diagnose, and the copy says to stop and see a physio or doctor after a pop, swelling, bruising or pain bending the finger.
+
+### 14. Climb style and hold types (2026-10-03)
+
+**Prompt:** "Change 'Moves' in 'log a climb' to 'Style' and also let it be multi-select since you can have both in a single climb. Add another field for hold-type."
+
+**Output:** A climb now has one or both styles (controlled, dynamic) and optional hold types (jug, crimp, sloper, pinch, pocket, volume). Tallies count a two-style climb under each style. Climbs saved in the old one-style shape are upgraded when loaded.
+
+**Validation:** Unit tests for the tallies and the upgrade of old saves; sample data updated and labelled as an example.
+
+### 15. Monkey-led onboarding (2026-10-03)
+
+**Prompts:** "Wireframe an onboarding process in the style of the current UI - first log in, fill in details and connect to other apps (like Strava etc). Request the user to optionally do diagnostic tests (say smth like it'll take 5-10 mins)... Progressively led through onboarding - no overwhelming lots of info - just step by step." and "The monkey should lead you through the onboarding process, have speech bubbles, and hop around."
+
+**Output:** A seven-step setup, one question per screen: where you climb, how long, usual grade, goal, optional reach, optional apps, and six optional home tests (dead hang, pull-ups, sit and reach, plank, one-leg balance, push-ups) with a stopwatch or rep counter. The monkey hops between vines and speaks in a typed-out speech bubble (`MonkeyGuide`, `SpeechBubble` in `packages/ui`). Setup runs on first launch; skipping is remembered, it can be run again from the Tests tab, and each home test can be redone there on its own.
+
+**Validation:** Jest covers the flow (required answers, skips, results, back navigation, copy rules), the first-launch gate, the saved answers, and the reducer rules for results. Every step was screenshotted at 360, 390 and 1440px, in dark mode and with reduced motion.
+
+**Honesty notes:** App connections are demo only: the consent screen says this build cannot connect yet, and a connected app is tagged "Demo". Test results are self-reported, never scored, and the test text is a draft that needs coach review. No new libraries, models or APIs.
+
