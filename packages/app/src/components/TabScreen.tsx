@@ -13,6 +13,7 @@ import {
 } from '@hackyeah/ui';
 import { useNavigation } from '../navigation/Navigator';
 import type { RouteName } from '../navigation/routes';
+import { trailFor } from '../navigation/trail';
 import { useGame } from '../state/GameProvider';
 
 type TabRoute = Extract<RouteName, 'Profile' | 'Log' | 'Hands' | 'Tests'>;
@@ -29,13 +30,18 @@ type Props = {
   hero?: ReactNode;
 };
 
+const isTab = (route: RouteName | undefined): route is TabRoute =>
+  TABS.some(t => t.key === route);
+
 /**
  * Screen with app navigation: a tab bar at the bottom on phones, a side rail
- * on wide screens. The active tab is the root of the navigation stack.
+ * on wide screens. The active tab is the root of the navigation stack, or the
+ * tab a linked screen belongs to (a link to a finger close-up shows Hands).
  */
 export function TabScreen({ children, hero }: Props) {
   const { root, reset } = useNavigation<RouteName>();
-  const active = TABS.some(t => t.key === root) ? (root as TabRoute) : 'Profile';
+  const home = trailFor(root, {})[0]?.route;
+  const active: TabRoute = isTab(root) ? root : isTab(home) ? home : 'Profile';
   return (
     <Screen
       hero={hero}
@@ -60,12 +66,7 @@ function RailHeader() {
   return (
     <View style={{ gap: 10 }}>
       <Monkey scale={3} cosmetics={pet.cosmetics} />
-      <PixelText
-        text={'Climbing\nMonkey'}
-        heading
-        scale={3}
-        shadow="#22180F"
-      />
+      <PixelText text={'Climbing\nMonkey'} heading scale={3} shadow="#22180F" />
     </View>
   );
 }
@@ -80,7 +81,9 @@ function RailLevel() {
         value={pet.xpInLevel / XP_PER_QUEST}
         segments={steps}
         height={12}
-        accessibilityLabel={`${pet.xpInLevel} of ${XP_PER_LEVEL} XP to level ${pet.level + 1}`}
+        accessibilityLabel={`${pet.xpInLevel} of ${XP_PER_LEVEL} XP to level ${
+          pet.level + 1
+        }`}
       />
       <AppText variant="caption" muted>
         {pet.xpInLevel} / {XP_PER_LEVEL} XP
