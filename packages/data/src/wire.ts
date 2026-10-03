@@ -27,7 +27,13 @@ export type ClimbDto = {
   sent: boolean;
 };
 
-export type HandFlagDto = { side: Side; finger: Finger; date: string };
+/** `spots` are spot ids from core's spots.ts. Empty means "not sure where". */
+export type HandFlagDto = {
+  side: Side;
+  finger: Finger;
+  date: string;
+  spots: string[];
+};
 
 export type ReachDto = { arm_span_cm: number; height_cm: number; date: string };
 
@@ -50,7 +56,14 @@ export function fromClimbDto(dto: ClimbDto): ClimbLog {
 }
 
 export function toHandFlagDto(flag: HandFlag): HandFlagDto {
-  return { side: flag.side, finger: flag.finger, date: flag.date };
+  const { side, finger, date, spots } = flag;
+  return { side, finger, date, spots: [...spots] };
+}
+
+/** A server that does not send spots yet reads as "not sure where". */
+export function fromHandFlagDto(dto: HandFlagDto): HandFlag {
+  const { side, finger, date, spots } = dto;
+  return { side, finger, date, spots: Array.isArray(spots) ? spots : [] };
 }
 
 export function toReachDto(reach: Reach): ReachDto {
@@ -75,7 +88,7 @@ export function fromProfileDto(json: unknown): GameState {
   return {
     ...emptyGame,
     logs: dto.climbs.map(fromClimbDto),
-    flags: dto.hand_flags.map(f => ({ side: f.side, finger: f.finger, date: f.date })),
+    flags: dto.hand_flags.map(fromHandFlagDto),
     completed: dto.completed_quest_ids,
     skipped: dto.skipped_quest_ids ?? [],
     reach: dto.reach

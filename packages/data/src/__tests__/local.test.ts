@@ -23,14 +23,19 @@ describe('local backend', () => {
     await first.addClimb(climb);
     await first.completeQuest('vertical-read');
     await first.completeQuest('vertical-read');
-    await first.setHandFlag({ side: 'left', finger: 'index', date: '2026-10-03' }, true);
+    await first.setHandFlag(
+      { side: 'left', finger: 'index', date: '2026-10-03', spots: ['a2'] },
+      true,
+    );
     await first.saveReach({ armSpanCm: 180, heightCm: 176, date: '2026-10-03' });
 
     const restarted = createLocalBackend(storage, emptyGame);
     const state = await restarted.load();
     expect(state.logs).toEqual([climb]);
     expect(state.completed).toEqual(['vertical-read']);
-    expect(state.flags).toHaveLength(1);
+    expect(state.flags).toEqual([
+      { side: 'left', finger: 'index', date: '2026-10-03', spots: ['a2'] },
+    ]);
     expect(state.reach?.armSpanCm).toBe(180);
   });
 
@@ -43,6 +48,17 @@ describe('local backend', () => {
     ]);
     const restarted = await createLocalBackend(storage, emptyGame).load();
     expect(restarted.logs.map(l => l.id)).toEqual(['c1', 'c2']);
+  });
+
+  it('loads flags saved before spots existed as "not sure where"', async () => {
+    const storage = createMemoryStore();
+    const flag = { side: 'right', finger: 'ring', date: '2026-10-01' };
+    await storage.setItem(
+      LOCAL_STORAGE_KEY,
+      JSON.stringify({ ...emptyGame, flags: [flag] }),
+    );
+    const state = await createLocalBackend(storage, emptyGame).load();
+    expect(state.flags).toEqual([{ ...flag, spots: [] }]);
   });
 
   it('falls back to the seed when saved data is unreadable', async () => {

@@ -60,6 +60,19 @@ type GameApi = Readonly<{
   skipQuest: (id: string) => void;
   logClimb: (log: Omit<ClimbLog, 'id' | 'date'>) => void;
   removeClimb: (id: string) => void;
+  /**
+   * Flags a finger with exactly these spots (ids from core's spots.ts).
+   * An empty list means sore, not sure where. A finger that was already
+   * flagged keeps the date it was first flagged.
+   */
+  setFingerSpots: (
+    side: Side,
+    finger: Finger,
+    spots: readonly string[],
+  ) => void;
+  /** Removes a finger's flag and its spots. */
+  clearFinger: (side: Side, finger: Finger) => void;
+  /** Flags a finger with no spots, or clears it if it is flagged. */
   toggleFlag: (side: Side, finger: Finger) => void;
   saveReach: (reach: Omit<Reach, 'date'>) => void;
   resetDemo: () => void;
@@ -164,17 +177,35 @@ export function GameProvider({ children, backend, today: fixedToday }: Props) {
     [state.completed, commit, backend],
   );
 
-  const toggleFlag = useCallback(
-    (side: Side, finger: Finger) => {
-      const flag: HandFlag = { side, finger, date: today };
-      const flagged = !state.flags.some(
+  const setFingerSpots = useCallback(
+    (side: Side, finger: Finger, spots: readonly string[]) => {
+      const old = state.flags.find(
         f => f.side === side && f.finger === finger,
       );
-      commit({ type: 'setFlag', flag, flagged }, () =>
-        backend.setHandFlag(flag, flagged),
+      const flag: HandFlag = { side, finger, date: old?.date ?? today, spots };
+      commit({ type: 'setFlag', flag, flagged: true }, () =>
+        backend.setHandFlag(flag, true),
       );
     },
     [state.flags, today, commit, backend],
+  );
+
+  const clearFinger = useCallback(
+    (side: Side, finger: Finger) => {
+      const flag: HandFlag = { side, finger, date: today, spots: [] };
+      commit({ type: 'setFlag', flag, flagged: false }, () =>
+        backend.setHandFlag(flag, false),
+      );
+    },
+    [today, commit, backend],
+  );
+
+  const toggleFlag = useCallback(
+    (side: Side, finger: Finger) =>
+      state.flags.some(f => f.side === side && f.finger === finger)
+        ? clearFinger(side, finger)
+        : setFingerSpots(side, finger, []),
+    [state.flags, clearFinger, setFingerSpots],
   );
 
   const api = useMemo<GameApi>(
@@ -195,6 +226,8 @@ export function GameProvider({ children, backend, today: fixedToday }: Props) {
       celebration,
       dismissCelebration: () => setCelebration(null),
       completeQuest,
+      setFingerSpots,
+      clearFinger,
       toggleFlag,
       skipQuest: id =>
         commit({ type: 'skipQuest', questId: id }, () => backend.skipQuest(id)),
@@ -229,6 +262,8 @@ export function GameProvider({ children, backend, today: fixedToday }: Props) {
       pet,
       celebration,
       completeQuest,
+      setFingerSpots,
+      clearFinger,
       toggleFlag,
       commit,
     ],

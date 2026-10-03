@@ -18,7 +18,10 @@ export const FINGERS: readonly Finger[] = [
 export type HandFlag = Readonly<{
   side: Side;
   finger: Finger;
+  /** When it was first flagged. Editing the spots keeps this date. */
   date: string;
+  /** Where it hurts: spot ids from spots.ts. Empty means "not sure where". */
+  spots: readonly string[];
 }>;
 
 export type Reach = Readonly<{
@@ -84,10 +87,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case 'setFlag': {
       const same = (f: HandFlag) =>
         f.side === action.flag.side && f.finger === action.flag.finger;
-      const others = state.flags.filter(f => !same(f));
+      if (!action.flagged) {
+        return { ...state, flags: state.flags.filter(f => !same(f)) };
+      }
+      // An edited flag keeps its place in the list; a new one goes last.
       return {
         ...state,
-        flags: action.flagged ? [...others, action.flag] : others,
+        flags: state.flags.some(same)
+          ? state.flags.map(f => (same(f) ? action.flag : f))
+          : [...state.flags, action.flag],
       };
     }
     case 'saveReach':
@@ -111,8 +119,15 @@ export function parseGameState(json: string | null): GameState | null {
       Array.isArray(value.flags) &&
       Array.isArray(value.completed) &&
       Array.isArray(value.skipped);
-    return ok ? { ...emptyGame, ...value } : null;
+    return ok
+      ? { ...emptyGame, ...value, flags: value.flags.map(withSpots) }
+      : null;
   } catch {
     return null;
   }
+}
+
+/** Flags saved before spots existed have none, which reads as "not sure where". */
+function withSpots(flag: HandFlag): HandFlag {
+  return Array.isArray(flag.spots) ? flag : { ...flag, spots: [] };
 }
