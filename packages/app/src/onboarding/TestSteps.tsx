@@ -30,12 +30,14 @@ export function TestsIntroStep({
   return (
     <Panel title="Home tests" badge={<Tag text="Optional" tone="muted" />}>
       <AppText>
-        One test per screen. Each gives your profile a starting point to
-        compare with later.
+        One test per screen. Each gives your profile a starting point to compare
+        with later.
       </AppText>
       <View
         accessible
-        accessibilityLabel={`The tests: ${BASELINE_TESTS.map(t => t.name).join(', ')}`}
+        accessibilityLabel={`The tests: ${BASELINE_TESTS.map(t => t.name).join(
+          ', ',
+        )}`}
         style={styles.tags}
       >
         {BASELINE_TESTS.map(test => (
@@ -43,8 +45,8 @@ export function TestsIntroStep({
         ))}
       </View>
       <AppText variant="caption">
-        You need a pull-up bar, some floor and a ruler. Skip any test you
-        cannot do.
+        You need a pull-up bar, some floor and a ruler. Skip any test you cannot
+        do.
       </AppText>
       <SafetyLine text="Warm up first. Skip the tests if you are injured, and stop if anything hurts." />
       <Button title="Start tests" icon="tests" onPress={onStart} />
@@ -56,12 +58,15 @@ export function TestsIntroStep({
 export function TestStep({
   test,
   index,
+  title = test.name,
   result,
   onResult,
 }: {
   test: BaselineTest;
-  /** 1 to 6. */
-  index: number;
+  /** 1 to 6, shown as "N of 6" during setup. Left out when done on its own. */
+  index?: number;
+  /** Panel title; the test's name unless the page already shows it. */
+  title?: string;
   result: Readonly<{ value: number; method: ResultMethod }> | undefined;
   onResult: (value: number | null, method: ResultMethod) => void;
 }) {
@@ -70,8 +75,12 @@ export function TestStep({
   return (
     <>
       <Panel
-        title={test.name}
-        badge={<Tag text={`${index} of ${BASELINE_TESTS.length}`} tone="muted" />}
+        title={title}
+        badge={
+          index ? (
+            <Tag text={`${index} of ${BASELINE_TESTS.length}`} tone="muted" />
+          ) : undefined
+        }
       >
         <AppText>{test.measures}</AppText>
         <View style={styles.inline}>
@@ -92,8 +101,8 @@ export function TestStep({
           test.unit === 'seconds'
             ? 'Your time'
             : test.unit === 'reps'
-              ? 'Your reps'
-              : 'Your reach'
+            ? 'Your reps'
+            : 'Your reach'
         }
       >
         {test.input === 'stopwatch' ? (
