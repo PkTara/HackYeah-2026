@@ -1,0 +1,19 @@
+{
+  "name": "hackyeah2026",
+  "private": true,
+  "description": "Root task runner. Each app installs its own dependencies; there are no npm workspaces (RNOH expects node_modules next to apps/mobile/harmony).",
+  "scripts": {
+    "setup": "npm --prefix apps/mobile install && npm --prefix apps/web install",
+    "start": "npm --prefix apps/mobile start",
+    "harmony:port": "npm --prefix apps/mobile run harmony:port",
+    "harmony:run": "npm --prefix apps/mobile run harmony:run",
+    "harmony:bundle": "npm --prefix apps/mobile run harmony:bundle",
+    "android": "npm --prefix apps/mobile run android",
+    "web": "npm --prefix apps/web run dev",
+    "web:build": "npm --prefix apps/web run build",
+    "typecheck": "npm --prefix apps/mobile run typecheck",
+    "lint": "npm --prefix apps/mobile run lint && node apps/mobile/node_modules/eslint/bin/eslint.js -c apps/mobile/.eslintrc.js --resolve-plugins-relative-to apps/mobile --ext .ts,.tsx packages",
+    "test": "npm --prefix apps/mobile test",
+    "check": "npm run typecheck && npm run lint && npm test"
+  }
+}

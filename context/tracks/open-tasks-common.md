@@ -1,6 +1,6 @@
-# Open tasks — shared rules (AI, ImpactHer, Defence, Smart City)
+# Open tasks — shared rules (AI, ImpactHer, Defence, Smart City, Sport & Healthcare)
 
-All four open tasks are sponsored by PROIDEA Sp. z o.o. (Kraków). Each has **8,000 PLN** (gross) and identical rules, judging and AI policy. Only the theme differs; see the track files.
+All five documented open tasks are sponsored by PROIDEA Sp. z o.o. (Kraków). Each has **8,000 PLN** (gross) and matching rules, judging and AI policy. Their themes differ; see the track files, including [Sport & Healthcare](open-sport-healthcare.md), whose supplied description and rules were read in full.
 
 ## Judging criteria (with official definitions)
 
