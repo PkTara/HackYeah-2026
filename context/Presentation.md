@@ -1,0 +1,1 @@
+Make it a short PDF file. It can be done in PowerPoint, Keynote, or anything else. Make sure to use any mock-ups, screenshots you have, describe your idea briefly but with all the details you believe are important, and let it be an online pitch of your project.

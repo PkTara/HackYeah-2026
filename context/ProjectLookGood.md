@@ -1,0 +1,1 @@
+Add anything that’ll let the jury see the full picture of your project, e.g.: mock-ups, simulations, sketches, prototypes, screenshots, etc.

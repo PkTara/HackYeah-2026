@@ -1,0 +1,1 @@
+It should be a short description (closer to 3 paragraphs than 3 pages). Tell the judges what the problem is you are solving, how you want to solve it, how the project is supposed to work, don’t tell them the world’s history, because they won’t have time to read it all.
