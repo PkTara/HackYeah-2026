@@ -60,6 +60,15 @@ export function trailFor(route: RouteName, params: Params): Crumb[] {
       return [tab('Profile'), { route, params, label: 'Evidence' }];
     case 'About':
       return [tab('Tests'), { route, label: 'About' }];
+    case 'Assessment':
+      return [tab('Tests'), { route, label: 'Camera assessment', short: 'Camera' }];
+    case 'HandCapture': {
+      // Opened from a finger close-up it sits under that finger.
+      const here = { route, params, label: 'Add a photo', short: 'Photo' };
+      return FINGERS.some(f => f === params.finger)
+        ? [tab('Hands'), fingerCrumb(params), here]
+        : [tab('Hands'), here];
+    }
     case 'Test': {
       const test = BASELINE_TESTS.find(t => t.id === params.id) ?? BASELINE_TESTS[0];
       return [tab('Tests'), { route, params, label: test.name }];

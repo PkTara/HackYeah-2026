@@ -2,10 +2,11 @@
  * Backend that talks to the Climbing Monkey API (the FastAPI service in
  * backend/). Routes are in endpoints.ts, JSON shapes and their mapping in
  * wire.ts, and what stays on the device in device.ts. This file makes the
- * requests: identity, the order of writes, and the two answers that are not
- * errors for the climber (404 on a delete, 409 on a quest).
+ * requests: identity, the order of writes, and the answers that are not
+ * errors for the climber (404 on a delete, 401 or 404 on a profile reset,
+ * 409 on a quest).
  */
-import { mergeBaseline, type GameState } from '@hackyeah/core';
+import { emptyGame, mergeBaseline, type GameState } from '@hackyeah/core';
 import type { KeyValueStore } from '@hackyeah/platform';
 import { BackendError, type ClimbingBackend } from './backend';
 import { API_TOKEN_KEY, createDeviceStore } from './device';
@@ -248,6 +249,24 @@ export function createHttpBackend(opts: HttpBackendOptions): ClimbingBackend {
     }
   }
 
+  /** Deletes this device's climber on the server, if one was made. */
+  async function deleteClimber(): Promise<void> {
+    const bearer = await (token ?? opts.storage.getItem(API_TOKEN_KEY));
+    if (!bearer) {
+      return;
+    }
+    try {
+      // Not api(): after a 401 it would make a new climber only to delete it.
+      await request(endpoints.deleteMe(), undefined, bearer);
+    } catch (error) {
+      // 401: the server no longer knows the token. 404: no such climber.
+      // Either way the profile is gone already.
+      if (!hasStatus(error, 401) && !hasStatus(error, 404)) {
+        throw error;
+      }
+    }
+  }
+
   return {
     kind: 'remote',
     load: () => writes.then(readState),
@@ -329,5 +348,19 @@ export function createHttpBackend(opts: HttpBackendOptions): ClimbingBackend {
           })
         : inOrder(keep);
     },
+
+    resetProfile: () =>
+      inOrder(async () => {
+        await deleteClimber();
+        // Keep nothing of the old climber: not its token, its climb ids, or
+        // the setup answers and home tests on this device.
+        token = null;
+        serverIds.clear();
+        await device.forget();
+        // Loading makes a new anonymous climber. If only that fails, the old
+        // profile is still gone: answer with an empty one, and the next
+        // request makes the climber.
+        return readState().catch(() => ({ ...emptyGame, assigned: null }));
+      }),
   };
 }

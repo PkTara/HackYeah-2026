@@ -27,6 +27,7 @@ import { TabScreen } from '../components/TabScreen';
 import { useNavigation } from '../navigation/Navigator';
 import type { RouteName } from '../navigation/routes';
 import { useSetup } from '../onboarding/OnboardingGate';
+import { useMedia } from '../media';
 import { useGame } from '../state/GameProvider';
 
 const MIN_CM = 100;
@@ -36,10 +37,6 @@ const CONFIRM_MS = 3000;
 
 /** Tests from the design that this build does not run yet. */
 const NOT_BUILT = [
-  {
-    title: 'Leg spread',
-    text: 'This camera test needs a repeatable camera setup before we show any numbers.',
-  },
   {
     title: 'Shoulder reach',
     text: 'This camera test will compare your left and right shoulder.',
@@ -82,8 +79,8 @@ function signedCm(cm: number): string {
 }
 
 /**
- * Assessments: the home tests from setup, manual reach, and honest "not
- * built yet" cards for the camera and strength tests.
+ * Assessments: the home tests from setup, manual reach, the camera
+ * assessment (it needs the server), and honest "not built yet" cards.
  */
 export function TestsScreen() {
   const { navigate } = useNavigation<RouteName>();
@@ -105,6 +102,7 @@ export function TestsScreen() {
         </Column>
 
         <Column>
+          <CameraPanel />
           {NOT_BUILT.map(test => (
             <Panel
               key={test.title}
@@ -135,6 +133,46 @@ export function TestsScreen() {
         </Column>
       </Columns>
     </TabScreen>
+  );
+}
+
+/**
+ * Leg spread with the camera. It needs the server, which analyses the
+ * picture; the on-device demo says so instead of offering it.
+ */
+function CameraPanel() {
+  const { navigate } = useNavigation<RouteName>();
+  const media = useMedia();
+  return (
+    <Panel
+      variant={media ? 'sign' : 'quiet'}
+      title="Leg spread"
+      badge={<Tag text={media ? 'Camera' : 'Needs server'} tone="muted" />}
+    >
+      <AppText>
+        Take a photo, record a clip or go live. The server estimates the angle
+        between your legs as the picture shows it: a projected angle, not a
+        validated flexibility test.
+      </AppText>
+      {media ? (
+        <>
+          <AppText variant="caption" muted>
+            Nothing leaves this device until you agree to send it.
+          </AppText>
+          <Button
+            title="Camera assessment"
+            icon="tests"
+            onPress={() => navigate('Assessment')}
+          />
+        </>
+      ) : (
+        <AppText variant="caption" muted>
+          This needs the Climbing Monkey server, and this build keeps everything
+          on this device. Start it with npm run backend:start and open the app
+          with VITE_MONKEY_API_URL set (API_BASE_URL on a phone).
+        </AppText>
+      )}
+    </Panel>
   );
 }
 

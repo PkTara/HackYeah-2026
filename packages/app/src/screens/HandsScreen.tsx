@@ -27,6 +27,7 @@ import { TabScreen } from '../components/TabScreen';
 import { FINGER_NAME, SIDE_NAME, fingerLabel, spotsText } from '../labels';
 import { useNavigation } from '../navigation/Navigator';
 import type { RouteName } from '../navigation/routes';
+import { useMedia } from '../media';
 import { useGame } from '../state/GameProvider';
 
 // Symptom screen: quiet panels and plain words. No monkey, no rewards.
@@ -152,6 +153,8 @@ export function HandsScreen() {
             )}
           </Panel>
 
+          <PhotoPanel />
+
           {quest.paused.length > 0 ? (
             <Panel variant="quiet" title="Quests">
               <View style={styles.row}>
@@ -196,6 +199,40 @@ export function HandsScreen() {
       </Columns>
       {wide ? anatomy : null}
     </TabScreen>
+  );
+}
+
+/**
+ * The hand photo journal: a private photo with how it feels. A finger entry
+ * flags or clears that finger like the close-up, so there is one set of
+ * flags. It needs the server, which keeps the photos.
+ */
+function PhotoPanel() {
+  const { navigate } = useNavigation<RouteName>();
+  const media = useMedia();
+  return (
+    <Panel variant="quiet" title="Hand photos">
+      <AppText>
+        Add a photo of a sore spot to your private journal, with how it feels
+        today.
+      </AppText>
+      {media ? (
+        <Button
+          title="Add a photo"
+          variant="secondary"
+          small
+          style={styles.start}
+          onPress={() => navigate('HandCapture')}
+        />
+      ) : (
+        <AppText variant="caption" muted>
+          This needs the Climbing Monkey server, which keeps the photos. This
+          build keeps everything on this device. Start the server with npm run
+          backend:start and open the app with VITE_MONKEY_API_URL set
+          (API_BASE_URL on a phone).
+        </AppText>
+      )}
+    </Panel>
   );
 }
 
@@ -260,4 +297,5 @@ const styles = StyleSheet.create({
   grow: { flex: 1 },
   offer: { gap: spacing.xs },
   strong: { fontWeight: '800' },
+  start: { alignSelf: 'flex-start' },
 });

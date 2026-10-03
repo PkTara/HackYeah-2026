@@ -1,4 +1,5 @@
-import { View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { AccessibilityInfo, StyleSheet, View } from 'react-native';
 import {
   MOVEMENTS,
   XP_PER_LEVEL,
@@ -18,11 +19,14 @@ import {
   Meter,
   Monkey,
   MovementRadar,
+  PX,
   Panel,
   Pips,
   PixelText,
   Tag,
   TerrainTriangle,
+  WarningSign,
+  spacing,
   useContentWidth,
   useLayout,
   useTheme,
@@ -398,6 +402,139 @@ export function ProfileScreen() {
           </Panel>
         </Column>
       </Columns>
+
+      <ResetProfile />
     </TabScreen>
   );
 }
+
+/**
+ * Moves keyboard and screen reader focus to something that just appeared.
+ * focus() moves the web page's focus (the element needs tabIndex -1), and
+ * the accessibility event moves the screen reader on Android and iOS. Each
+ * does nothing where it does not apply, so no platform check is needed.
+ */
+function focusOn(node: View | null) {
+  if (node) {
+    node.focus();
+    AccessibilityInfo.sendAccessibilityEvent?.(node, 'focus');
+  }
+}
+
+/**
+ * Deletes the whole profile, after an "Are you sure?" step in the same tray.
+ * The step is part of the screen rather than a system pop-up, which browsers
+ * can block. Not the demo reset: no example data comes back.
+ */
+function ResetProfile() {
+  const { backendKind, resetProfile } = useGame();
+  const { colors: c } = useTheme();
+  const wide = useLayout().columns === 2;
+  const [asking, setAsking] = useState(false);
+  const warning = useRef<View>(null);
+  const question = useRef<View>(null);
+
+  // Keyboard and screen reader users land on the question.
+  useEffect(() => {
+    if (asking) {
+      focusOn(question.current);
+    }
+  }, [asking]);
+
+  return (
+    <Panel variant="alert">
+      <View style={wide ? styles.side : styles.stack}>
+        {/* One stop for screen readers, and where focus goes back to. */}
+        <View
+          ref={warning}
+          accessible
+          tabIndex={-1}
+          style={[styles.note, styles.grow]}
+        >
+          <WarningSign />
+          <View style={[styles.grow, styles.lines]}>
+            <AppText>
+              Resetting deletes your climbs, finger flags, quest progress and
+              the monkey's level, your reach, home test results and setup
+              answers. It cannot be undone.
+            </AppText>
+            <AppText variant="caption" muted>
+              Setup runs again and your profile starts empty.
+              {/* Only the on-device demo has example data to put back. */}
+              {backendKind === 'local'
+                ? ' To put the example data back instead, use Reset demo data in Tests.'
+                : ''}
+            </AppText>
+          </View>
+        </View>
+        <Button
+          title="Reset profile"
+          icon="bin"
+          variant="danger"
+          disabled={asking}
+          onPress={() => setAsking(true)}
+          accessibilityHint="Asks before anything is deleted"
+        />
+      </View>
+
+      {asking ? (
+        <>
+          {/* A red rule: the kit's Divider is drawn in sign colours, which
+              read as a green line on the night theme's red tray. */}
+          <View style={[styles.rule, { backgroundColor: c.danger }]} />
+          <View style={wide ? styles.side : styles.stack}>
+            <View style={[styles.grow, styles.lines]}>
+              <View
+                ref={question}
+                accessible
+                accessibilityRole="header"
+                accessibilityLabel="Are you sure?"
+                tabIndex={-1}
+              >
+                <PixelText
+                  text="Are you sure?"
+                  scale={3}
+                  heading
+                  accessible={false}
+                />
+              </View>
+              <AppText>
+                Your whole profile is deleted and setup starts again.
+              </AppText>
+            </View>
+            <View style={wide ? styles.choicesSide : styles.choices}>
+              <Button
+                title="Yes, reset my profile"
+                variant="danger"
+                onPress={() => {
+                  setAsking(false);
+                  resetProfile();
+                }}
+              />
+              <Button
+                title="Keep my profile"
+                variant="secondary"
+                onPress={() => {
+                  setAsking(false);
+                  focusOn(warning.current);
+                }}
+              />
+            </View>
+          </View>
+        </>
+      ) : null}
+    </Panel>
+  );
+}
+
+const styles = StyleSheet.create({
+  // Phones: text, then a full-width button. Wide screens: buttons on the right.
+  stack: { gap: spacing.md },
+  side: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
+  note: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm + 4 },
+  lines: { gap: spacing.sm },
+  grow: { flex: 1 },
+  rule: { height: PX },
+  choices: { gap: spacing.sm + 2 },
+  choicesSide: { flexDirection: 'row', gap: spacing.sm + 2 },
+});

@@ -112,6 +112,11 @@ type CheckRowProps = {
   detail?: string;
   checked: boolean;
   onPress: () => void;
+  /**
+   * warn (the default) fills a ticked box red, for marking something sore.
+   * agree fills it banana yellow, for consent and confirmations.
+   */
+  tone?: 'warn' | 'agree';
   style?: StyleProp<ViewStyle>;
 };
 
@@ -128,6 +133,7 @@ export function CheckRow({
   detail,
   checked,
   onPress,
+  tone = 'warn',
   style,
 }: CheckRowProps) {
   const c = useTheme().colors;
@@ -153,12 +159,22 @@ export function CheckRow({
           ]}
         >
           <PixelBox
-            fill={checked ? c.danger : c.surfaceLight}
+            fill={
+              checked
+                ? tone === 'agree'
+                  ? c.primary
+                  : c.danger
+                : c.surfaceLight
+            }
             outline={ink}
             contentStyle={styles.box}
           >
             {checked ? (
-              <Icon name="check" color={c.onDanger} style={styles.tick} />
+              <Icon
+                name="check"
+                color={tone === 'agree' ? c.onPrimary : c.onDanger}
+                style={styles.tick}
+              />
             ) : null}
           </PixelBox>
           <View style={styles.text}>

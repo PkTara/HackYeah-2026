@@ -3,6 +3,7 @@
  * store. Used for the demo and whenever no server is configured.
  */
 import {
+  emptyGame,
   gameReducer,
   parseGameState,
   sampleGame,
@@ -54,6 +55,11 @@ export function createLocalBackend(
     finishOnboarding: result => apply({ type: 'finishOnboarding', result }),
     skipOnboarding: () => apply({ type: 'skipOnboarding' }),
     saveBaseline: result => apply({ type: 'saveBaseline', result }),
+    async resetProfile() {
+      // Saved as empty, not removed: a missing save would load the seed.
+      await update(() => emptyGame);
+      return emptyGame;
+    },
     async resetDemo() {
       // Setup answers and home tests belong to the climber, not the demo.
       await update(old => ({

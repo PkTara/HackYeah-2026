@@ -19,6 +19,8 @@ export const endpoints = {
   createClimber: (): Route => ({ method: 'POST', path: '/v1/climbers' }),
   /** Body: ClimberUpdateBody. Answer: the climber. */
   updateMe: (): Route => ({ method: 'PATCH', path: '/v1/me' }),
+  /** Answer: 204. Deletes the climber, its records and its token. */
+  deleteMe: (): Route => ({ method: 'DELETE', path: '/v1/me' }),
 
   /** Answer: ClimbDto[], oldest first. */
   listClimbs: (): Route => ({ method: 'GET', path: '/v1/me/climbs' }),
@@ -57,5 +59,24 @@ export const endpoints = {
   skipQuest: (questId: string): Route => ({
     method: 'POST',
     path: `/v1/me/quests/${id(questId)}/skip`,
+  }),
+
+  // Camera media (media.ts). Multipart bodies, see mediaWire.ts.
+
+  /** Form: file, upload_consent. Answer: PoseResultDto. Nothing is kept. */
+  analyzeImage: (): Route => ({ method: 'POST', path: '/v1/pose/image' }),
+  /** Form: file, upload_consent. Answer: VideoResultDto. Nothing is kept. */
+  analyzeVideo: (): Route => ({ method: 'POST', path: '/v1/pose/video' }),
+  /**
+   * WebSocket for sampled live frames (live.ts). The token goes in the
+   * first message, never in the URL.
+   */
+  liveStream: (): Route => ({ method: 'GET', path: '/v1/pose/stream' }),
+  /** Form: file, side, view, upload_consent, retain_consent. Answer: { id }. */
+  addPhoto: (): Route => ({ method: 'POST', path: '/v1/me/photos' }),
+  /** Answer: 204. */
+  removePhoto: (photoId: string): Route => ({
+    method: 'DELETE',
+    path: `/v1/me/photos/${id(photoId)}`,
   }),
 };

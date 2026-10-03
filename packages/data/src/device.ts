@@ -58,5 +58,10 @@ export function createDeviceStore(storage: KeyValueStore) {
       JSON.stringify({ version: 1, ...next }),
     );
   }
-  return { read, update };
+  /** Forgets this device's server profile: its token and the device-only data. */
+  async function forget() {
+    await storage.removeItem(API_TOKEN_KEY);
+    await storage.removeItem(DEVICE_STORAGE_KEY);
+  }
+  return { read, update, forget };
 }

@@ -48,6 +48,8 @@ type GameApi = Readonly<{
   syncError: string | null;
   dismissSyncError: () => void;
   retry: () => void;
+  /** Reads the saved state again, without the loading screen (after the camera saved a hand report). */
+  refresh: () => void;
   backendKind: ClimbingBackend['kind'];
 
   state: GameState;
@@ -83,6 +85,11 @@ type GameApi = Readonly<{
   skipOnboarding: () => void;
   /** One home test done from the Tests tab. */
   saveBaseline: (result: BaselineResult) => void;
+  /**
+   * Deletes the whole profile, then setup runs again. Not resetDemo: no
+   * example data comes back. If it fails, the screen keeps what it shows.
+   */
+  resetProfile: () => void;
   resetDemo: () => void;
 }>;
 
@@ -253,6 +260,9 @@ export function GameProvider({ children, backend, today: fixedToday }: Props) {
         setStatus('loading');
         reload();
       },
+      refresh: () => {
+        reload();
+      },
       backendKind: backend.kind,
       state,
       today,
@@ -287,6 +297,16 @@ export function GameProvider({ children, backend, today: fixedToday }: Props) {
         commit({ type: 'saveBaseline', result }, () =>
           backend.saveBaseline(result),
         ),
+      // Not shown before it is done: a failed reset must leave the profile.
+      resetProfile: () => {
+        backend.resetProfile().then(
+          fresh => {
+            setSyncError(null);
+            dispatch({ type: 'reset', state: fresh });
+          },
+          () => setSyncError('Could not reset your profile.'),
+        );
+      },
       resetDemo: () => {
         if (backend.resetDemo) {
           backend.resetDemo().then(

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
-import type { CameraPreviewProps, MediaCapture } from './camera.types';
+import type { CameraPreviewProps } from './camera.types';
 
 export type NativeCapture = {
   uri: string;
@@ -18,29 +18,30 @@ export type NativeCameraViewProps = {
     nativeEvent: { errorMessage?: string; message?: string };
   }) => void;
 };
+/** What a native camera library has to provide (see cameraDriver.tsx). */
 export type NativeCameraDriver = {
   View: React.ComponentType<
     NativeCameraViewProps & React.RefAttributes<NativeCameraHandle>
   >;
+  /** Wait for the view's first start event before offering snapshots. */
   requiresStarted?: boolean;
   requestPermission(): Promise<boolean>;
+  /** Reads a captured file, so live analysis can send its bytes. */
   readBytes?(uri: string): Promise<Uint8Array>;
+  /** Deletes a captured file once nobody needs it. */
   releaseFrame?(uri: string): Promise<void>;
-  recordVideo?(cameraType: 'front' | 'back'): Promise<MediaCapture | null>;
 };
 const previewStyle = { flex: 1 };
 
+/**
+ * A live preview for Android and iOS. It asks for camera permission each
+ * time it becomes active, and offers a session for snapshots only while
+ * the camera is mounted and started. Leaving makes old sessions refuse.
+ */
 export function createNativeCameraPreview(driver: NativeCameraDriver) {
   return function NativeCameraPreview(props: CameraPreviewProps) {
     const [allowed, setAllowed] = useState(false);
     const [started, setStarted] = useState(false);
-    const [picking, setPicking] = useState(false);
-    const recordingBusy = useRef(false);
-    const pendingPicker = useRef<{
-      cameraType: 'front' | 'back';
-      resolve: (capture: MediaCapture | null) => void;
-      reject: (reason: unknown) => void;
-    } | null>(null);
     const camera = useRef<NativeCameraHandle | null>(null);
     const [mounted, setMounted] = useState(false);
     const bindCamera = useCallback((value: NativeCameraHandle | null) => {
@@ -81,67 +82,14 @@ export function createNativeCameraPreview(driver: NativeCameraDriver) {
       };
     }, [props.active]);
     useEffect(() => {
-      if (!picking || !pendingPicker.current || !driver.recordVideo) {
-        return;
-      }
-      const pending = pendingPicker.current;
-      pendingPicker.current = null;
-      let current = true;
-      driver
-        .recordVideo(pending.cameraType)
-        .then(capture => {
-          if (!current || !callbacks.current.active) {
-            capture?.release?.();
-            pending.resolve(null);
-          } else {
-            pending.resolve(capture);
-          }
-        }, pending.reject)
-        .finally(() => {
-          recordingBusy.current = false;
-          setPicking(false);
-        });
-      return () => {
-        current = false;
-      };
-    }, [picking]);
-    useEffect(() => {
       let current = true;
       if (
         props.active &&
         allowed &&
-        !picking &&
         camera.current &&
         (!driver.requiresStarted || started)
       ) {
         callbacks.current.onReady({
-          ...(driver.recordVideo
-            ? {
-                recordVideo: () => {
-                  if (!current || !callbacks.current.active || picking) {
-                    return Promise.reject(
-                      new Error('Camera preview is inactive.'),
-                    );
-                  }
-                  if (recordingBusy.current) {
-                    return Promise.reject(
-                      new Error('Video recording is already open.'),
-                    );
-                  }
-                  recordingBusy.current = true;
-                  setStarted(false);
-                  return new Promise<MediaCapture | null>((resolve, reject) => {
-                    pendingPicker.current = {
-                      cameraType:
-                        callbacks.current.mode === 'hand' ? 'front' : 'back',
-                      resolve,
-                      reject,
-                    };
-                    setPicking(true);
-                  });
-                },
-              }
-            : {}),
           snapshot: async () => {
             if (!current || !callbacks.current.active || !camera.current) {
               throw new Error('Camera preview is inactive.');
@@ -198,8 +146,8 @@ export function createNativeCameraPreview(driver: NativeCameraDriver) {
         current = false;
         callbacks.current.onReady(null);
       };
-    }, [props.active, allowed, mounted, picking, started]);
-    return props.active && allowed && !picking ? (
+    }, [props.active, allowed, mounted, started]);
+    return props.active && allowed ? (
       <driver.View
         ref={bindCamera}
         onStarted={() => setStarted(true)}

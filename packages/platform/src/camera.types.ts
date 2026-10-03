@@ -12,11 +12,14 @@ export type MediaCapture = {
   release?: () => void;
 };
 
+/**
+ * A running camera. Snapshots work everywhere; the web can also record a
+ * clip. Android and iOS do not record yet, so those methods are missing.
+ */
 export interface CameraSession {
   snapshot(): Promise<MediaCapture>;
   startRecording?(): Promise<void>;
   stopRecording?(): Promise<MediaCapture>;
-  recordVideo?(): Promise<MediaCapture | null>;
 }
 
 export type CameraPreviewProps = {

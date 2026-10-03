@@ -74,4 +74,27 @@ describe('local backend', () => {
     expect(await backend.resetDemo?.()).toEqual(sampleGame);
     expect(await backend.load()).toEqual(sampleGame);
   });
+
+  it('resets the profile to an empty one, not the sample data', async () => {
+    const storage = createMemoryStore();
+    const backend = createLocalBackend(storage);
+    await backend.addClimb(climb);
+    await backend.skipOnboarding();
+
+    expect(await backend.resetProfile()).toEqual(emptyGame);
+
+    const saved = await storage.getItem(LOCAL_STORAGE_KEY);
+    expect(JSON.parse(saved ?? 'null')).toEqual(emptyGame);
+    // A restart starts empty too, so setup runs again.
+    expect(await createLocalBackend(storage).load()).toEqual(emptyGame);
+  });
+
+  it('resets after a change made just before it', async () => {
+    const storage = createMemoryStore();
+    const backend = createLocalBackend(storage, emptyGame);
+
+    await Promise.all([backend.addClimb(climb), backend.resetProfile()]);
+
+    expect(await createLocalBackend(storage).load()).toEqual(emptyGame);
+  });
 });

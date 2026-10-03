@@ -6,7 +6,7 @@ import {
   type NativeCameraHandle,
   type NativeCameraViewProps,
 } from '../nativeCamera';
-import type { CameraSession, MediaCapture } from '../camera.types';
+import type { CameraSession } from '../camera.types';
 
 const capture = jest.fn();
 const requestPermission = jest.fn();
@@ -255,77 +255,6 @@ test('adds native JPEG bytes for live analysis when the driver supports reading 
   expect(frame.bytes).toEqual(new Uint8Array([255, 216, 255]));
   expect(readBytes).toHaveBeenCalledWith('file:///frame.jpg');
 });
-test('offers a system video recording session for drivers that provide recording', async () => {
-  const clip = {
-    kind: 'video' as const,
-    uri: 'file:///video.mp4',
-    filename: 'video.mp4',
-    mimeType: 'video/mp4',
-  };
-  const recordVideo = jest.fn().mockResolvedValue(clip);
-  const VideoPreview = createNativeCameraPreview({
-    View: CameraView,
-    requestPermission,
-    recordVideo,
-  });
-  await act(async () => {
-    renderer = TestRenderer.create(
-      <VideoPreview
-        active={true}
-        mode="hand"
-        onReady={onReady}
-        onError={onError}
-      />,
-    );
-  });
-  expect(typeof session!.recordVideo).toBe('function');
-  let result;
-  let recording!: Promise<unknown>;
-  await act(async () => {
-    recording = session!.recordVideo!();
-  });
-  await act(async () => {
-    result = await recording;
-  });
-  expect(result).toEqual(clip);
-  expect(recordVideo).toHaveBeenCalledWith('front');
-});
-test('releases the embedded camera while the system video recorder is open and restores it afterward', async () => {
-  let finish!: (clip: null) => void;
-  const recordVideo = jest.fn(
-    () =>
-      new Promise<null>(done => {
-        finish = done;
-      }),
-  );
-  const VideoPreview = createNativeCameraPreview({
-    View: CameraView,
-    requestPermission,
-    recordVideo,
-  });
-  await act(async () => {
-    renderer = TestRenderer.create(
-      <VideoPreview
-        active={true}
-        mode="assessment"
-        onReady={onReady}
-        onError={onError}
-      />,
-    );
-  });
-  let recording!: Promise<unknown>;
-  await act(async () => {
-    recording = session!.recordVideo!();
-  });
-  expect(renderer.root.findAllByType(CameraView)).toHaveLength(0);
-  expect(session).toBeNull();
-  await act(async () => {
-    finish(null);
-    await recording;
-  });
-  expect(renderer.root.findAllByType(CameraView)).toHaveLength(1);
-  expect(session).not.toBeNull();
-});
 test('rejects a snapshot finishing after the route is deactivated', async () => {
   let finish!: (frame: { uri: string }) => void;
   capture.mockImplementation(
@@ -396,47 +325,6 @@ test('releases a sampled cache file when reading its bytes fails', async () => {
   await expect(session!.snapshot()).rejects.toThrow('Frame read failed');
   expect(releaseFrame).toHaveBeenCalledWith('file:///frame.jpg');
 });
-test('rejects a second recorder request while the first request is opening', async () => {
-  let finish!: (clip: null) => void;
-  const recordVideo = jest.fn(
-    () =>
-      new Promise<null>(done => {
-        finish = done;
-      }),
-  );
-  const VideoPreview = createNativeCameraPreview({
-    View: CameraView,
-    requestPermission,
-    recordVideo,
-  });
-  await act(async () => {
-    renderer = TestRenderer.create(
-      <VideoPreview
-        active={true}
-        mode="assessment"
-        onReady={onReady}
-        onError={onError}
-      />,
-    );
-  });
-  const currentSession = session!;
-  let first!: Promise<unknown>;
-  let second!: Promise<unknown>;
-  let secondError = '';
-  await act(async () => {
-    first = currentSession.recordVideo!();
-    second = currentSession.recordVideo!();
-    second.catch(error => {
-      secondError = error.message;
-    });
-  });
-  await act(async () => {
-    finish(null);
-  });
-  expect(secondError).toBe('Video recording is already open.');
-  await first;
-  expect(recordVideo).toHaveBeenCalledTimes(1);
-});
 test('waits for native camera startup before offering a capture session', async () => {
   const StartingPreview = createNativeCameraPreview({
     View: CameraView,
@@ -458,46 +346,4 @@ test('waits for native camera startup before offering a capture session', async 
     renderer.root.findByType(CameraView).props.onStarted();
   });
   expect(session).not.toBeNull();
-});
-
-test('releases a recorded video finishing after the camera screen is disposed', async () => {
-  let finish!: (clip: MediaCapture) => void;
-  const release = jest.fn();
-  const recordVideo = jest.fn(
-    () =>
-      new Promise<MediaCapture>(done => {
-        finish = done;
-      }),
-  );
-  const VideoPreview = createNativeCameraPreview({
-    View: CameraView,
-    requestPermission,
-    recordVideo,
-  });
-  await act(async () => {
-    renderer = TestRenderer.create(
-      <VideoPreview
-        active={true}
-        mode="assessment"
-        onReady={onReady}
-        onError={onError}
-      />,
-    );
-  });
-  let recording!: Promise<unknown>;
-  await act(async () => {
-    recording = session!.recordVideo!();
-  });
-  await act(async () => {
-    renderer.unmount();
-  });
-  finish({
-    kind: 'video',
-    uri: 'file:///app/cache/climbing-camera/climbing-123.mp4',
-    filename: 'climbing-123.mp4',
-    mimeType: 'video/mp4',
-    release,
-  });
-  await expect(recording).resolves.toBeNull();
-  expect(release).toHaveBeenCalledTimes(1);
 });

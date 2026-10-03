@@ -116,6 +116,15 @@ export function createFakeApi(
       const { id, name, goal } = climber;
       return [200, { id, name, goal, pet_visible: true }];
     }
+    if (method === 'DELETE' && path === '/v1/me') {
+      // The climber and everything it owns go; its token stops working.
+      for (const [token, owner] of byToken) {
+        if (owner === climber) {
+          byToken.delete(token);
+        }
+      }
+      return [204];
+    }
 
     const records = path.match(/^\/v1\/me\/(climbs|hands|assessments)$/);
     if (records) {

@@ -20,6 +20,7 @@ screens -> useGame() -> ClimbingBackend -> on-device storage (createLocalBackend
 | `saveReach(reach)` | Tests screen |
 | `finishOnboarding(result)` / `skipOnboarding()` | First-run setup |
 | `saveBaseline(result)` | One home test redone from the Tests tab |
+| `resetProfile()` | Profile screen, after "Are you sure?". Deletes everything and starts again from setup, without the example data. Over HTTP: `DELETE /v1/me` (a 401 or 404 counts as already gone), then the token and device data are forgotten and the load it answers with makes a new climber |
 | `resetDemo()` (optional) | Tests screen, on-device demo only |
 
 A backend that picks quests itself may answer any write with the new state. The app shows it once no other change is still saving. The on-device backend answers nothing and picks quests from the library in `packages/core`.
@@ -77,6 +78,23 @@ A 409 on a quest is not an error for the climber: the backend answers with the f
 - XP and level come from the completed quest ids: 10 XP per quest and a level per 50 XP, the same rule as the server's pet. The server's cosmetic is not used.
 - No offline queue: a change made without signal is rolled back, not retried later. The map from app ids to server ids lives in memory.
 
+## Camera media
+
+The camera screens (camera assessment on the Tests tab, hand photos on the Hands tab and the finger close-up) do not go through `ClimbingBackend`: photos and clips are not game state. They use a `MediaClient` from `src/media.ts`, which the app receives like the backend: `<App media={...}>`, then `useMedia()` in the screens. `createMedia(storage, { apiBaseUrl })` makes one for the same server address as `createBackend`, or null without one; the camera screens then say they need the server.
+
+| Call | Requests |
+|---|---|
+| `analyze(capture, consent)` | `POST /v1/pose/image` or `/v1/pose/video`, multipart with `upload_consent=true`. The server keeps nothing. Answers one reading: the latest valid sample, the latest sample (for its reason) and the usable and total counts |
+| `saveAssessment(result, confirmed)` | `POST /v1/me/assessments` with `method: "camera"`, its confidence and protocol, only for a valid result the climber confirmed |
+| `saveHandPhoto(capture, entry, consent)` | `POST /v1/me/photos` with `retain_consent=true`, side and view, then `POST /v1/me/hands` with `photo_id`. If the entry is refused, the photo is deleted again |
+| `startLive(camera, consent, handlers)` | The `/v1/pose/stream` WebSocket (`src/live.ts`): the token in the first message, one frame at a time, the next only after the answer to the last |
+
+Every call refuses before touching the network when consent is false. Routes are in `endpoints.ts` and the JSON in `wire.ts`, like the rest.
+
+**Identity.** The same anonymous climber as the HTTP backend: the token is read from `climbing-monkey/api-token/v1` on every request, so it follows the backend, also after a profile reset. The media client never makes a climber (the backend does that when the app loads). After a 401 it tries once more if the store holds a newer token; otherwise the climber is asked to reload the app.
+
+**Errors** are written for the climber: no answer names the server, a 503 says the server has no pose model (`POSE_MODEL_PATH`), and 400 or 413 answers show the server's reason (for example "Video duration exceeds 60 seconds.").
+
 ## Tests
 
-`src/__tests__/http.test.ts` runs the HTTP backend against `src/testing/fakeApi.ts`, an in-memory stand-in for the server's routes with its JSON shapes and status codes but none of its rules. It covers identity, token reuse, 401 recovery, climbs with both styles and holds, delete right after add, hand reports to flags, reach, quests (assign, complete, skip, 409), setup and home tests, and the read back after each change. `src/__tests__/local.test.ts` covers the on-device backend.
+`src/__tests__/http.test.ts` runs the HTTP backend against `src/testing/fakeApi.ts`, an in-memory stand-in for the server's routes with its JSON shapes and status codes but none of its rules. It covers identity, token reuse, 401 recovery, climbs with both styles and holds, delete right after add, hand reports to flags, reach, quests (assign, complete, skip, 409), setup and home tests, and the read back after each change. `src/__tests__/local.test.ts` covers the on-device backend. `src/__tests__/media.test.ts` and `live.test.ts` cover the camera calls: consent before any request, the shared token and its 401 retry, the photo removed again after a refused entry, error messages, and live frames waiting for each answer.

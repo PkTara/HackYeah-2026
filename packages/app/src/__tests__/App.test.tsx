@@ -1,5 +1,6 @@
+import { AccessibilityInfo, View } from 'react-native';
 import ReactTestRenderer, { act } from 'react-test-renderer';
-import { sampleGame, type GameState } from '@hackyeah/core';
+import { emptyGame, sampleGame, type GameState } from '@hackyeah/core';
 import { createLocalBackend, type ClimbingBackend } from '@hackyeah/data';
 import { createMemoryStore, type Capabilities } from '@hackyeah/platform';
 import { App } from '../App';
@@ -157,6 +158,83 @@ describe('App', () => {
     await act(async () => {});
     expect(screenText(renderer)).toContain('Understand your starting point');
     expect(screenText(renderer)).toContain('Lvl 2');
+    act(() => renderer.unmount());
+  });
+});
+
+describe('profile reset', () => {
+  const GAME_KEY = 'climbing-monkey/game/v1';
+
+  it('asks first, then deletes everything and runs setup again', async () => {
+    const capabilities = createFakeCapabilities();
+    const renderer = await renderApp(capabilities);
+
+    press(renderer, 'Reset profile');
+    expect(screenText(renderer)).toContain('Are you sure?');
+    expect(screenText(renderer)).toContain('Quiet feet');
+
+    press(renderer, 'Yes, reset my profile');
+    await act(async () => {});
+
+    expect(screenText(renderer)).toContain('Skip setup');
+    expect(screenText(renderer)).not.toContain('Quiet feet');
+    const saved = await capabilities.storage.getItem(GAME_KEY);
+    expect(JSON.parse(saved ?? 'null')).toEqual(emptyGame);
+    act(() => renderer.unmount());
+  });
+
+  it('keeps everything when the climber keeps the profile', async () => {
+    const capabilities = createFakeCapabilities();
+    const local = createLocalBackend(capabilities.storage, SET_UP);
+    const backend: ClimbingBackend = {
+      ...local,
+      resetProfile: jest.fn(local.resetProfile),
+    };
+    const renderer = await renderApp(capabilities, backend);
+
+    press(renderer, 'Reset profile', 'Keep my profile');
+    await act(async () => {});
+
+    expect(backend.resetProfile).not.toHaveBeenCalled();
+    expect(screenText(renderer)).not.toContain('Are you sure?');
+    expect(screenText(renderer)).toContain('Quiet feet');
+    expect(screenText(renderer)).toContain('Lvl 1');
+    expect(await capabilities.storage.getItem(GAME_KEY)).toBeNull();
+    act(() => renderer.unmount());
+  });
+
+  it('says so and keeps the profile when the reset fails', async () => {
+    const local = createLocalBackend(createMemoryStore(), SET_UP);
+    const backend: ClimbingBackend = {
+      ...local,
+      kind: 'remote',
+      resetProfile: () => Promise.reject(new Error('server down')),
+    };
+    const renderer = await renderApp(createFakeCapabilities(), backend);
+
+    press(renderer, 'Reset profile', 'Yes, reset my profile');
+    await act(async () => {});
+
+    expect(screenText(renderer)).toContain('Could not reset your profile.');
+    expect(screenText(renderer)).toContain('Quiet feet');
+    expect(screenText(renderer)).toContain('Lvl 1');
+    act(() => renderer.unmount());
+  });
+
+  it('moves focus to the question when it appears', async () => {
+    const renderer = await renderApp();
+    const sendEvent = jest.mocked(AccessibilityInfo.sendAccessibilityEvent);
+    sendEvent.mockClear();
+
+    press(renderer, 'Reset profile');
+
+    const question = renderer.root.find(
+      node =>
+        node.type === View && node.props.accessibilityLabel === 'Are you sure?',
+    ).instance;
+    // The screen reader on phones, and keyboard focus on the web.
+    expect(sendEvent).toHaveBeenCalledWith(question, 'focus');
+    expect(question.focus.mock.contexts).toContain(question);
     act(() => renderer.unmount());
   });
 });
