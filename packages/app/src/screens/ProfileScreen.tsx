@@ -35,6 +35,7 @@ import {
   TERRAIN_ICON,
   TERRAIN_NAME,
   fingerLabel,
+  styleText,
 } from '../labels';
 import { useNavigation } from '../navigation/Navigator';
 import type { RouteName } from '../navigation/routes';
@@ -66,7 +67,7 @@ export function ProfileScreen() {
   const recent = [...state.logs].reverse().slice(0, 4);
 
   // Recent climbs. Wide screens show them under the quest, so both columns
-  // end at about the same height. Phones keep them after Moves.
+  // end at about the same height. Phones keep them after Style.
   const recentPanel = (
     <Panel title="Recent" icon="log">
       {recent.length === 0 ? (
@@ -81,7 +82,7 @@ export function ProfileScreen() {
             <View style={{ flex: 1 }}>
               <AppText>
                 {log.grade} {TERRAIN_NAME[log.terrain].toLowerCase()},{' '}
-                {MOVEMENT_NAME[log.movement].toLowerCase()}
+                {styleText(log.movements)}
               </AppText>
               <AppText variant="caption" muted>
                 {shortDate(log.date)}
@@ -277,8 +278,8 @@ export function ProfileScreen() {
             </AppText>
           </Panel>
 
-          {/* Movement */}
-          <Panel title="Moves">
+          {/* Style: controlled and dynamic, counted separately */}
+          <Panel title="Style">
             {MOVEMENTS.map(m => (
               <View key={m} style={{ gap: 6 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -288,7 +289,9 @@ export function ProfileScreen() {
                   </AppText>
                 </View>
                 <Pips
-                  results={state.logs.filter(l => l.movement === m).map(l => l.sent)}
+                  results={state.logs
+                    .filter(l => l.movements.includes(m))
+                    .map(l => l.sent)}
                   accessibilityLabel={`${MOVEMENT_NAME[m]}: ${moves[m].sent} of ${moves[m].logged} sent`}
                 />
               </View>

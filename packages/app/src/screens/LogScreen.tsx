@@ -1,9 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import {
+  HOLD_TYPES,
   MOVEMENTS,
   TERRAINS,
   type ClimbLog,
+  type HoldType,
   type Movement,
   type Terrain,
 } from '@hackyeah/core';
@@ -24,7 +26,16 @@ import {
 import { useCapabilities } from '../capabilities';
 import { PageHeader } from '../components/PageHeader';
 import { TabScreen } from '../components/TabScreen';
-import { GRADES, MOVEMENT_NAME, TERRAIN_ICON, TERRAIN_NAME } from '../labels';
+import {
+  GRADES,
+  HOLD_ICON,
+  HOLD_NAME,
+  MOVEMENT_NAME,
+  TERRAIN_ICON,
+  TERRAIN_NAME,
+  holdsText,
+  styleText,
+} from '../labels';
 import { useNavigation } from '../navigation/Navigator';
 import type { RouteName } from '../navigation/routes';
 import { useGame } from '../state/GameProvider';
@@ -39,14 +50,19 @@ function climbName(log: Pick<ClimbLog, 'grade' | 'terrain'>) {
   return `${log.grade} ${TERRAIN_NAME[log.terrain].toLowerCase()}`;
 }
 
-/** "V3 vertical, dynamic" */
+/** "V3 vertical, controlled and dynamic" */
 function describe(log: ClimbLog) {
-  return `${climbName(log)}, ${MOVEMENT_NAME[log.movement].toLowerCase()}`;
+  return `${climbName(log)}, ${styleText(log.movements)}`;
+}
+
+/** Adds the item if missing, removes it if present. */
+function toggle<T>(list: readonly T[], item: T): T[] {
+  return list.includes(item) ? list.filter(x => x !== item) : [...list, item];
 }
 
 /**
- * Post-session check-in: pick wall, moves, grade and result, then save.
- * The profile builds the terrain triangle and movement tallies from these.
+ * Post-session check-in: pick wall, style, holds, grade and result, then
+ * save. The profile builds the terrain triangle and style tallies from these.
  */
 export function LogScreen() {
   const { reset } = useNavigation<RouteName>();
@@ -54,7 +70,8 @@ export function LogScreen() {
   const { state, today, logClimb, removeClimb } = useGame();
 
   const [terrain, setTerrain] = useState<Terrain | null>(null);
-  const [movement, setMovement] = useState<Movement | null>(null);
+  const [movements, setMovements] = useState<Movement[]>([]);
+  const [holds, setHolds] = useState<HoldType[]>([]);
   const [grade, setGrade] = useState<string | null>(null);
   const [sent, setSent] = useState<boolean | null>(null);
   const [saved, setSaved] = useState<Draft | null>(null);
@@ -69,12 +86,12 @@ export function LogScreen() {
   }, [saved]);
 
   const draft: Draft | null =
-    terrain && movement && grade && sent !== null
-      ? { terrain, movement, grade, sent }
+    terrain && movements.length > 0 && grade && sent !== null
+      ? { terrain, movements, holds, grade, sent }
       : null;
   const missing = [
     !terrain && 'wall',
-    !movement && 'moves',
+    movements.length === 0 && 'style',
     !grade && 'grade',
     sent === null && 'result',
   ].filter(Boolean);
@@ -86,7 +103,7 @@ export function LogScreen() {
     logClimb(draft);
     haptics.tap();
     setSaved(draft);
-    // Wall, moves and grade stay picked: the next climb is often similar.
+    // Everything but the result stays picked: the next climb is often similar.
     setSent(null);
   };
 
@@ -114,21 +131,39 @@ export function LogScreen() {
                 </View>
               </Group>
 
-              <Group label="Moves">
+              <Group label="Style">
                 <View style={styles.row}>
                   {MOVEMENTS.map(m => (
                     <View key={m} style={styles.cell}>
                       <Chip
                         label={MOVEMENT_NAME[m]}
-                        selected={movement === m}
-                        onPress={() => setMovement(m)}
+                        selected={movements.includes(m)}
+                        onPress={() => setMovements(list => toggle(list, m))}
                       />
                     </View>
                   ))}
                 </View>
                 <AppText variant="caption" muted>
-                  Controlled is steady, hold to hold. Dynamic uses momentum, like
-                  jumps and dynos.
+                  Pick one or both. Controlled is steady, hold to hold. Dynamic
+                  uses momentum, like jumps and dynos.
+                </AppText>
+              </Group>
+
+              <Group label="Holds">
+                <View style={[styles.row, styles.wrap]}>
+                  {HOLD_TYPES.map(h => (
+                    <View key={h} style={styles.holdCell}>
+                      <Chip
+                        label={HOLD_NAME[h]}
+                        icon={HOLD_ICON[h]}
+                        selected={holds.includes(h)}
+                        onPress={() => setHolds(list => toggle(list, h))}
+                      />
+                    </View>
+                  ))}
+                </View>
+                <AppText variant="caption" muted>
+                  Optional. Pick every type the climb used.
                 </AppText>
               </Group>
 
@@ -208,6 +243,11 @@ export function LogScreen() {
                   <Icon name={TERRAIN_ICON[log.terrain]} />
                   <View style={styles.rowText}>
                     <AppText>{describe(log)}</AppText>
+                    {log.holds.length > 0 ? (
+                      <AppText variant="caption" muted>
+                        {holdsText(log.holds)}
+                      </AppText>
+                    ) : null}
                     <Tag
                       text={log.sent ? 'Sent' : 'Not yet'}
                       tone={log.sent ? 'new' : 'muted'}
@@ -316,6 +356,8 @@ const styles = StyleSheet.create({
   cell: { flex: 1 },
   // Four grades per row on any phone width.
   gradeCell: { flexBasis: '20%', flexGrow: 1 },
+  // Two hold types per row: "Volume" plus its icon needs the room.
+  holdCell: { flexBasis: '40%', flexGrow: 1 },
   tile: { flex: 1, gap: 6 },
   tileBox: { minHeight: 44, paddingVertical: 10, alignItems: 'center' },
   // Pressed or picked: the box drops onto its shadow, like Chip.

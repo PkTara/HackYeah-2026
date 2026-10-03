@@ -179,9 +179,7 @@ export function GameProvider({ children, backend, today: fixedToday }: Props) {
 
   const setFingerSpots = useCallback(
     (side: Side, finger: Finger, spots: readonly string[]) => {
-      const old = state.flags.find(
-        f => f.side === side && f.finger === finger,
-      );
+      const old = state.flags.find(f => f.side === side && f.finger === finger);
       const flag: HandFlag = { side, finger, date: old?.date ?? today, spots };
       commit({ type: 'setFlag', flag, flagged: true }, () =>
         backend.setHandFlag(flag, true),

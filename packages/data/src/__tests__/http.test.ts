@@ -25,7 +25,15 @@ function fakeFetch(status = 200, answer: unknown = null) {
 
 const profile: ProfileDto = {
   climbs: [
-    { id: 'c1', date: '2026-10-01', terrain: 'slab', movement: 'controlled', grade: 'V2', sent: true },
+    {
+      id: 'c1',
+      date: '2026-10-01',
+      terrain: 'slab',
+      movements: ['controlled', 'dynamic'],
+      holds: ['crimp', 'sloper'],
+      grade: 'V2',
+      sent: true,
+    },
   ],
   hand_flags: [{ side: 'right', finger: 'ring', date: '2026-10-02', spots: ['a2', 'pip'] }],
   completed_quest_ids: ['q1'],
@@ -77,6 +85,22 @@ describe('http backend', () => {
     expect(calls[3].body).toBeUndefined();
     expect(calls[4].body).toEqual({ arm_span_cm: 180, height_cm: 176, date: '2026-10-03' });
     expect(calls.every(c => c.headers.Authorization === 'Bearer token-123')).toBe(true);
+  });
+
+  it('reads climbs from a server that still sends a single movement', async () => {
+    const { climbs, ...rest } = profile;
+    const older = {
+      ...rest,
+      climbs: climbs.map(({ movements, holds, ...c }) => ({ ...c, movement: movements[0] })),
+    };
+    const backend = createHttpBackend({
+      baseUrl: 'https://api.test',
+      fetch: fakeFetch(200, older).fetch,
+    });
+
+    const state = await backend.load();
+
+    expect(state.logs[0]).toMatchObject({ movements: ['controlled'], holds: [] });
   });
 
   it('reads flags from a server that does not send spots yet as "not sure where"', async () => {

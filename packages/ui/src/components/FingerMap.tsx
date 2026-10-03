@@ -16,6 +16,7 @@ import {
   type FingerPart,
 } from '../pixel/finger';
 import { PX, useTheme } from '../theme';
+import { useTone } from '../tone';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
 import { PixelArt } from './PixelArt';
@@ -41,10 +42,13 @@ type Props = {
   /** Ids of the marked spots. */
   marked: readonly string[];
   onToggle: (id: string) => void;
+  /**
+   * Device pixels per art pixel. A part is FINGER_SLOT (8) art pixels tall,
+   * so at least 6 keeps every row 48px or more.
+   */
+  scale?: number;
 };
 
-/** One part is FINGER_SLOT art pixels tall, so 48px at this scale. */
-const SCALE = 6;
 const GAP = 10;
 
 /**
@@ -52,7 +56,14 @@ const GAP = 10;
  * show. Each row lines up with its spot on the drawing and the whole row,
  * the drawing beside it included, is the touch target.
  */
-export function FingerMap({ thumb, layer, spots, marked, onToggle }: Props) {
+export function FingerMap({
+  thumb,
+  layer,
+  spots,
+  marked,
+  onToggle,
+  scale = 6,
+}: Props) {
   const rows = fingerRows(
     thumb,
     layer,
@@ -63,11 +74,11 @@ export function FingerMap({ thumb, layer, spots, marked, onToggle }: Props) {
     (a, b) => partSpan(thumb, a.at).top - partSpan(thumb, b.at).top,
   );
   return (
-    <View style={{ height: fingerParts(thumb).length * FINGER_SLOT * SCALE }}>
+    <View style={{ height: fingerParts(thumb).length * FINGER_SLOT * scale }}>
       <PixelArt
         rows={rows}
         colors={FINGER_COLORS}
-        scale={SCALE}
+        scale={scale}
         style={styles.drawing}
       />
       {ordered.map(spot => {
@@ -82,9 +93,9 @@ export function FingerMap({ thumb, layer, spots, marked, onToggle }: Props) {
             style={[
               styles.spot,
               {
-                top: span.top * SCALE,
-                height: span.height * SCALE,
-                paddingLeft: FINGER_WIDTH * SCALE + GAP,
+                top: span.top * scale,
+                height: span.height * scale,
+                paddingLeft: FINGER_WIDTH * scale + GAP,
               },
             ]}
           />
@@ -120,6 +131,8 @@ export function CheckRow({
   style,
 }: CheckRowProps) {
   const c = useTheme().colors;
+  // Ink colour for the box edge, so an empty box shows on dark panels too.
+  const ink = useTone().text;
   return (
     <Pressable
       accessibilityRole="checkbox"
@@ -135,13 +148,13 @@ export function CheckRow({
             state.pressed
               ? { backgroundColor: c.surfaceShade }
               : state.hovered
-                ? { backgroundColor: c.surfaceLight }
-                : null,
+              ? { backgroundColor: c.surfaceLight }
+              : null,
           ]}
         >
           <PixelBox
             fill={checked ? c.danger : c.surfaceLight}
-            outline={c.outline}
+            outline={ink}
             contentStyle={styles.box}
           >
             {checked ? (

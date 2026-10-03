@@ -6,7 +6,8 @@ const climb = {
   id: 'c1',
   date: '2026-10-03',
   terrain: 'vertical',
-  movement: 'dynamic',
+  movements: ['dynamic'],
+  holds: ['jug'],
   grade: 'V3',
   sent: true,
 } as const;

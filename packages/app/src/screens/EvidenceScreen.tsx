@@ -27,7 +27,13 @@ import {
 import { BackButton } from '../components/BackButton';
 import { PageHeader } from '../components/PageHeader';
 import { TabScreen } from '../components/TabScreen';
-import { MOVEMENT_NAME, TERRAIN_ICON, TERRAIN_NAME } from '../labels';
+import {
+  MOVEMENT_NAME,
+  TERRAIN_ICON,
+  TERRAIN_NAME,
+  holdsText,
+  styleText,
+} from '../labels';
 import { useNavigation } from '../navigation/Navigator';
 import type { RouteName } from '../navigation/routes';
 import { useGame } from '../state/GameProvider';
@@ -36,6 +42,10 @@ import { useGame } from '../state/GameProvider';
  * The climbs behind one corner of the terrain triangle, so every statement
  * on the profile can be checked against what was actually logged.
  */
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 export function EvidenceScreen() {
   const { params, reset } = useNavigation<RouteName>();
   const { state, today, focus } = useGame();
@@ -119,7 +129,7 @@ export function EvidenceScreen() {
           </Panel>
 
           <Panel
-            title="Wall x moves"
+            title="Wall x style"
             badge={hasSample ? <Tag text="Example" /> : undefined}
           >
             <StyleGrid logs={state.logs} selected={terrain} />
@@ -152,7 +162,7 @@ export function EvidenceScreen() {
 }
 
 /**
- * Terrain x movement grid. Rows are moves, columns are walls, and each box
+ * Terrain x style grid. Rows are styles, columns are walls, and each box
  * counts sent / logged climbs for that mix. Plain Views: the outline colour
  * shows through 3px gaps, which draws the grid lines.
  */
@@ -308,7 +318,12 @@ function ClimbRow({ log }: { log: ClimbLog }) {
         <PixelText text={log.grade} scale={3} />
       </View>
       <View style={styles.grow}>
-        <AppText>{MOVEMENT_NAME[log.movement]}</AppText>
+        <AppText>{capitalize(styleText(log.movements))}</AppText>
+        {log.holds.length > 0 ? (
+          <AppText variant="caption" muted>
+            {capitalize(holdsText(log.holds))}
+          </AppText>
+        ) : null}
         <AppText variant="caption" muted>
           {shortDate(log.date)}
           {log.sample ? ' (example)' : ''}

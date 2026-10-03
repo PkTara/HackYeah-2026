@@ -3,6 +3,7 @@ import {
   markedSpots,
   type Finger,
   type HandFlag,
+  type HoldType,
   type Movement,
   type Side,
   type Spot,
@@ -27,6 +28,43 @@ export const MOVEMENT_NAME: Record<Movement, string> = {
   controlled: 'Controlled',
   dynamic: 'Dynamic',
 };
+
+/** "controlled", "dynamic" or "controlled and dynamic". */
+export function styleText(movements: readonly Movement[]): string {
+  return movements.map(m => MOVEMENT_NAME[m].toLowerCase()).join(' and ');
+}
+
+export const HOLD_NAME: Record<HoldType, string> = {
+  jug: 'Jug',
+  crimp: 'Crimp',
+  sloper: 'Sloper',
+  pinch: 'Pinch',
+  pocket: 'Pocket',
+  volume: 'Volume',
+};
+
+const HOLD_PLURAL: Record<HoldType, string> = {
+  jug: 'jugs',
+  crimp: 'crimps',
+  sloper: 'slopers',
+  pinch: 'pinches',
+  pocket: 'pockets',
+  volume: 'volumes',
+};
+
+export const HOLD_ICON: Record<HoldType, IconName> = {
+  jug: 'jug',
+  crimp: 'crimp',
+  sloper: 'sloper',
+  pinch: 'pinch',
+  pocket: 'pocket',
+  volume: 'volume',
+};
+
+/** "crimps, slopers", or empty when no hold types were picked. */
+export function holdsText(holds: readonly HoldType[]): string {
+  return holds.map(h => HOLD_PLURAL[h]).join(', ');
+}
 
 export const SIDE_NAME: Record<Side, string> = { left: 'Left', right: 'Right' };
 

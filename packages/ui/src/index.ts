@@ -16,6 +16,8 @@ export { Icon } from './components/Icon';
 export { JungleHero } from './components/JungleHero';
 export { Meter, Pips } from './components/Meter';
 export { Monkey } from './components/Monkey';
+export { MonkeyGuide } from './components/MonkeyGuide';
+export { SpeechBubble } from './components/SpeechBubble';
 export { MovementRadar, type MovementAxis } from './components/MovementRadar';
 export { NavRail } from './components/NavRail';
 export { Panel, type PanelVariant } from './components/Panel';

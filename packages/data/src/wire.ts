@@ -7,10 +7,12 @@
  */
 import {
   emptyGame,
+  normalizeClimbLog,
   type ClimbLog,
   type Finger,
   type GameState,
   type HandFlag,
+  type HoldType,
   type Movement,
   type Reach,
   type Side,
@@ -22,7 +24,9 @@ export type ClimbDto = {
   id: string;
   date: string; // YYYY-MM-DD
   terrain: Terrain;
-  movement: Movement;
+  /** Style: controlled, dynamic or both. */
+  movements: Movement[];
+  holds: HoldType[];
   grade: string;
   sent: boolean;
 };
@@ -46,13 +50,21 @@ export type ProfileDto = {
 };
 
 export function toClimbDto(log: ClimbLog): ClimbDto {
-  const { id, date, terrain, movement, grade, sent } = log;
-  return { id, date, terrain, movement, grade, sent };
+  const { id, date, terrain, grade, sent } = log;
+  return {
+    id,
+    date,
+    terrain,
+    movements: [...log.movements],
+    holds: [...log.holds],
+    grade,
+    sent,
+  };
 }
 
+/** Also reads the older single `movement` shape and missing holds. */
 export function fromClimbDto(dto: ClimbDto): ClimbLog {
-  const { id, date, terrain, movement, grade, sent } = dto;
-  return { id, date, terrain, movement, grade, sent };
+  return normalizeClimbLog(dto);
 }
 
 export function toHandFlagDto(flag: HandFlag): HandFlagDto {
