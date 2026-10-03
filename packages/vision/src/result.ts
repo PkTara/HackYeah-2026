@@ -7,7 +7,6 @@
  * null `value`, so the app asks for a retake or manual entry instead of saving
  * a made-up number.
  */
-import type { BodyLandmark } from './pose';
 import type { KeypointSourceInfo } from './sources';
 
 /** Same ids as BaselineTestId in @hackyeah/core, so results map straight across. */
@@ -37,11 +36,22 @@ export type ReasonCode =
 /** `detail` is for logs and debugging. Screens show their own copy per code. */
 export type Reason = Readonly<{ code: ReasonCode; detail: string }>;
 
+export type BodyPart =
+  | 'head'
+  | 'shoulder'
+  | 'elbow'
+  | 'wrist'
+  | 'hip'
+  | 'knee'
+  | 'ankle';
+
 /** How the camera should be placed. Kept with the result as part of the setup. */
 export type TestSetup = Readonly<{
   view: 'front' | 'side';
-  /** Body points that must be in the frame. */
-  needs: readonly BodyLandmark[];
+  /** Body parts that must stay in the frame. */
+  parts: readonly BodyPart[];
+  /** "both": left and right must be visible. "either": the side facing the camera is enough. */
+  sides: 'both' | 'either';
 }>;
 
 export type CaptureSummary = Readonly<{
@@ -109,7 +119,12 @@ export class CaptureStats {
   private sinceFirstUsable: Array<[boolean, number]> = [];
   private lastUsableIndex = -1;
 
-  add(t: number, hasPerson: boolean, usable: boolean, confidence: number): void {
+  add(
+    t: number,
+    hasPerson: boolean,
+    usable: boolean,
+    confidence: number,
+  ): void {
     this.frames += 1;
     if (Number.isNaN(this.firstT)) {
       this.firstT = t;
@@ -152,7 +167,9 @@ export class CaptureStats {
 
 /**
  * The shared part of every verdict, checked in this order: nobody seen, too
- * short, never in position, then poor visibility.
+ * short, poorly visible, never in position. Visibility comes before position
+ * because when the needed points cannot be seen, nothing can be said about
+ * the position either.
  */
 export function judgeCapture(
   capture: CaptureSummary,
@@ -163,7 +180,9 @@ export function judgeCapture(
   if (capture.framesWithPerson === 0) {
     return {
       verdict: 'person_not_found',
-      reasons: [{ code: 'no_person', detail: 'No person was detected in any frame.' }],
+      reasons: [
+        { code: 'no_person', detail: 'No person was detected in any frame.' },
+      ],
     };
   }
   if (capture.durationS < q.minDurationS) {
@@ -177,14 +196,13 @@ export function judgeCapture(
       ],
     };
   }
-  if (!reachedPosition) {
-    return { verdict: 'not_in_position', reasons: [notInPosition] };
-  }
   const reasons: Reason[] = [];
   if (capture.usableShare < q.minUsableShare) {
     reasons.push({
       code: 'few_usable_frames',
-      detail: `Only ${Math.round(capture.usableShare * 100)}% of frames showed every needed point.`,
+      detail: `Only ${Math.round(
+        capture.usableShare * 100,
+      )}% of frames showed every needed point.`,
     });
   }
   if (capture.meanVisibility < q.minMeanVisibility) {
@@ -193,7 +211,13 @@ export function judgeCapture(
       detail: `Mean visibility of the needed points was ${capture.meanVisibility}.`,
     });
   }
-  return { verdict: reasons.length ? 'low_confidence' : 'ok', reasons };
+  if (reasons.length) {
+    return { verdict: 'low_confidence', reasons };
+  }
+  if (!reachedPosition) {
+    return { verdict: 'not_in_position', reasons: [notInPosition] };
+  }
+  return { verdict: 'ok', reasons: [] };
 }
 
 export function round(value: number, digits: number): number {

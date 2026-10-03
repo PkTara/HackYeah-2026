@@ -1,0 +1,21 @@
+{
+  // Typechecks the harness against the real @mediapipe/tasks-vision types, which
+  // also proves a PoseLandmarker and an HTMLVideoElement fit the structural
+  // types in src/mediapipe.ts. Run from the repo root:
+  //   node apps/mobile/node_modules/typescript/bin/tsc -p packages/vision/harness/tsconfig.json
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2020", "DOM"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": [],
+    "paths": {
+      "@hackyeah/vision": ["../src"],
+      "@mediapipe/tasks-vision": ["../../../apps/web/node_modules/@mediapipe/tasks-vision"]
+    }
+  },
+  "include": ["main.ts"]
+}

@@ -1,0 +1,4 @@
+# Build output of the web harness (about 35 MB with the MediaPipe WASM files).
+harness/dist/
+# Local copies of the MediaPipe model for offline runs of the harness.
+harness/models/
