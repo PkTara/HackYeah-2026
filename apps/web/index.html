@@ -8,6 +8,14 @@
     <style>
       html, body, #root { height: 100%; margin: 0; background: #123320; }
       #root { display: flex; flex-direction: column; }
+      /* Keyboard focus: a dark ring with a banana halo, visible on cream
+         panels and on the green background alike. Mouse clicks stay clean. */
+      [tabindex]:focus-visible, button:focus-visible, input:focus-visible {
+        outline: 3px solid #22180F;
+        outline-offset: 2px;
+        box-shadow: 0 0 0 7px #FFD23F;
+      }
+      [tabindex]:focus:not(:focus-visible) { outline: none; }
     </style>
   </head>
   <body>

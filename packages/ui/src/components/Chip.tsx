@@ -41,9 +41,9 @@ export function Chip({
       onPress={onPress}
       hitSlop={3}
     >
-      {({ pressed }) => (
+      {({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => (
         <PixelBox
-          fill={fill}
+          fill={hovered && !selected ? c.surfaceLight : fill}
           outline={c.outline}
           light={selected ? undefined : c.surfaceLight}
           shade={selected ? undefined : c.surfaceShade}

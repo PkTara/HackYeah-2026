@@ -50,7 +50,7 @@ export function TabBar<Key extends string>({
             onPress={() => onSelect(tab.key)}
             style={{ flex: 1 }}
           >
-            {({ pressed }) => (
+            {({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => (
               <View
                 style={{
                   alignItems: 'center',
@@ -58,7 +58,11 @@ export function TabBar<Key extends string>({
                   paddingVertical: 6,
                   minHeight: 52,
                   justifyContent: 'center',
-                  backgroundColor: selected ? c.primary : pressed ? c.bark : 'transparent',
+                  backgroundColor: selected
+                    ? c.primary
+                    : pressed || hovered
+                      ? c.bark
+                      : 'transparent',
                   borderWidth: PX,
                   borderColor: selected ? c.outline : 'transparent',
                 }}
