@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import { AboutScreen } from '../screens/AboutScreen';
 import { AnatomyScreen } from '../screens/AnatomyScreen';
+import { AssessmentScreen, HandCaptureScreen } from '../screens/CaptureScreen';
 import { EvidenceScreen } from '../screens/EvidenceScreen';
 import { FingerScreen } from '../screens/FingerScreen';
 import { HandsScreen } from '../screens/HandsScreen';
@@ -23,6 +24,8 @@ export const screens = {
   Anatomy: AnatomyScreen,
   /** Params: id, a home test id from core's BASELINE_TESTS. */
   Test: HomeTestScreen,
+  Assessment: AssessmentScreen,
+  HandCapture: HandCaptureScreen,
 } satisfies Record<string, ComponentType>;
 
 export type RouteName = keyof typeof screens;

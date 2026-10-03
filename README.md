@@ -9,7 +9,7 @@
 
 ![Climbing Monkey on phone and desktop: profile, finger close-up, desktop profile with side rail, desktop climb log](docs/assets/jungle-ui-web.png)
 
-The [Python/FastAPI backend](backend/README.md) implements the confirmed-evidence → profile → quest → pet XP loop, with SQLite persistence, private hand photos and optional MediaPipe pose analysis. The web app saves to it when `VITE_MONKEY_API_URL` is set (see [Connecting a backend](#connecting-a-backend)). See the backend README for setup, API contracts and TDD checks; use `npm run backend:check` after creating its virtualenv.
+The [Python/FastAPI backend](backend/README.md) implements the confirmed-evidence → profile → quest → pet XP loop, with SQLite persistence, private hand photos and optional MediaPipe pose analysis of photos, recorded clips and a sampled live camera. The web app saves to it when `VITE_MONKEY_API_URL` is set (see [Connecting a backend](#connecting-a-backend)). See the backend README for setup, API contracts and TDD checks, the [camera and video guide](docs/camera-video.md) for the capture flows, and the [scientific evidence notes](docs/climbing-scientific-evidence.md) for what the research does and does not support. Use `npm run backend:check` after creating its virtualenv.
 
 A React Native app for **Android, iOS and the web**: one codebase, with a native host for the phones and react-native-web in the browser.
 

@@ -1,5 +1,8 @@
 module.exports = {
   preset: 'react-native',
+  transformIgnorePatterns: [
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|react-native-camera-kit|react-native-permissions)/)',
+  ],
   // Run the shared packages' tests too.
   roots: ['<rootDir>', '<rootDir>/../../packages'],
   moduleNameMapper: {

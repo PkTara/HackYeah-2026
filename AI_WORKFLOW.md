@@ -220,3 +220,19 @@ No AI feature is in the app screens yet. `packages/vision` is ready for one: on-
 
 **Output:** `docs/assets/climbing-monkey-idea.png`, 3840x2160: four real app screens (setup, log, profile, data) captured in Chromium, framed and labelled with the app's own pixel font and monkey sprite on an HTML page rendered by Playwright. No image-generation model was used.
 
+
+### 20. Live cameras, video and scientific evidence (2026-10-03)
+
+**Prompt:** Support videos and live previews with snapshots where an image is required; research scientific citations, including climbing and Keith Baar work, for another agent to integrate into the main app.
+
+**Output:** PyAV/MediaPipe VIDEO-mode clip and WebSocket APIs; browser and native live previews/snapshots; browser clip recording; consent/review/retake/confirmed-save capture screens; native permissions and scoped media cleanup; camera/video setup guide; `docs/climbing-scientific-evidence.md` with 12 original studies, stable IDs, claim boundaries, safe copy and JSON citation examples.
+
+**Delegation:** GPT-6.1 Sol agents implemented backend video, native adapters, capture UI and the scientific handoff in separate file ownership. A GPT-6 Astra agent reviewed backend, evidence, native/capture integration and scoped cleanup fixes. Canon TDD supplied observed red/green cycles for new behavior; already-covered boundaries were retained as characterization tests.
+
+**Libraries/resources:** PyAV 16.1.0, websockets 16.1.1, MediaPipe Tasks VIDEO mode and NumPy; react-native-camera-kit 17.0.0, with a small patch (applied by patch-package) so its camera view copies React's frozen props instead of changing them; react-native-permissions 5.4.4. A temporary Playwright headless browser and fake camera were used for verification; no real camera or personal media was accessed. Model and public sample assets stayed outside Git.
+
+**Validation:** Real encoded MP4/WebM/MOV fixtures, real 1080p H.264 MOV model inference, live-session inference and browser-to-Uvicorn integration passed. The browser verified local preview/no upload before consent, snapshot analysis, clip review/analysis, sampled live results and private hand-journal saving; its synthetic profile was deleted. Code review found and TDD regressions fixed streaming-token revocation, external demux references, missing timestamps and browser error URL leaks. Browser smoke also exposed the missing Uvicorn WebSocket runtime, which is now a declared dependency. JS typechecking, mobile tests, targeted lint, production web build and platform bundles were checked; exact final counts are in `docs/camera-video.md`.
+
+**Scientific limits:** Camera leg-spread geometry remains an unvalidated 2D estimate. Baar-related engineered-tissue schedules, small biomarker trials and single-athlete cases are not climbing prescriptions. Dossier entries identify population, methods, reading depth and limits. The citations have not yet been installed as main-app evidence components.
+
+**Native/runtime limits:** Physical device cameras, runtime permission dialogs and Android and iOS native builds were not available. JS bundles do not establish native build success. Android and iOS expose snapshot and live-frame workflows; the web also records clips. This Mac's restrictive sandbox can abort MediaPipe native initialization; PyAV/OpenCV emit a duplicate FFmpeg Objective-C class notice outside it, though smoke tests succeeded. Existing native credential storage remains in-memory; production setup is separate work.
