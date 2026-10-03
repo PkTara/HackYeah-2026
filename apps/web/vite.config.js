@@ -21,6 +21,9 @@ const sharedPackages = Object.fromEntries(
 export default defineConfig(({ mode }) => ({
   plugins: [react()],
   define: {
+    __CLIMBING_MONKEY_API_URL__: JSON.stringify(
+      process.env.CLIMBING_MONKEY_API_URL || 'http://127.0.0.1:8000',
+    ),
     // Globals some React Native libraries expect.
     __DEV__: JSON.stringify(mode !== 'production'),
     global: 'globalThis',

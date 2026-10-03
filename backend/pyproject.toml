@@ -12,6 +12,7 @@ dependencies = [
   "starlette>=0.46,<1",
   "pydantic>=2.10,<3",
   "uvicorn>=0.34,<1",
+  "websockets>=14,<17",
   "python-multipart>=0.0.20,<1",
   "Pillow>=11,<13",
 ]
@@ -19,6 +20,7 @@ dependencies = [
 [project.optional-dependencies]
 test = ["pytest>=8,<10", "pytest-cov>=6,<8", "httpx>=0.28,<1", "ruff>=0.11,<1"]
 pose = ["mediapipe>=0.10.21,<0.11", "numpy>=1.26,<3"]
+video = ["av>=16.1,<17", "mediapipe>=0.10.21,<0.11", "numpy>=1.26,<3"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -25,9 +25,10 @@ from .schemas import (
     HandCreate,
 )
 from .store import Store
+from .video_routes import register_video
 
 
-def create_app(database_path=None, pose_analyzer=None) -> FastAPI:
+def create_app(database_path=None, pose_analyzer=None, video_analyzer=None) -> FastAPI:
     app = FastAPI(title="Climbing Monkey API")
     origins = [
         value.strip()
@@ -114,6 +115,7 @@ def create_app(database_path=None, pose_analyzer=None) -> FastAPI:
     register_records(app, store, current_user, "activities", ActivityCreate)
     register_quests(app, store, current_user, profile)
     register_pose(app, current_user, pose_analyzer)
+    register_video(app, current_user, video_analyzer)
     register_photos(app, store, current_user)
     register_hands(app, store, current_user)
 

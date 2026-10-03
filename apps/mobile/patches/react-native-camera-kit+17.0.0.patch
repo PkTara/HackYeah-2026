@@ -1,0 +1,56 @@
+diff --git a/node_modules/react-native-camera-kit/dist/Camera.android.js b/node_modules/react-native-camera-kit/dist/Camera.android.js
+index dda3087..905320e 100644
+--- a/node_modules/react-native-camera-kit/dist/Camera.android.js
++++ b/node_modules/react-native-camera-kit/dist/Camera.android.js
+@@ -3,7 +3,8 @@ import { findNodeHandle, processColor } from 'react-native';
+ import { supportedCodeFormats } from './types';
+ import NativeCamera from './specs/CameraNativeComponent';
+ import NativeCameraKitModule from './specs/NativeCameraKitModule';
+-const Camera = React.forwardRef((props, ref) => {
++const Camera = React.forwardRef((inputProps, ref) => {
++    const props = {...inputProps};
+     const nativeRef = React.useRef(null);
+     props.zoom = props.zoom ?? -1;
+     props.maxZoom = props.maxZoom ?? -1;
+diff --git a/node_modules/react-native-camera-kit/dist/Camera.ios.js b/node_modules/react-native-camera-kit/dist/Camera.ios.js
+index 7d7dabe..5894d6a 100644
+--- a/node_modules/react-native-camera-kit/dist/Camera.ios.js
++++ b/node_modules/react-native-camera-kit/dist/Camera.ios.js
+@@ -3,7 +3,8 @@ import { findNodeHandle } from 'react-native';
+ import { supportedCodeFormats } from './types';
+ import NativeCamera from './specs/CameraNativeComponent';
+ import NativeCameraKitModule from './specs/NativeCameraKitModule';
+-const Camera = React.forwardRef((props, ref) => {
++const Camera = React.forwardRef((inputProps, ref) => {
++  const props = {...inputProps};
+     const nativeRef = React.useRef(null);
+     props.zoom = props.zoom ?? -1;
+     props.maxZoom = props.maxZoom ?? -1;
+diff --git a/node_modules/react-native-camera-kit/src/Camera.android.tsx b/node_modules/react-native-camera-kit/src/Camera.android.tsx
+index 56cddbc..d03cced 100644
+--- a/node_modules/react-native-camera-kit/src/Camera.android.tsx
++++ b/node_modules/react-native-camera-kit/src/Camera.android.tsx
+@@ -5,7 +5,8 @@ import type { CameraProps } from './CameraProps';
+ import NativeCamera from './specs/CameraNativeComponent';
+ import NativeCameraKitModule from './specs/NativeCameraKitModule';
+ 
+-const Camera = React.forwardRef<CameraApi, CameraProps>((props, ref) => {
++const Camera = React.forwardRef<CameraApi, CameraProps>((inputProps, ref) => {
++  const props = {...inputProps};
+   const nativeRef = React.useRef(null);
+ 
+   // RN doesn't support optional view props yet (sigh)
+diff --git a/node_modules/react-native-camera-kit/src/Camera.ios.tsx b/node_modules/react-native-camera-kit/src/Camera.ios.tsx
+index 0845d6d..c82c81e 100644
+--- a/node_modules/react-native-camera-kit/src/Camera.ios.tsx
++++ b/node_modules/react-native-camera-kit/src/Camera.ios.tsx
+@@ -5,7 +5,8 @@ import type { CameraProps } from './CameraProps';
+ import NativeCamera from './specs/CameraNativeComponent';
+ import NativeCameraKitModule from './specs/NativeCameraKitModule';
+ 
+-const Camera = React.forwardRef<CameraApi, CameraProps>((props, ref) => {
++const Camera = React.forwardRef<CameraApi, CameraProps>((inputProps, ref) => {
++  const props = {...inputProps};
+   const nativeRef = React.useRef(null);
+ 
+   // RN doesn't support optional view props yet (sigh)
