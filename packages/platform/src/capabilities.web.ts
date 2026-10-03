@@ -14,20 +14,44 @@ type BrowserGlobals = {
 
 const browser = globalThis as BrowserGlobals;
 
+/**
+ * localStorage can be missing or throw (private windows, blocked site data,
+ * sandboxed frames). Any failure falls back to memory for that call, so the
+ * app keeps working and just forgets on reload.
+ */
 function createLocalStorageStore(): KeyValueStore {
-  const storage = browser.localStorage;
-  if (!storage) {
-    return createMemoryStore();
+  let storage: BrowserGlobals['localStorage'];
+  try {
+    storage = browser.localStorage;
+  } catch {
+    storage = undefined;
   }
+  const fallback = createMemoryStore();
+  if (!storage) {
+    return fallback;
+  }
+  const local = storage;
   return {
     async getItem(key) {
-      return storage.getItem(key);
+      try {
+        return local.getItem(key);
+      } catch {
+        return fallback.getItem(key);
+      }
     },
     async setItem(key, value) {
-      storage.setItem(key, value);
+      try {
+        local.setItem(key, value);
+      } catch {
+        await fallback.setItem(key, value);
+      }
     },
     async removeItem(key) {
-      storage.removeItem(key);
+      try {
+        local.removeItem(key);
+      } catch {
+        await fallback.removeItem(key);
+      }
     },
   };
 }
