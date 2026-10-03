@@ -38,7 +38,7 @@ const NOT_BUILT = [
   },
   {
     title: 'Finger strength',
-    text: 'This needs a hangboard or a force gauge. It is never guessed from a photo.',
+    text: 'This needs a hangboard or a force gauge, and it is never guessed from a photo.',
   },
 ] as const;
 
@@ -110,7 +110,7 @@ export function TestsScreen() {
 
 /** Manual arm span and height. The only test that works in this build. */
 function ReachPanel() {
-  const { state, today, saveReach } = useGame();
+  const { state, today, saveReach, syncError } = useGame();
   const reach = state.reach;
   const [arm, setArm] = useState(reach ? String(reach.armSpanCm) : '');
   const [height, setHeight] = useState(reach ? String(reach.heightCm) : '');
@@ -170,9 +170,10 @@ function ReachPanel() {
       </View>
 
       <Button title="Save reach" icon="check" onPress={save} />
-      {/* Screen readers announce the confirmation when it appears. */}
+      {/* Screen readers announce the confirmation when it appears. If the
+          save fails, the app's sync notice shows instead. */}
       <View accessibilityLiveRegion="polite">
-        {saved && reach ? (
+        {saved && reach && !syncError ? (
           <View style={styles.inline}>
             <Icon name="check" />
             <AppText variant="caption">Saved.</AppText>

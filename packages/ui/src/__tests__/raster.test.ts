@@ -103,7 +103,11 @@ describe('overlay', () => {
 
   it('clips a patch that hangs over any edge without growing the picture', () => {
     expect(overlay(base, ['AB', 'CD'], 3, 2)).toEqual(['....', '....', '...A']);
-    expect(overlay(base, ['AB', 'CD'], -1, -1)).toEqual(['D...', '....', '....']);
+    expect(overlay(base, ['AB', 'CD'], -1, -1)).toEqual([
+      'D...',
+      '....',
+      '....',
+    ]);
   });
 
   it('does not change its inputs', () => {
@@ -307,20 +311,23 @@ describe('PixelCanvas', () => {
     // leaves holes along the bottom and right ones. Here (2, 0) is filled
     // outside the outline and (1, 2) stays empty inside it.
     // Change `it.failing` to `it` once polygon() samples at (x, y).
-    it.failing('fills exactly the pixels its outline encloses (known bug, expected to fail)', () => {
-      const triangle: Point[] = [
-        [4, 0],
-        [0, 1],
-        [0, 4],
-      ];
-      const c = new PixelCanvas(9, 9);
-      c.polygon(triangle, 'F');
-      c.outline(triangle, 'E');
-      const rows = c.rows();
-      const out = outside(rows, 'E');
-      expect(find(rows, 'F').filter(([x, y]) => out[y][x])).toEqual([]);
-      expect(find(rows, '.').filter(([x, y]) => !out[y][x])).toEqual([]);
-    });
+    it.failing(
+      'fills exactly the pixels its outline encloses (known bug, expected to fail)',
+      () => {
+        const triangle: Point[] = [
+          [4, 0],
+          [0, 1],
+          [0, 4],
+        ];
+        const c = new PixelCanvas(9, 9);
+        c.polygon(triangle, 'F');
+        c.outline(triangle, 'E');
+        const rows = c.rows();
+        const out = outside(rows, 'E');
+        expect(find(rows, 'F').filter(([x, y]) => out[y][x])).toEqual([]);
+        expect(find(rows, '.').filter(([x, y]) => !out[y][x])).toEqual([]);
+      },
+    );
   });
 
   it('outline draws every side, including the one back to the first point', () => {

@@ -30,7 +30,10 @@ type Change = { x: number; y: number; from: string; to: string };
 
 const byPosition = (a: Change, b: Change) => a.y - b.y || a.x - b.x;
 
-function changes(before: readonly string[], after: readonly string[]): Change[] {
+function changes(
+  before: readonly string[],
+  after: readonly string[],
+): Change[] {
   const out: Change[] = [];
   before.forEach((row, y) => {
     [...row].forEach((from, x) => {
@@ -64,11 +67,15 @@ describe('monkeyRows', () => {
     const sizes = POSES.flatMap(pose =>
       COSMETIC_SETS.map(
         cosmetics =>
-          `${pose} ${cosmetics.join('+') || 'plain'}: ${size(monkeyRows(pose, cosmetics))}`,
+          `${pose} ${cosmetics.join('+') || 'plain'}: ${size(
+            monkeyRows(pose, cosmetics),
+          )}`,
       ),
     );
     const expected = POSES.flatMap(pose =>
-      COSMETIC_SETS.map(cosmetics => `${pose} ${cosmetics.join('+') || 'plain'}: 32x28`),
+      COSMETIC_SETS.map(
+        cosmetics => `${pose} ${cosmetics.join('+') || 'plain'}: 32x28`,
+      ),
     );
     expect(sizes).toEqual(expected);
   });
@@ -86,8 +93,12 @@ describe('monkeyRows', () => {
 
   it('draws each cosmetic on top of the plain monkey', () => {
     const plain = monkeyRows('idle');
-    expect(changes(plain, monkeyRows('idle', ['headband'])).length).toBeGreaterThan(0);
-    expect(changes(plain, monkeyRows('idle', ['leaf-crown'])).length).toBeGreaterThan(0);
+    expect(
+      changes(plain, monkeyRows('idle', ['headband'])).length,
+    ).toBeGreaterThan(0);
+    expect(
+      changes(plain, monkeyRows('idle', ['leaf-crown'])).length,
+    ).toBeGreaterThan(0);
   });
 
   it('does not care about the order of cosmetics', () => {
@@ -104,12 +115,16 @@ describe('monkeyRows', () => {
 describe('handRows', () => {
   it('is HAND_WIDTH x HAND_HEIGHT for both hands', () => {
     for (const side of ['left', 'right'] as const) {
-      expect(size(handRows(side, FINGERS))).toBe(`${HAND_WIDTH}x${HAND_HEIGHT}`);
+      expect(size(handRows(side, FINGERS))).toBe(
+        `${HAND_WIDTH}x${HAND_HEIGHT}`,
+      );
     }
   });
 
   it('draws the right hand as the mirror image of the left one', () => {
-    expect(handRows('right', ['ring'])).toEqual(mirror(handRows('left', ['ring'])));
+    expect(handRows('right', ['ring'])).toEqual(
+      mirror(handRows('left', ['ring'])),
+    );
     expect(handRows('right', [])).toEqual(mirror(handRows('left', [])));
   });
 
@@ -122,7 +137,13 @@ describe('handRows', () => {
   });
 
   it('covers the five fingers the app records', () => {
-    expect([...FINGERS].sort()).toEqual(['index', 'little', 'middle', 'ring', 'thumb']);
+    expect([...FINGERS].sort()).toEqual([
+      'index',
+      'little',
+      'middle',
+      'ring',
+      'thumb',
+    ]);
   });
 
   it('keeps finger regions inside the hand and apart from each other', () => {
@@ -156,7 +177,9 @@ describe('handRows', () => {
     it("turns skin 'S' into 'K' and crease 's' into 'k', and nothing else", () => {
       expect(changed.length).toBeGreaterThan(0);
       const wrong = changed.filter(
-        c => !(c.from === 'S' && c.to === 'K') && !(c.from === 's' && c.to === 'k'),
+        c =>
+          !(c.from === 'S' && c.to === 'K') &&
+          !(c.from === 's' && c.to === 'k'),
       );
       expect(wrong).toEqual([]);
     });
@@ -180,7 +203,9 @@ describe('handRows', () => {
     it('shows up in the mirrored region on the right hand', () => {
       const right = changes(handRows('right', []), handRows('right', [finger]));
       const flippedBack = right.map(c => ({ ...c, x: HAND_WIDTH - 1 - c.x }));
-      expect(flippedBack.sort(byPosition)).toEqual([...changed].sort(byPosition));
+      expect(flippedBack.sort(byPosition)).toEqual(
+        [...changed].sort(byPosition),
+      );
     });
   });
 
@@ -191,7 +216,9 @@ describe('handRows', () => {
       ...changes(healthy, handRows('left', ['index'])),
       ...changes(healthy, handRows('left', ['ring'])),
     ];
-    expect([...both].sort(byPosition)).toEqual([...separately].sort(byPosition));
+    expect([...both].sort(byPosition)).toEqual(
+      [...separately].sort(byPosition),
+    );
   });
 });
 
@@ -223,7 +250,10 @@ describe('SPRITE_COLORS', () => {
     };
     for (const pose of POSES) {
       for (const cosmetics of COSMETIC_SETS) {
-        note(`monkey ${pose} ${cosmetics.join('+')}`, monkeyRows(pose, cosmetics));
+        note(
+          `monkey ${pose} ${cosmetics.join('+')}`,
+          monkeyRows(pose, cosmetics),
+        );
       }
     }
     for (const side of ['left', 'right'] as const) {
@@ -231,7 +261,9 @@ describe('SPRITE_COLORS', () => {
       note(`${side} sore hand`, handRows(side, FINGERS));
     }
     GAZELLE_FRAMES.forEach((frame, i) => note(`gazelle ${i}`, frame));
-    const missing = [...used].map(([key, names]) => `${key} in ${[...names].join(', ')}`);
+    const missing = [...used].map(
+      ([key, names]) => `${key} in ${[...names].join(', ')}`,
+    );
     expect(missing).toEqual([]);
   });
 
