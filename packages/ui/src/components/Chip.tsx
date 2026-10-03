@@ -30,12 +30,14 @@ export function Chip({
   const theme = useTheme();
   const c = theme.colors;
   const fill = selected ? (warn ? c.danger : c.primary) : c.surface;
-  const ink = selected ? (warn ? '#FFF4DC' : c.onPrimary) : c.text;
+  const ink = selected ? (warn ? c.onDanger : c.onPrimary) : c.text;
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
-      accessibilityState={{ selected }}
+      // aria-selected maps to accessibilityState on native and also reaches
+      // screen readers on the web.
+      aria-selected={selected}
       onPress={onPress}
       hitSlop={3}
     >

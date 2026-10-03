@@ -34,6 +34,17 @@ describe('local backend', () => {
     expect(state.reach?.armSpanCm).toBe(180);
   });
 
+  it('keeps both changes when two arrive in the same tick', async () => {
+    const storage = createMemoryStore();
+    const backend = createLocalBackend(storage, emptyGame);
+    await Promise.all([
+      backend.addClimb(climb),
+      backend.addClimb({ ...climb, id: 'c2' }),
+    ]);
+    const restarted = await createLocalBackend(storage, emptyGame).load();
+    expect(restarted.logs.map(l => l.id)).toEqual(['c1', 'c2']);
+  });
+
   it('falls back to the seed when saved data is unreadable', async () => {
     const storage = createMemoryStore();
     await storage.setItem(LOCAL_STORAGE_KEY, '{broken');

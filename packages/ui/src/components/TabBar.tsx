@@ -46,7 +46,7 @@ export function TabBar<Key extends string>({
             key={tab.key}
             accessibilityRole="tab"
             accessibilityLabel={tab.label}
-            accessibilityState={{ selected }}
+            aria-selected={selected}
             onPress={() => onSelect(tab.key)}
             style={{ flex: 1 }}
           >

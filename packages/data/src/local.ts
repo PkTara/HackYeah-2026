@@ -29,9 +29,15 @@ export function createLocalBackend(
   }
 
   // Every command runs through the same reducer the app uses, then saves.
-  async function apply(action: GameAction): Promise<void> {
-    current = gameReducer(await state(), action);
-    await storage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(current));
+  // Commands queue up so two quick taps cannot both start from the old state.
+  let queue: Promise<unknown> = Promise.resolve();
+  function apply(action: GameAction): Promise<void> {
+    const run = queue.then(async () => {
+      current = gameReducer(await state(), action);
+      await storage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(current));
+    });
+    queue = run.catch(() => {});
+    return run;
   }
 
   return {
