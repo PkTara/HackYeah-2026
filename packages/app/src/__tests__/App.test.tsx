@@ -2,9 +2,7 @@ import ReactTestRenderer, { act } from 'react-test-renderer';
 import { createMemoryStore, type Capabilities } from '@hackyeah/platform';
 import { App } from '../App';
 
-function createFakeCapabilities(): Capabilities & {
-  haptics: { tap: jest.Mock };
-} {
+function createFakeCapabilities(): Capabilities {
   return {
     platform: 'other',
     platformLabel: 'Test OS',
@@ -13,59 +11,82 @@ function createFakeCapabilities(): Capabilities & {
   };
 }
 
-function pressButton(
-  renderer: ReactTestRenderer.ReactTestRenderer,
-  title: string,
-) {
-  const button = renderer.root.find(
+type Renderer = ReactTestRenderer.ReactTestRenderer;
+
+/** Finds a pressable by its accessibilityLabel and presses it. */
+function press(renderer: Renderer, label: string) {
+  const target = renderer.root.find(
     node =>
-      node.props.accessibilityRole === 'button' &&
-      node.findAllByProps({ children: title }).length > 0,
+      typeof node.props.onPress === 'function' &&
+      node.props.accessibilityLabel === label,
   );
-  act(() => button.props.onPress());
+  act(() => target.props.onPress());
 }
 
-function textOf(renderer: ReactTestRenderer.ReactTestRenderer, label: string) {
-  return renderer.root.findByProps({ accessibilityLabel: label }).props
-    .children;
-}
-
-function renderedText(renderer: ReactTestRenderer.ReactTestRenderer) {
+function screenText(renderer: Renderer) {
   return JSON.stringify(renderer.toJSON());
 }
 
+async function renderApp(capabilities = createFakeCapabilities()) {
+  let renderer!: Renderer;
+  await act(async () => {
+    renderer = ReactTestRenderer.create(
+      <App capabilities={capabilities} today="2026-10-03" />,
+    );
+  });
+  return renderer;
+}
+
+beforeEach(() => jest.useFakeTimers());
+afterEach(() => jest.useRealTimers());
+
 describe('App', () => {
-  it('shows the injected platform and updates the counter with haptic feedback', async () => {
-    const capabilities = createFakeCapabilities();
-    let renderer!: ReactTestRenderer.ReactTestRenderer;
-    await act(async () => {
-      renderer = ReactTestRenderer.create(<App capabilities={capabilities} />);
-    });
+  it('opens on the profile with the focus, quest and monkey level', async () => {
+    const renderer = await renderApp();
+    const text = screenText(renderer);
 
-    expect(renderedText(renderer)).toContain('Test OS');
-
-    pressButton(renderer, '+');
-    pressButton(renderer, '+');
-    expect(textOf(renderer, 'count')).toBe(2);
-    expect(capabilities.haptics.tap).toHaveBeenCalledTimes(2);
-
-    pressButton(renderer, 'Reset');
-    expect(textOf(renderer, 'count')).toBe(0);
+    expect(text).toContain('Lvl 1');
+    expect(text).toContain('Vertical');
+    expect(text).toContain('Quiet feet');
+    act(() => renderer.unmount());
   });
 
-  it('navigates to About and back', async () => {
-    let renderer!: ReactTestRenderer.ReactTestRenderer;
-    await act(async () => {
-      renderer = ReactTestRenderer.create(
-        <App capabilities={createFakeCapabilities()} />,
-      );
-    });
+  it('levels the monkey up once per quest and saves progress', async () => {
+    const capabilities = createFakeCapabilities();
+    const renderer = await renderApp(capabilities);
 
-    pressButton(renderer, 'About this app');
-    expect(renderedText(renderer)).toContain('Architecture');
+    press(renderer, 'Done');
+    expect(screenText(renderer)).toContain('Level 2');
+    expect(screenText(renderer)).toContain('banana headband');
 
-    pressButton(renderer, 'Back');
-    expect(renderedText(renderer)).toContain('Counter');
-    expect(renderedText(renderer)).not.toContain('Architecture');
+    press(renderer, 'Nice');
+    expect(screenText(renderer)).toContain('Lvl 2');
+    expect(screenText(renderer)).not.toContain('Level up');
+
+    await act(async () => {});
+    const saved = JSON.parse(
+      (await capabilities.storage.getItem('climbing-monkey/game/v1')) ?? '{}',
+    );
+    expect(saved.completed).toContain('vertical-quiet-feet');
+    act(() => renderer.unmount());
+  });
+
+  it('swaps to a different quest', async () => {
+    const renderer = await renderApp();
+
+    press(renderer, 'Swap');
+    expect(screenText(renderer)).toContain('Read it first');
+    act(() => renderer.unmount());
+  });
+
+  it('switches tabs from the tab bar', async () => {
+    const renderer = await renderApp();
+
+    press(renderer, 'Tests');
+    expect(screenText(renderer)).not.toContain('Quiet feet');
+
+    press(renderer, 'Profile');
+    expect(screenText(renderer)).toContain('Quiet feet');
+    act(() => renderer.unmount());
   });
 });

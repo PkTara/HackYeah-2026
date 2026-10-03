@@ -1,4 +1,4 @@
-import { AppText, Button, Card, Screen } from '@hackyeah/ui';
+import { AppText, Button, Panel as Card, Screen } from '@hackyeah/ui';
 import { useCapabilities } from '../capabilities';
 import { useNavigation } from '../navigation/Navigator';
 import type { RouteName } from '../navigation/routes';
