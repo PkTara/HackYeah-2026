@@ -210,19 +210,35 @@ export function createHttpBackend(opts: HttpBackendOptions): ClimbingBackend {
     return toGameState({ climbs, hands, assessments, quests, assigned }, saved);
   }
 
+  /**
+   * A change for the server: it runs after the changes before it, then the
+   * state is read back, so the app sees the server's quest for what was just
+   * saved. If only the read back fails, the change is saved anyway and the
+   * answer is nothing: the app keeps showing what it has.
+   */
+  function save(change: () => Promise<void>): Promise<GameState | void> {
+    return inOrder(async () => {
+      await change();
+      return readState().catch(() => undefined);
+    });
+  }
+
   /** Completes or skips a quest, then answers with the server's next one. */
-  function questAction(route: Route): Promise<GameState> {
+  function questAction(route: Route): Promise<GameState | void> {
     return inOrder(async () => {
       try {
         await api(route);
       } catch (error) {
-        // 409: the quest no longer fits what was logged, or it was already
-        // completed. Nothing to fix: the fresh state shows what fits now.
         if (!hasStatus(error, 409)) {
           throw error;
         }
+        // 409: the quest no longer fits (it changed on another device since
+        // this one loaded) or was already completed. Not an error for the
+        // climber, but the app must drop what it showed, so this read back
+        // has to work.
+        return readState();
       }
-      return readState();
+      return readState().catch(() => undefined);
     });
   }
 
@@ -237,7 +253,10 @@ export function createHttpBackend(opts: HttpBackendOptions): ClimbingBackend {
     load: () => writes.then(readState),
 
     addClimb: log =>
-      inOrder(async () => {
+      save(async () => {
+        if (serverIds.has(log.id)) {
+          return; // already saved: a retried call adds nothing
+        }
         const saved = (await api(endpoints.addClimb(), toClimbBody(log))) as {
           id?: unknown;
         } | null;
@@ -248,7 +267,7 @@ export function createHttpBackend(opts: HttpBackendOptions): ClimbingBackend {
       }),
 
     removeClimb: id =>
-      inOrder(async () => {
+      save(async () => {
         try {
           await api(endpoints.removeClimb(serverIds.get(id) ?? id));
         } catch (error) {
@@ -264,7 +283,7 @@ export function createHttpBackend(opts: HttpBackendOptions): ClimbingBackend {
     skipQuest: questId => questAction(endpoints.skipQuest(questId)),
 
     setHandFlag: (flag, flagged) =>
-      inOrder(async () => {
+      save(async () => {
         await api(
           endpoints.addHandReport(),
           toHandReportBody(flag, flagged, now()),
@@ -272,10 +291,10 @@ export function createHttpBackend(opts: HttpBackendOptions): ClimbingBackend {
       }),
 
     saveReach: reach =>
-      inOrder(() => postAssessments(reachAssessments(reach, now()))),
+      save(() => postAssessments(reachAssessments(reach, now()))),
 
     finishOnboarding: result =>
-      inOrder(async () => {
+      save(async () => {
         // Kept here first: most answers have no place on the server.
         await device.update(old => ({
           ...old,
@@ -289,21 +308,26 @@ export function createHttpBackend(opts: HttpBackendOptions): ClimbingBackend {
         await postAssessments(onboardingAssessments(result, now()));
       }),
 
+    // Stays on the device, so there is nothing new to read back.
     skipOnboarding: () =>
       inOrder(() =>
         device.update(old => ({ ...old, onboardingSkipped: true })),
       ),
 
-    saveBaseline: result =>
-      inOrder(async () => {
-        await device.update(old => ({
+    saveBaseline: result => {
+      const keep = () =>
+        device.update(old => ({
           ...old,
           baseline: mergeBaseline(old.baseline, [result]),
         }));
-        const body = baselineAssessment(result, now());
-        if (body) {
-          await api(endpoints.addAssessment(), body);
-        }
-      }),
+      const body = baselineAssessment(result, now());
+      // Four of the six tests have no metric on the server: device only.
+      return body
+        ? save(async () => {
+            await keep();
+            await api(endpoints.addAssessment(), body);
+          })
+        : inOrder(keep);
+    },
   };
 }

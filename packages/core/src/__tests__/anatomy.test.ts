@@ -37,7 +37,8 @@ describe('anatomy content', () => {
   });
 
   it('follows the copy rules: no dashes, exclamation marks or hype words', () => {
-    const banned = /[–—!]|journey|empower|seamless|let's/i;
+    // En dash, em dash, exclamation mark, and words the copy avoids.
+    const banned = /[\u2013\u2014!]|journey|empower|seamless|let's/i;
     const bad = ANATOMY.filter(s =>
       [s.name, s.plain, s.what, s.climbing].some(t => banned.test(t)),
     ).map(s => s.id);

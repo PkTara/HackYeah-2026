@@ -256,10 +256,9 @@ export function LayerSlider<K extends string>({
                 <View
                   style={[
                     styles.mark,
-                    {
-                      backgroundColor: i === index ? c.primary : 'transparent',
-                      borderColor: i === index ? c.outline : 'transparent',
-                    },
+                    i === index
+                      ? { backgroundColor: c.primary, borderColor: c.outline }
+                      : styles.markOff,
                   ]}
                 />
               </View>
@@ -330,4 +329,5 @@ const styles = StyleSheet.create({
     height: PX * 2 + 2,
     borderWidth: 1,
   },
+  markOff: { backgroundColor: 'transparent', borderColor: 'transparent' },
 });

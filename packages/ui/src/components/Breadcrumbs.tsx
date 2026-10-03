@@ -130,7 +130,7 @@ export function Breadcrumbs({ crumbs }: { crumbs: readonly Crumb[] }) {
                     shade={c.barkDark}
                     shadow={c.backgroundDeep}
                     lift={state.pressed ? 0 : PX}
-                    style={{ marginTop: state.pressed ? PX : 0 }}
+                    style={state.pressed ? styles.sunk : null}
                     contentStyle={styles.sign}
                   >
                     <PixelText text={label} color="#FFF4DC" accessible={false} />
@@ -161,4 +161,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   here: { minHeight: 44, justifyContent: 'center' },
+  sunk: { marginTop: PX },
 });
