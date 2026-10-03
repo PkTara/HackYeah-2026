@@ -1,6 +1,6 @@
 # @hackyeah/vision: camera tests on the device
 
-Counts pull-ups and times dead hangs and planks **live**, from body keypoints, while the camera runs. It also describes a **recorded climb** (straight arms, pauses, foot re-placements, fast moves). Everything here runs on the device and this package makes no network calls. Pure TypeScript: no React, no react-native, no MediaPipe import, so it bundles unchanged for HarmonyOS, Android, iOS and the web.
+Counts pull-ups and times dead hangs and planks **live**, from body keypoints, while the camera runs. It also describes a **recorded climb** (straight arms, pauses, foot re-placements, fast moves). Everything here runs on the device and this package makes no network calls. Pure TypeScript: no React, no react-native, no MediaPipe import, so it bundles unchanged for Android, iOS and the web.
 
 The server-side pose step is in `backend/`: `POST /v1/pose/image` (MediaPipe on one uploaded image) and `POST /v1/pose/landmarks` (leg-spread angle from landmarks the client sends). See `backend/README.md`.
 
@@ -20,7 +20,6 @@ recorded clip -> PoseFrame[] -> analyzeClimbForm() -> ClimbFormReport
 | `result.ts` | `TestResult`, quality verdicts and capture statistics shared by all tests. |
 | `sources.ts` | `KeypointSource` (where frames come from), plus replay and "unavailable" sources. |
 | `mediapipe.ts` | Web source: runs an injected MediaPipe `PoseLandmarker` on each video frame. |
-| `harmony.ts` | HarmonyOS plan: maps Core Vision Kit skeleton results to `PoseFrame` (native side not built). |
 | `synthetic.ts` | A deterministic stick figure doing each test, and a climb. Used by tests, the harness and the labelled "simulated camera". |
 | `climbForm.ts` | Descriptive observations about a recorded climb. |
 | `harness/` | A standalone browser page wiring all of this to a webcam (developer tool, not app UI). |
@@ -101,14 +100,15 @@ Assumptions: a still camera, one climber, filmed from behind or from the side; l
 
 | Platform | Source | State |
 |---|---|---|
-| Web | MediaPipe Pose Landmarker in the browser (WASM, GPU with a CPU fallback). The web host imports `@mediapipe/tasks-vision` and passes the landmarker to `createMediaPipeSource`. | Works in the harness, including real inference in headless Chromium. Not wired into app screens. |
-| HarmonyOS | Core Vision Kit `skeletonDetection` (since API 12; our target is API 20): 17 points in COCO order, pixel coordinates and a score per point. Plan: a TurboModule in `apps/mobile/harmony` grabs camera preview frames as PixelMaps, calls `SkeletonDetector.process()` one frame at a time, and sends `{ t, width, height, skeletons }` to JS; `fromHarmonySkeletons()` does the rest. | Mapping written and tested; native module not built. The docs say the kit does not run on the emulator, lists only phones, tablets and PC/2-in-1, and is available in mainland China only, so check it on the demo device first. One image per call, no concurrent calls. |
-| Android, iOS | Later: MediaPipe Tasks for Android or iOS behind a native module. | `createUnavailableSource()` until then. |
+| Web | MediaPipe Pose Landmarker in the browser (WASM). The web host imports `@mediapipe/tasks-vision` and passes the landmarker to `createMediaPipeSource`. | Works in the harness, including real inference in headless Chromium. Not wired into app screens. |
+| Android, iOS | MediaPipe Tasks Pose Landmarker for Android and iOS (the same models), in a native module that runs on camera frames and sends the 33 landmarks to JS, where `fromMediaPipeLandmarks()` turns them into PoseFrames. | Not built. Native support does not exist today: use `createUnavailableSource()` (or the labelled `createSimulatedSource()`) until it does. |
 | Server | `backend/`: `/v1/pose/image` and `/v1/pose/landmarks`. | Owned by the backend. |
 
 Until a platform has a source, `createSimulatedSource(test)` plays a synthetic session in real time. Its results carry `simulated: true` and must be labelled as simulated on screen.
 
-Which MediaPipe model: use **full**. On a real photo of the top of a chin-up, `lite` put the wrists at the waist and wobbled by up to 70 px between identical frames; `full` placed every joint within about 20 px of where it is and wobbled under 3 px; `heavy` had outlier frames. That was one image, so it is a reason to prefer full, not a validation.
+Which MediaPipe model: use **full**. On a real photo of the top of a chin-up (GPU delegate, analysed from a video file), `lite` put the wrists at the waist and wobbled by up to 70 px between identical frames; `full` placed every joint within about 20 px of where it is and wobbled under 3 px; `heavy` had outlier frames. That was one image, so it is a reason to prefer full, not a validation.
+
+Which delegate: the harness uses **CPU** by default. In headless Chromium with software WebGL, the full model found nobody on the GPU delegate from a live camera while CPU found the person at about 12 fps. Check the GPU delegate on the real target browsers before switching (`?delegate=GPU` in the harness).
 
 ## Web harness
 
@@ -123,6 +123,7 @@ Open the printed URL. Pick a test, then **Start camera** (webcam, MediaPipe in t
 - Camera frames are analysed on the device. This package uploads nothing and stores nothing.
 - Results are numbers and timestamps, no images. Keypoint frames are still personal movement data: keep them only as long as a screen needs them.
 - Loading the model from Google's storage tells Google the device's IP address. Self-host the `.task` file for production.
+- The MediaPipe web runtime sends usage and performance metrics (not images) to `https://odml.pa.googleapis.com/v1/log`, as its privacy notice says. Disclose it, or block it with a Content-Security-Policy `connect-src` that leaves that host out: the logger stops when the request fails and inference carries on (seen in the headless runs).
 - Sending anything to `backend/` (images or landmarks) is the app's decision and needs the consent flow the backend already enforces.
 
 ## External libraries and models
@@ -131,7 +132,7 @@ Open the printed URL. Pick a test, then **Start camera** (webcam, MediaPipe in t
 |---|---|---|
 | `@mediapipe/tasks-vision` 1.0.1 (web only) | Apache-2.0 | npm; a dependency of `apps/web` (see `apps/web/package.json`). The WASM runtime ships inside the package. |
 | MediaPipe Pose Landmarker models (BlazePose GHUM 3D): `pose_landmarker_lite.task` (5.8 MB), `pose_landmarker_full.task` (9.4 MB), `pose_landmarker_heavy.task` (31 MB), float16 version 1 | Apache-2.0 (model card) | `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_<variant>/float16/1/pose_landmarker_<variant>.task`, listed in `MEDIAPIPE_POSE_MODELS`. Not committed. The model card lists fitness and repetition counting as intended uses; more than one person, people over about 4 m away and a hidden head are out of scope. |
-| HarmonyOS Core Vision Kit `skeletonDetection` (planned) | Part of the HarmonyOS SDK | System API, no model file to ship. |
+| MediaPipe Tasks for Android and iOS (planned) | Apache-2.0 | Maven (`com.google.mediapipe:tasks-vision`) and CocoaPods (`MediaPipeTasksVision`), with the same `.task` model files. Not added yet. |
 | [jeremyipark/vision-demos](https://github.com/jeremyipark/vision-demos) | Apache-2.0 | Design ideas, re-written in TypeScript, not copied: the hysteresis rep counter with a median filter and head-above-hands gate (`chin_ups/src/reps.py`), angles in pixels on normalised keypoints and choosing the body side once instead of per frame (`deadlift/src/reps.py`). The files that use them say so. |
 | Vite (harness only) | MIT | Already installed by `apps/web`. |
 
@@ -141,4 +142,5 @@ Open the printed URL. Pick a test, then **Start camera** (webcam, MediaPipe in t
 - Pull-ups: the nose-above-wrists top is a proxy; kipping and swinging are not detected; it needs a front view with the head and both arms in the frame.
 - Plank and dead hang: one side view and one front view respectively; poses outside those set-ups are not handled.
 - Climbing form: still camera only, one climber, 2D only, ankle rather than toe. The observations are candidates.
-- Live speed on phones is unknown; the HarmonyOS module does not exist yet.
+- Live speed on phones is unknown, and the native Android and iOS sources do not exist yet.
+- The headless browser check (software WebGL, a fake camera playing one photo) gave results that depend on the delegate and the input: from a video file, GPU placed the joints within about 20 px and held steady while CPU lost the person in 39 of 91 frames; from the live camera, GPU found nobody while CPU found the person in 83 of 103 frames, with looser placement. The quality gates rejected the unsteady runs. None of this shows how real browsers on real hardware behave: check both delegates there.
