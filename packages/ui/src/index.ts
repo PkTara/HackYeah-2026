@@ -28,6 +28,7 @@ export {
 } from './layout';
 export { TabBar, type Tab } from './components/TabBar';
 export { Tag } from './components/Tag';
+export { WarningSign } from './components/WarningSign';
 export {
   TerrainTriangle,
   type TerrainKey,
