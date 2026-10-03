@@ -10,5 +10,5 @@
     }
   },
   "include": ["**/*.ts", "**/*.tsx", "../../packages/*/src/**/*"],
-  "exclude": ["**/node_modules", "**/Pods", "harmony", "android", "ios"]
+  "exclude": ["**/node_modules", "**/Pods", "android", "ios"]
 }

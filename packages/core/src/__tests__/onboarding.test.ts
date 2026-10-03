@@ -186,11 +186,6 @@ describe('connectionsFor', () => {
     ]);
     expect(connectionsFor('android')).toContain('health-connect');
     expect(connectionsFor('android')).not.toContain('apple-health');
-    expect(connectionsFor('harmony')).toEqual([
-      'strava',
-      'huawei-health',
-      'garmin',
-    ]);
     expect(connectionsFor('web')).toEqual(
       expect.arrayContaining(['apple-health', 'health-connect']),
     );

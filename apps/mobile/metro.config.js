@@ -1,9 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
-const {
-  createHarmonyMetroConfig,
-} = require('@react-native-oh/react-native-harmony/metro.config');
 
 const projectRoot = __dirname;
 const packagesRoot = path.resolve(projectRoot, '../../packages');
@@ -41,11 +38,4 @@ const config = {
   },
 };
 
-module.exports = mergeConfig(
-  getDefaultConfig(projectRoot),
-  // On platform "harmony", redirects react-native imports to RNOH and resolves *.harmony.* files.
-  createHarmonyMetroConfig({
-    reactNativeHarmonyPackageName: '@react-native-oh/react-native-harmony',
-  }),
-  config,
-);
+module.exports = mergeConfig(getDefaultConfig(projectRoot), config);

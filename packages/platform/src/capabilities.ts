@@ -1,9 +1,9 @@
 /**
- * Default implementation, used on Android and iOS.
+ * Native implementation, used on Android and iOS (bundled by Metro).
  *
- * Bundlers pick a platform-specific sibling when one exists:
- *   capabilities.harmony.ts  (Metro, platform "harmony")
- *   capabilities.web.ts      (Vite, see apps/web/vite.config.js)
+ * The web build uses capabilities.web.ts instead: Vite prefers ".web.ts" files
+ * (see apps/web/vite.config.js). If Android and iOS ever need different code,
+ * add capabilities.android.ts or capabilities.ios.ts; Metro picks those first.
  */
 import { Platform, Vibration } from 'react-native';
 import { createMemoryStore } from './memoryStore';

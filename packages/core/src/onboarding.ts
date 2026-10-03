@@ -149,15 +149,13 @@ export const CONNECTIONS: Readonly<Record<ConnectionId, ConnectionInfo>> = {
  * exists on its own platform; a browser could be either phone.
  */
 export function connectionsFor(
-  platform: 'harmony' | 'android' | 'ios' | 'web' | 'other',
+  platform: 'android' | 'ios' | 'web' | 'other',
 ): readonly ConnectionId[] {
   const store: ConnectionId[] =
     platform === 'ios'
       ? ['apple-health']
       : platform === 'android'
       ? ['health-connect']
-      : platform === 'harmony'
-      ? []
       : ['apple-health', 'health-connect'];
   return ['strava', 'huawei-health', ...store, 'garmin'];
 }

@@ -4,7 +4,7 @@
  * interfaces, so swapping or adding a platform never touches screens or logic.
  */
 
-export type PlatformName = 'harmony' | 'android' | 'ios' | 'web' | 'other';
+export type PlatformName = 'android' | 'ios' | 'web' | 'other';
 
 export interface Haptics {
   readonly isAvailable: boolean;
