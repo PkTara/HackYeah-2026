@@ -105,7 +105,7 @@ export function TestStep({
           />
         ) : (
           <RepCounter
-            value={result?.value ?? 0}
+            value={result?.value ?? null}
             min={limits.min}
             max={limits.max}
             unit={test.unit}

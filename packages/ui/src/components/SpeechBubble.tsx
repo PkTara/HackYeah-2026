@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  AccessibilityInfo,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { useReducedMotion, useTicker } from '../hooks';
 import { PX, useTheme } from '../theme';
 import { ToneContext } from '../tone';
@@ -76,10 +84,14 @@ export function SpeechBubble({ text, speaker, tailX, style }: Props) {
 
   const [spoken, setSpoken] = useState('');
   useEffect(() => {
-    const timer = setTimeout(
-      () => setSpoken(speaker ? `${speaker} says: ${text}` : text),
-      ANNOUNCE_MS,
-    );
+    const line = speaker ? `${speaker} says: ${text}` : text;
+    const timer = setTimeout(() => {
+      setSpoken(line);
+      // iOS has no live regions; Android and the web use the one below.
+      if (Platform.OS === 'ios') {
+        AccessibilityInfo.announceForAccessibility(line);
+      }
+    }, ANNOUNCE_MS);
     return () => clearTimeout(timer);
   }, [speaker, text]);
 
@@ -92,11 +104,9 @@ export function SpeechBubble({ text, speaker, tailX, style }: Props) {
     [c.outline, c.surface],
   );
 
+  const tailRoom = { paddingTop: tailX === undefined ? 0 : TAIL_HEIGHT };
   return (
-    <View
-      accessibilityLiveRegion="polite"
-      style={[{ paddingTop: tailX === undefined ? 0 : TAIL_HEIGHT }, style]}
-    >
+    <View accessibilityLiveRegion="polite" style={[tailRoom, style]}>
       <Pressable
         accessible
         accessibilityLabel={spoken}
@@ -111,10 +121,12 @@ export function SpeechBubble({ text, speaker, tailX, style }: Props) {
             shade={c.surfaceShade}
             shadow={c.backgroundDeep}
             lift={PX * 2}
-            contentStyle={{ paddingVertical: 12, paddingHorizontal: 14 }}
+            contentStyle={styles.box}
           >
-            {/* Read out through the label above, not letter by letter. */}
+            {/* Hidden from screen readers, so they never hear it letter
+                by letter. */}
             <View
+              aria-hidden
               accessibilityElementsHidden
               importantForAccessibility="no-hide-descendants"
             >
@@ -123,11 +135,19 @@ export function SpeechBubble({ text, speaker, tailX, style }: Props) {
                   line while they type. */}
               <AppText>
                 {text.slice(0, count)}
-                <AppText style={{ color: 'transparent' }}>
-                  {text.slice(count)}
-                </AppText>
+                <AppText style={styles.unseen}>{text.slice(count)}</AppText>
               </AppText>
             </View>
+            {/* The whole line as real text for web screen readers, which
+                may skip a label on a plain box. Native ones read the label
+                above, so it is hidden from them. */}
+            <AppText
+              style={styles.offscreen}
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+            >
+              {spoken}
+            </AppText>
           </PixelBox>
         </ToneContext.Provider>
         {tailX === undefined ? null : (
@@ -135,14 +155,23 @@ export function SpeechBubble({ text, speaker, tailX, style }: Props) {
             rows={TAIL}
             colors={tailColors}
             scale={PX}
-            style={{
-              position: 'absolute',
-              top: -TAIL_HEIGHT,
-              left: Math.round(tailX - TAIL_WIDTH / 2),
-            }}
+            style={[styles.tail, { left: Math.round(tailX - TAIL_WIDTH / 2) }]}
           />
         )}
       </Pressable>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  box: { paddingVertical: 12, paddingHorizontal: 14 },
+  tail: { position: 'absolute', top: -TAIL_HEIGHT },
+  unseen: { color: 'transparent' },
+  offscreen: {
+    position: 'absolute',
+    width: 1,
+    height: 1,
+    overflow: 'hidden',
+    opacity: 0,
+  },
+});

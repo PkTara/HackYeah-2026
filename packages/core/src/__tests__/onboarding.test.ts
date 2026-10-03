@@ -52,7 +52,7 @@ describe('the home test library', () => {
 
   it('keeps the copy free of dashes and exclamation marks', () => {
     const copy = JSON.stringify([BASELINE_TESTS, CONNECTIONS]);
-    expect(copy).not.toMatch(/[–—!]/);
+    expect(copy).not.toMatch(/[\u2013\u2014!]/);
   });
 
   it('finds a test by id and refuses unknown ids', () => {

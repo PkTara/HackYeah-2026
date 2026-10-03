@@ -7,7 +7,8 @@ import { Scoreboard } from './bits';
 import { NumberField } from './NumberField';
 
 type Props = {
-  value: number;
+  /** null until the climber counts or types something. */
+  value: number | null;
   onChange: (value: number, method: 'counter' | 'typed') => void;
   min: number;
   max: number;
@@ -22,6 +23,10 @@ type Props = {
 /**
  * A big pixel number with minus and plus keys, plus "Type it in" for larger
  * counts. Below zero is allowed when `min` is negative.
+ *
+ * It starts at "not counted yet" (a dim 0) rather than a real 0, so tapping
+ * past it never saves a result nobody measured. Minus on that first 0 logs a
+ * real 0 when 0 is the lowest value.
  */
 export function RepCounter({
   value,
@@ -34,10 +39,11 @@ export function RepCounter({
 }: Props) {
   const { haptics } = useCapabilities();
   const [typing, setTyping] = useState(false);
-  const [text, setText] = useState(String(value));
+  const [text, setText] = useState(value === null ? '' : String(value));
+  const shown = value ?? 0;
 
   const step = (delta: number) => {
-    const next = Math.max(min, Math.min(max, value + delta));
+    const next = Math.max(min, Math.min(max, shown + delta));
     if (next !== value) {
       haptics.tap();
       setText(String(next));
@@ -58,14 +64,26 @@ export function RepCounter({
     }
   };
 
-  const words = describe ? describe(value) : `${value} ${unit}`;
+  const words =
+    value === null
+      ? 'Not counted yet'
+      : describe
+        ? describe(value)
+        : `${value} ${unit}`;
+  const hint =
+    value !== null
+      ? null
+      : min === 0
+        ? 'Could not do one? That is fine, tap minus to log 0.'
+        : 'Tap plus for past your toes, minus for short of them.';
+
   return (
     <View style={styles.root}>
       <View style={styles.row}>
         <CounterKey
           glyph="-"
           onPress={() => step(-1)}
-          disabled={value <= min}
+          disabled={value !== null && value <= min}
           accessibilityLabel={`One less, ${label}`}
         />
         {/* Screen readers can also swipe up and down on the number. */}
@@ -73,7 +91,7 @@ export function RepCounter({
           accessible
           accessibilityRole="adjustable"
           accessibilityLabel={label}
-          accessibilityValue={{ min, max, now: value, text: words }}
+          accessibilityValue={{ min, max, now: shown, text: words }}
           accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
           onAccessibilityAction={event =>
             step(event.nativeEvent.actionName === 'increment' ? 1 : -1)
@@ -82,24 +100,29 @@ export function RepCounter({
           style={styles.grow}
         >
           <Scoreboard
-            text={min < 0 && value > 0 ? `+${value}` : String(value)}
+            text={min < 0 && shown > 0 ? `+${shown}` : String(shown)}
             caption={unit}
+            dim={value === null}
           />
         </View>
         <CounterKey
           glyph="+"
           onPress={() => step(1)}
-          disabled={value >= max}
+          disabled={value !== null && value >= max}
           accessibilityLabel={`One more, ${label}`}
         />
       </View>
 
-      {describe ? <AppText style={styles.center}>{words}</AppText> : null}
+      {describe || hint ? (
+        <AppText style={styles.center} muted={value === null}>
+          {hint ?? words}
+        </AppText>
+      ) : null}
 
       {typing ? (
         <>
           <NumberField
-            label="Type it"
+            label="Number"
             unit={unit}
             value={text}
             onChangeText={type}
@@ -113,7 +136,7 @@ export function RepCounter({
             small
             onPress={() => {
               setTyping(false);
-              setText(String(value));
+              setText(value === null ? '' : String(value));
             }}
           />
         </>
@@ -157,6 +180,8 @@ function CounterKey({
     >
       {({ pressed }) => {
         const down = pressed || disabled;
+        // Pressed, it drops onto its shadow.
+        const sink = { marginTop: down ? PX * 2 : 0 };
         return (
           <PixelBox
             fill={disabled ? c.surfaceShade : c.primary}
@@ -165,7 +190,7 @@ function CounterKey({
             shade={disabled ? undefined : c.primaryShade}
             shadow={c.backgroundDeep}
             lift={down ? 0 : PX * 2}
-            style={{ marginTop: down ? PX * 2 : 0 }}
+            style={sink}
             contentStyle={styles.key}
           >
             <PixelText

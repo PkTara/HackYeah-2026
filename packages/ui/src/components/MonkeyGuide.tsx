@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useReducedMotion, useTicker } from '../hooks';
 import { PixelCanvas } from '../pixel/raster';
 import { SCENE_COLORS } from '../pixel/scene';
@@ -310,12 +310,19 @@ export function MonkeyGuide({
   const faceX = (pos.x - GRIP_X + FACE_X) * scale - (width - column) / 2;
   const tailX = Math.max(24, Math.min(column - 24, faceX));
 
+  const stripSize = { width, height: GUIDE_HEIGHT * scale };
+  const spritePlace = {
+    left: (pos.x - GRIP_X) * scale,
+    top: (pos.y + dy) * scale,
+  };
   return (
     <View>
+      {/* Scenery: the speech bubble carries everything worth hearing. */}
       <View
+        aria-hidden
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
-        style={{ width, height: GUIDE_HEIGHT * scale, overflow: 'hidden' }}
+        style={[styles.strip, stripSize]}
       >
         <PixelArt
           rows={strip}
@@ -323,13 +330,7 @@ export function MonkeyGuide({
           scale={scale}
         />
         {/* Only this wrapper moves; the sprite itself is memoised. */}
-        <View
-          style={{
-            position: 'absolute',
-            left: (pos.x - GRIP_X) * scale,
-            top: (pos.y + dy) * scale,
-          }}
-        >
+        <View style={[styles.sprite, spritePlace]}>
           <PixelArt rows={sprite} colors={SPRITE_COLORS} scale={scale} />
         </View>
       </View>
@@ -337,8 +338,15 @@ export function MonkeyGuide({
         text={line}
         speaker="Monkey"
         tailX={tailX}
-        style={{ width: column, alignSelf: 'center', marginTop: -6 }}
+        style={[styles.bubble, { width: column }]}
       />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  strip: { overflow: 'hidden' },
+  sprite: { position: 'absolute' },
+  // The tail pokes up into the strip, towards the monkey.
+  bubble: { alignSelf: 'center', marginTop: -6 },
+});
