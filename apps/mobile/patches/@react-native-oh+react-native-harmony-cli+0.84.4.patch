@@ -1,0 +1,13 @@
+diff --git a/node_modules/@react-native-oh/react-native-harmony-cli/dist/io/RealFS.js b/node_modules/@react-native-oh/react-native-harmony-cli/dist/io/RealFS.js
+index 02cabad..3e1075d 100644
+--- a/node_modules/@react-native-oh/react-native-harmony-cli/dist/io/RealFS.js
++++ b/node_modules/@react-native-oh/react-native-harmony-cli/dist/io/RealFS.js
+@@ -37,7 +37,7 @@ class RealFSDirent extends FileSystem_1.Dirent {
+         return this.nodeFSDirent.name;
+     }
+     get path() {
+-        return new core_1.AbsolutePath(this.nodeFSDirent.path).copyWithNewSegment(this.nodeFSDirent.name);
++        return new core_1.AbsolutePath(this.nodeFSDirent.parentPath ?? this.nodeFSDirent.path).copyWithNewSegment(this.nodeFSDirent.name);
+     }
+ }
+ class RealFS extends FileSystem_1.FS {

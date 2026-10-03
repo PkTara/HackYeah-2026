@@ -1,0 +1,14 @@
+{
+  "extends": "@react-native/typescript-config",
+  "compilerOptions": {
+    "types": ["jest"],
+    "typeRoots": ["./node_modules/@types"],
+    "paths": {
+      "@hackyeah/*": ["../../packages/*/src"],
+      // Shared packages have no node_modules; resolve their imports from this app.
+      "*": ["./node_modules/@types/*", "./node_modules/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", "../../packages/*/src/**/*"],
+  "exclude": ["**/node_modules", "**/Pods", "harmony", "android", "ios"]
+}

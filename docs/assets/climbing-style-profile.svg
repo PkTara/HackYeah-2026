@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="430" viewBox="0 0 960 430" role="img" aria-labelledby="title desc">
+  <title id="title">Climbing Monkey style profile concept</title>
+  <desc id="desc">An illustrative terrain triangle for slab, vertical and overhang, alongside a five-axis movement radar. Values are examples, not measured results.</desc>
+  <rect width="960" height="430" rx="20" fill="#edf3e5"/>
+  <g font-family="Arial, sans-serif" fill="#172538">
+    <text x="32" y="38" font-size="23" font-weight="700">Climbing Monkey · Your profile</text>
+    <text x="32" y="63" font-size="14" fill="#526174">CONCEPT SKETCH · EXAMPLE VALUES · NOT A GRADE PREDICTION</text>
+    <rect x="24" y="83" width="444" height="291" rx="14" fill="#fffdf5"/>
+    <rect x="484" y="83" width="452" height="291" rx="14" fill="#fffdf5"/>
+    <text x="46" y="112" font-size="18" font-weight="700">Terrain triangle</text>
+    <text x="506" y="112" font-size="18" font-weight="700">Movement radar</text>
+    <g fill="none" stroke="#c4ceda" stroke-width="1.5">
+      <path d="M246 150 L136 310 L356 310 Z"/>
+      <path d="M246 203 L191 283 L301 283 Z"/>
+      <path d="M246 257 L246 150 M246 257 L136 310 M246 257 L356 310"/>
+      <path d="M710 157 L810 228 L772 324 L648 324 L610 228 Z"/>
+      <path d="M710 201 L760 237 L741 285 L679 285 L660 237 Z"/>
+      <path d="M710 245 L710 157 M710 245 L810 228 M710 245 L772 324 M710 245 L648 324 M710 245 L610 228"/>
+    </g>
+    <path d="M246 177 L180 289 L335 300 Z" fill="#bfe9dc" stroke="#08775e" stroke-width="3"/>
+    <path d="M710 175 L775 234 L756 304 L679 285 L630 231 Z" fill="#d6e1ff" stroke="#3457b2" stroke-width="3"/>
+    <g font-size="14" font-weight="700">
+      <text x="246" y="141" text-anchor="middle">Vertical</text>
+      <text x="130" y="333" text-anchor="middle">Slab</text>
+      <text x="358" y="333" text-anchor="middle">Overhang</text>
+      <text x="710" y="146" text-anchor="middle">Footwork</text>
+      <text x="826" y="225">Balance</text>
+      <text x="779" y="347" text-anchor="middle">Body tension</text>
+      <text x="640" y="347" text-anchor="middle">Sustained effort</text>
+      <text x="595" y="215" text-anchor="end">Dynamic</text>
+      <text x="595" y="233" text-anchor="end">coordination</text>
+    </g>
+    <text x="46" y="360" font-size="13" fill="#526174">Each corner grows independently. Tap to see evidence.</text>
+    <text x="32" y="404" font-size="17" font-weight="700">See a shape → understand the evidence → choose one focus</text>
+  </g>
+</svg>
