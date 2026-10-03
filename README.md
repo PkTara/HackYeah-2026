@@ -4,6 +4,8 @@
 
 # HackYeah 2026
 
+**Climbing Monkey** is a jungle-themed, profile-first climbing app: understand your climbing styles, choose an achievable next action, and grow a monkey companion through consistent participation. Its primary problem brief is [Open: Sport & Healthcare](context/tracks/open-sport-healthcare.md). Read the [product design](docs/climbing-app-design.md) and [alignment analysis](docs/climbing-monkey-alignment.md); product features are currently design proposals, separate from the existing platform scaffold.
+
 A React Native app for **HarmonyOS / OpenHarmony**, built with [React Native for OpenHarmony (RNOH)](https://gitcode.com/CPF-RN/ohos_react_native). The same code also runs on Android, iOS and the web.
 
 | | Version |

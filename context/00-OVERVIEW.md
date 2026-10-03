@@ -27,10 +27,15 @@ LLM-friendly digest of all hackathon materials. Original PDFs are in `source-pdf
 | Open: ImpactHer — Technology for Real Change | [tracks/open-impacther.md](tracks/open-impacther.md) | PROIDEA | 8,000 PLN | Open-task criteria | None beyond the base submission |
 | Open: Defence | [tracks/open-defence.md](tracks/open-defence.md) | PROIDEA | 8,000 PLN | Open-task criteria | None beyond the base submission |
 | Open: Smart City | [tracks/open-smart-city.md](tracks/open-smart-city.md) | PROIDEA | 8,000 PLN | Open-task criteria | ⚠ Description PDF missing (the file is a copy of the rules) |
+| **Open: Sport & Healthcare** | [tracks/open-sport-healthcare.md](tracks/open-sport-healthcare.md) | PROIDEA | 8,000 PLN | Open-task criteria | Specific user group and need, clear journey, practical value and achievable next step; no mandated technology |
 
 \* The AI Control Layer **rules** PDF gives Test suite 20% and Implementability 10%. Its **description** PDF gives 15% and 15%. The rules are the binding legal document.
 
-**Open-task criteria** (shared by all four open tasks): Idea & Innovation 30%, Relation to Category 20%, Practical Applicability / Usability 20%, **Design (visual appeal) 20%**, Completeness & Implementation Value 10%. Full definitions are in [tracks/open-tasks-common.md](tracks/open-tasks-common.md).
+**Open-task criteria** (shared by all five documented open tasks): Idea & Innovation 30%, Relation to Category 20%, Practical Applicability / Usability 20%, **Design (visual appeal) 20%**, Completeness & Implementation Value 10%. Full definitions are in [tracks/open-tasks-common.md](tracks/open-tasks-common.md).
+
+## Climbing Monkey's current framing
+
+Use **Sport & Healthcare** as the primary problem description and judging framework for the current product design. The HarmonyOS scaffold remains an implementation choice. Huawei is a separate submission option with additional requirements; sports does not inherit them. See the [design](../docs/climbing-app-design.md) and [alignment analysis](../docs/climbing-monkey-alignment.md).
 
 ## Base submission (all tracks)
 

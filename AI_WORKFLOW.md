@@ -1,14 +1,15 @@
 # AI Workflow
 
-The Huawei challenge requires this file. Keep it updated as the project evolves: record each significant AI-assisted step, what was generated, and how it was checked. Remove API keys, credentials and personal data before publishing.
+Use this file for significant AI/external-resource disclosure in the Sport & Healthcare submission. Huawei separately mandates this filename if we submit to that track. Keep it updated as the project evolves: record each significant AI-assisted step, what was generated, and how it was checked. Remove API keys, credentials and personal data before publishing.
 
 ## Tools used
 
 | Tool | Model | Used for |
 |---|---|---|
 | Claude Code (VS Code extension) | Claude Opus 5.5 (`claude-opus-5-5`) | Converting the challenge PDFs to Markdown, researching RNOH, scaffolding the project, writing code and docs |
+| Codex desktop | GPT-6 | Drafting the climbing app product design and checking MediaPipe capability documentation |
 
-No MCP servers or custom Agent Skills were used so far.
+The Codex design-drafting step used the `superpowers:using-superpowers` and `superpowers:brainstorming` skills, plus web browsing of official MediaPipe documentation.
 
 ## AI features in the app
 
@@ -65,3 +66,43 @@ None yet. When the app gets an AI feature, document:
 - Rendering the web build in headless Edge: blocked by the sandbox.
 - Vite SSR as a substitute: hit a CommonJS/ESM interop error in a react-native-web dependency.
 - Both were replaced by the jsdom check above.
+
+### 3. Climbing app design draft (2026-10-03)
+
+**Prompt:** Start a Markdown design document for a React Native climbing profile app using physical tests, pose tracking, external activity/health data, hand photos and recovery tracking, with possible form coaching and a guided pain walkthrough.
+
+**Output:** `docs/climbing-app-design.md`. The draft organizes the idea into a core profile and hand journal, proposed hackathon scope, platform boundaries, and optional extensions. No app features or inference models were implemented in this step.
+
+**Validation:** Read the existing repository architecture and hackathon context; checked Google's official Pose Landmarker and Hand Landmarker guides; reviewed the draft for scope consistency and distinctions between camera estimates, measured performance, symptom reports and medical conclusions. Native inference feasibility and clinical content remain unvalidated.
+
+### 4. Visual profile design and delegated research (2026-10-03)
+
+**Prompt:** Add a clear radar/triangle profile for terrain and movement styles, research further features with an agent, and have another agent review the supplied context. The user confirmed profile-first direction so people can understand their performance and act on it.
+
+**Output:** Expanded `docs/climbing-app-design.md` and added `docs/assets/climbing-style-profile.svg`, an illustrative concept sketch. Two user-requested agents researched feature candidates using primary sources and reviewed repository hackathon requirements. The draft includes independent terrain axes, a movement radar, controlled/dynamic indicators, an optional combined grid, evidence rules, action flow and Huawei submission fit.
+
+**Validation:** Reviewed agent findings against the draft; kept chart/scoring proposals separate from validated grade estimates; recorded research sources and missing-data behavior. The SVG is a concept with example values. No scoring model, native feature or clinically reviewed guidance was implemented.
+
+### 5. Companion pet and personalized quests (2026-10-03)
+
+**Prompt:** Add a pet that levels up through gamification and assigns improvement activities, such as stretches, based on profile weaknesses.
+
+**Output:** Added companion progression, evidence-linked quest selection, visual quest presentation, proposed XP rules, data boundaries and a small demo scope to `docs/climbing-app-design.md`.
+
+**Validation:** Reviewed consistency with the profile-first direction, missing evidence and symptom constraints. Pet XP remains separate from assessed ability. Exercise content requires review; no exercise routine, pet asset or app code was generated in this step.
+
+### 6. Climbing Monkey identity (2026-10-03)
+
+**Prompt:** Name the app Climbing Monkey and add jungle theming.
+
+**Output:** Updated the design title, product description, monkey companion and visual identity requirements; aligned the profile concept sketch's title and surface colors.
+
+**Validation:** Checked that jungle decoration preserves chart clarity, accessible controls and straightforward symptom reporting. Final character artwork and app styling are not implemented.
+
+### 7. Sport & Healthcare extraction and alignment (2026-10-03)
+
+**Prompt:** Align the design with supplied context, extract useful sports content into an open-track document, assess alignment and suggest improvements.
+
+**Output:** `context/tracks/open-sport-healthcare.md`, `docs/climbing-monkey-alignment.md`, and updates to the design, shared open-track context, overview, repository guidance and README. Sport & Healthcare is the primary product brief; existing HarmonyOS technology and optional Huawei submission requirements are distinguished.
+
+**Validation:** System `pdftotext` was unavailable, so bundled `pypdf` extracted all four description pages and all three rules pages. The context-review agent independently read both PDFs and checked requirements, judging weights and alignment gaps. Matched general upload constraints separately; retained platform/start-time source discrepancies. Reviewed local links and whitespace. No product implementation or claimed user study was added.

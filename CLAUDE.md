@@ -15,7 +15,7 @@ Read `context/00-OVERVIEW.md` first. It has the track comparison, prizes, judgin
 
 ## Codebase
 
-The target is the Huawei HarmonyOS track (see `context/tracks/huawei-harmonyos.md`): React Native 0.84.1 + RNOH 0.84.4, API 20. The README covers setup and layout.
+Climbing Monkey's primary product brief is **Open: Sport & Healthcare** (see `context/tracks/open-sport-healthcare.md` and `docs/climbing-monkey-alignment.md`). The product is profile first: connect climbing/activity evidence to an understandable profile and one achievable next action. The existing implementation targets HarmonyOS using React Native 0.84.1 + RNOH 0.84.4, API 20; this is a technology choice, not a sports-track requirement. Huawei remains a separate submission option with its own rules in `context/tracks/huawei-harmonyos.md`. The README covers setup and layout.
 
 - **Shared code lives in `packages/`** and is imported as `@hackyeah/<name>`. Hosts in `apps/` stay thin.
   - `core`: pure TS, no React or react-native.
