@@ -38,7 +38,7 @@ import { useGame } from '../state/GameProvider';
  * is saved straight away, so Done only goes back.
  */
 export function FingerScreen() {
-  const { params, goBack } = useNavigation<RouteName>();
+  const { params, canGoBack, goBack, reset } = useNavigation<RouteName>();
   const { state, today, setFingerSpots, clearFinger } = useGame();
   // Wide windows have room for a bigger drawing and a one-line title.
   const wide = useLayout().rail;
@@ -60,6 +60,8 @@ export function FingerScreen() {
     ? `Flagged ${ageLabel(flag.date, today)}: ${spotsText(finger, marked)}.`
     : 'Not flagged. Quests run as normal.';
 
+  // Opened from a web link there is nothing to go back to.
+  const done = () => (canGoBack ? goBack() : reset('Hands'));
   const toggle = (id: string) =>
     setFingerSpots(
       side,
@@ -121,7 +123,7 @@ export function FingerScreen() {
                   : setFingerSpots(side, finger, [])
               }
             />
-            <Button title="Done" onPress={goBack} />
+            <Button title="Done" onPress={done} />
             {flag ? (
               <Button
                 title="Clear this finger"
