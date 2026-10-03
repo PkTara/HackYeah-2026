@@ -25,6 +25,7 @@ import {
   Tag,
   TerrainTriangle,
   useContentWidth,
+  useLayout,
   useTheme,
   type MovementAxis,
 } from '@hackyeah/ui';
@@ -56,12 +57,44 @@ export function ProfileScreen() {
   const { navigate, reset } = useNavigation<RouteName>();
   const { state, today, focus, quest, pet, completeQuest, skipQuest } =
     useGame();
+  const wide = useLayout().columns === 2;
 
   const terrain = terrainTallies(state.logs);
   const moves = movementTallies(state.logs);
   const hasSample = state.logs.some(l => l.sample);
   const questsToGo = STEPS - pet.xpInLevel / XP_PER_QUEST;
   const recent = [...state.logs].reverse().slice(0, 4);
+
+  // Recent climbs. Wide screens show them under the quest, so both columns
+  // end at about the same height. Phones keep them after Moves.
+  const recentPanel = (
+    <Panel title="Recent" icon="log">
+      {recent.length === 0 ? (
+        <AppText>No climbs logged yet.</AppText>
+      ) : (
+        recent.map(log => (
+          <View
+            key={log.id}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+          >
+            <Icon name={TERRAIN_ICON[log.terrain]} />
+            <View style={{ flex: 1 }}>
+              <AppText>
+                {log.grade} {TERRAIN_NAME[log.terrain].toLowerCase()},{' '}
+                {MOVEMENT_NAME[log.movement].toLowerCase()}
+              </AppText>
+              <AppText variant="caption" muted>
+                {shortDate(log.date)}
+                {log.sample ? ' (example)' : ''}
+              </AppText>
+            </View>
+            <Tag text={log.sent ? 'Sent' : 'Not yet'} tone={log.sent ? 'new' : 'muted'} />
+          </View>
+        ))
+      )}
+      <Button title="Log a climb" icon="log" onPress={() => reset('Log')} />
+    </Panel>
+  );
 
   return (
     <TabScreen
@@ -223,6 +256,8 @@ export function ProfileScreen() {
               />
             </Panel>
           ) : null}
+
+          {wide ? recentPanel : null}
         </Column>
 
         <Column>
@@ -279,33 +314,7 @@ export function ProfileScreen() {
             </AppText>
           </Panel>
 
-          {/* Recent climbs */}
-          <Panel title="Recent" icon="log">
-            {recent.length === 0 ? (
-              <AppText>No climbs logged yet.</AppText>
-            ) : (
-              recent.map(log => (
-                <View
-                  key={log.id}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
-                >
-                  <Icon name={TERRAIN_ICON[log.terrain]} />
-                  <View style={{ flex: 1 }}>
-                    <AppText>
-                      {log.grade} {TERRAIN_NAME[log.terrain].toLowerCase()},{' '}
-                      {MOVEMENT_NAME[log.movement].toLowerCase()}
-                    </AppText>
-                    <AppText variant="caption" muted>
-                      {shortDate(log.date)}
-                      {log.sample ? ' (example)' : ''}
-                    </AppText>
-                  </View>
-                  <Tag text={log.sent ? 'Sent' : 'Not yet'} tone={log.sent ? 'new' : 'muted'} />
-                </View>
-              ))
-            )}
-            <Button title="Log a climb" icon="log" onPress={() => reset('Log')} />
-          </Panel>
+          {wide ? null : recentPanel}
 
           {/* One pet per sport */}
           <Panel title="Pets">
