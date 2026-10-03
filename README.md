@@ -6,6 +6,8 @@
 
 **Climbing Monkey** is a jungle-themed, profile-first climbing app: understand your climbing styles, choose an achievable next action, and grow a monkey companion through consistent participation. Its primary problem brief is [Open: Sport & Healthcare](context/tracks/open-sport-healthcare.md). Read the [product design](docs/climbing-app-design.md) and [alignment analysis](docs/climbing-monkey-alignment.md); product features are currently design proposals, separate from the existing platform scaffold.
 
+The [Python/FastAPI backend](backend/README.md) implements the confirmed-evidence → profile → quest → pet XP loop, with SQLite persistence, private hand photos and optional MediaPipe pose analysis. The mobile/web UI is not yet connected to it. See the backend README for setup, API contracts and TDD checks; use `npm run backend:check` after creating its virtualenv.
+
 A React Native app for **HarmonyOS / OpenHarmony**, built with [React Native for OpenHarmony (RNOH)](https://gitcode.com/CPF-RN/ohos_react_native). The same code also runs on Android, iOS and the web.
 
 | | Version |

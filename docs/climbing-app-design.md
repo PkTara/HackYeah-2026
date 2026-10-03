@@ -197,7 +197,8 @@ Use the repository's existing React Native structure, with HarmonyOS as the curr
 
 | Layer | Responsibility |
 |---|---|
-| `packages/core` | Assessment records, profile rules, symptom regions, quest eligibility, completion/XP rules, history and source metadata; pure TypeScript |
+| `backend/` | Python/FastAPI APIs, authoritative confirmed evidence, profile rules, quest eligibility, persistent XP and optional server pose processing; see [backend design](backend-design.md) |
+| `packages/core` | Client domain types, display transformations and local validation; pure TypeScript. Consume server profile/XP results rather than duplicating authoritative rules |
 | `packages/platform` | Camera, photo storage, persistence, pose/hand inference and external-data capabilities behind interfaces |
 | `packages/ui` | Terrain triangle, movement radar, style grid, pet/XP display, quest cards, profile cards, capture overlays, hand maps and timeline components |
 | `packages/app` | Screens, navigation, permissions and orchestration |
@@ -205,17 +206,19 @@ Use the repository's existing React Native structure, with HarmonyOS as the curr
 
 Data flow: camera/manual/imported input → quality checks and normalization → confirmed observation → persisted history → profile rules → explained result.
 
+Backend implementation now exists for anonymous profiles, confirmed records, descriptive style summaries, assessment trends, private hand photos, historical discomfort maps, eligible journal/reflection quests, pet XP and optional pose analysis. The React Native UI is still the scaffold and is not yet wired to those APIs. Server measurements and stored records are opt-in capabilities; the client must show what leaves the device and obtain upload/retention consent.
+
 Core records: `ClimberProfile`, `AssessmentResult`, `ActivityRecord`, `HandObservation`, `PhotoAsset` and `ProfileInsight`. An insight references the observations and rule version that produced it. A hand observation records side, view, anatomical region, timestamp, symptoms and optional photo; hand landmark detection must not silently decide the affected region.
 
 Gamification records: `PetProgress`, versioned `QuestDefinition`, `AssignedQuest` and `QuestCompletion`. An assigned quest references its supporting profile insight and selection rule. Completion records its timestamp, reporting method and awarded XP; pet progression is persisted separately from ability measurements.
 
 MediaPipe is a candidate, not a settled dependency. Google documents body landmarks in image/world coordinates and hand landmark detection, which could support overlays and movement estimates. Those capabilities do not themselves provide calibrated anthropometry or injury assessment. See the [Pose Landmarker guide](https://developers.google.com/edge/mediapipe/solutions/vision/pose_landmarker) and [Hand Landmarker guide](https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker).
 
-The documentation reviewed does not establish a ready-to-use HarmonyOS/RNOH integration. Validate capture, inference runtime, native bridging, latency and device performance before committing to live analysis. Alternatives are a supported inference runtime behind the same interface, manual assessment entry, or a clearly labeled prerecorded demonstration. A web-only inference demo does not establish native feasibility.
+The documentation reviewed does not establish a ready-to-use HarmonyOS/RNOH integration. The Python backend now provides an optional MediaPipe Tasks image adapter; real inference on an official sample succeeded outside the macOS sandbox. This does not establish on-device HarmonyOS feasibility. Validate native capture, client consent, latency and any native inference bridge separately. Manual assessment entry remains available; demonstration data must be labeled.
 
 ## Privacy and failure behavior
 
-- Proposed default: local storage and on-device processing where feasible; an account is not required for the core loop.
+- Clients can keep raw captures locally. Using the backend sends confirmed records to server SQLite storage; no email/password account is required, but the client must protect its issued anonymous bearer token. On-device processing remains a platform option to validate.
 - Ask separately for camera access, photo retention and external data connections. Request access when the relevant feature is used.
 - Retain assessment metrics by default; raw assessment recordings require explicit opt-in. Journal photos are saved only when the user chooses to keep them.
 - If remote processing becomes necessary, disclose what is uploaded and obtain consent before sending it.

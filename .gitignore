@@ -1,2 +1,11 @@
 node_modules/
 .DS_Store
+/.superpowers/
+**/.venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/
+**/*.egg-info/
+**/.coverage
+**/htmlcov/
+/backend/data/
