@@ -1,55 +1,108 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
-import { useTheme } from '../theme';
+import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
+import type { IconName } from '../pixel/sprites';
+import { PX, useTheme } from '../theme';
+import { Icon } from './Icon';
+import { PixelBox } from './PixelBox';
+import { PixelText } from './PixelText';
 
 type Props = {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'danger';
+  icon?: IconName;
   disabled?: boolean;
+  /** Smaller label and padding, for buttons inside lists. */
+  small?: boolean;
+  accessibilityHint?: string;
+  style?: StyleProp<ViewStyle>;
 };
 
+const LIFT = PX * 2;
+
+/**
+ * Chunky game button. It sits on a solid shadow and drops onto it when
+ * pressed, like a real key.
+ */
 export function Button({
   title,
   onPress,
   variant = 'primary',
+  icon,
   disabled = false,
+  small = false,
+  accessibilityHint,
+  style,
 }: Props) {
   const theme = useTheme();
-  const primary = variant === 'primary';
+  const c = theme.colors;
+  const fill = disabled
+    ? c.surfaceShade
+    : variant === 'primary'
+      ? c.primary
+      : variant === 'danger'
+        ? c.danger
+        : c.surface;
+  const light = disabled
+    ? undefined
+    : variant === 'primary'
+      ? '#FFE58A'
+      : variant === 'danger'
+        ? '#E8705C'
+        : c.surfaceLight;
+  const shade = disabled
+    ? undefined
+    : variant === 'primary'
+      ? c.primaryShade
+      : variant === 'danger'
+        ? '#8F2618'
+        : c.surfaceShade;
+  const ink = disabled
+    ? c.textMuted
+    : variant === 'primary'
+      ? c.onPrimary
+      : variant === 'danger'
+        ? '#FFF4DC'
+        : c.text;
+
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.base,
-        {
-          borderRadius: theme.radius.md,
-          paddingVertical: theme.spacing.sm + 4,
-          paddingHorizontal: theme.spacing.md,
-          backgroundColor: primary
-            ? theme.colors.primary
-            : theme.colors.surface,
-          borderColor: primary ? theme.colors.primary : theme.colors.border,
-          opacity: disabled ? 0.4 : pressed ? 0.75 : 1,
-        },
-      ]}
+      hitSlop={4}
+      style={style}
     >
-      <Text
-        style={[
-          theme.typography.body,
-          styles.label,
-          { color: primary ? theme.colors.onPrimary : theme.colors.text },
-        ]}
-      >
-        {title}
-      </Text>
+      {({ pressed }) => {
+        const down = pressed || disabled;
+        return (
+          <PixelBox
+            fill={fill}
+            outline={c.outline}
+            light={light}
+            shade={shade}
+            shadow={c.backgroundDeep}
+            lift={down ? 0 : LIFT}
+            style={{ marginTop: down ? LIFT : 0 }}
+            contentStyle={{
+              minHeight: small ? 40 : 50,
+              paddingVertical: small ? 8 : 12,
+              paddingHorizontal: small ? 12 : 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+            }}
+          >
+            {icon ? <Icon name={icon} color={ink} /> : null}
+            <View>
+              <PixelText text={title} color={ink} accessible={false} />
+            </View>
+          </PixelBox>
+        );
+      }}
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  base: { borderWidth: 1, alignItems: 'center' },
-  label: { fontWeight: '600' },
-});

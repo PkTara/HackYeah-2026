@@ -8,6 +8,7 @@ Use this file for significant AI/external-resource disclosure in the Sport & Hea
 |---|---|---|
 | Claude Code (VS Code extension) | Claude Opus 5.5 (`claude-opus-5-5`) | Converting the challenge PDFs to Markdown, researching RNOH, scaffolding the project, writing code and docs |
 | Codex desktop | GPT-6 | Drafting the climbing app product design and checking MediaPipe capability documentation |
+| Claude Code (claude.ai cloud session, with parallel subagents) | Claude | Pixel-art pets, the jungle pixel UI kit, the climbing profile rules and the app screens |
 
 The Codex design-drafting step used the `superpowers:using-superpowers` and `superpowers:brainstorming` skills, plus web browsing of official MediaPipe documentation.
 
@@ -106,3 +107,31 @@ None yet. When the app gets an AI feature, document:
 **Output:** `context/tracks/open-sport-healthcare.md`, `docs/climbing-monkey-alignment.md`, and updates to the design, shared open-track context, overview, repository guidance and README. Sport & Healthcare is the primary product brief; existing HarmonyOS technology and optional Huawei submission requirements are distinguished.
 
 **Validation:** System `pdftotext` was unavailable, so bundled `pypdf` extracted all four description pages and all three rules pages. The context-review agent independently read both PDFs and checked requirements, judging weights and alignment gaps. Matched general upload constraints separately; retained platform/start-time source discrepancies. Reviewed local links and whitespace. No product implementation or claimed user study was added.
+
+### 8. Pixel-art pets (2026-10-03)
+
+**Prompt:** "Create cute little pixel art pets/mascots for: climbing monkey, running gazelle."
+
+**Output:** `tools/pixel_pets.py` draws both pets as text pixel grids and renders SVG, PNG, animated GIF and sprite sheets into `assets/pets/`. The monkey later became the app companion and the gazelle the locked running-mode pet.
+
+**Validation:** Rendered previews were inspected and redrawn until they read clearly at small sizes (the first gazelle looked like a dog and was rebuilt with chibi proportions).
+
+### 9. Jungle pixel UI (2026-10-03)
+
+**Prompt:** "Cook up a jungle UI. No LLM artifacts, no claudeisms, no em dashes. Just good old human, intuitive, bold design. Pixel and game shit." Follow-ups: reuse the earlier sprites, and use subagents where possible.
+
+**What the agent did:**
+- **Pixel engine (`packages/ui/src/pixel`).** Sprites are strings with one character per pixel. `gridToRects` merges pixels into rectangles and `PixelArt` draws one `View` per rectangle, so there are no images, SVG or font files to port to HarmonyOS. Includes a 5x7 bitmap font, a procedural jungle scene (day and night) and rasterised radial charts.
+- **UI kit (`packages/ui`).** Stepped-corner panels with wooden title tabs, press-down buttons, chips, XP meter, climb pips, tags, the animated monkey (idle, blink, cheer, two level-up cosmetics) and the locked gazelle, a tab bar, and a day/night theme. See `packages/ui/README.md`.
+- **Profile rules (`packages/core`).** Climb logs, terrain and movement tallies, the focus rule (fewer than 3 logs means "log more", never "weak"), a draft quest library with finger-flag pausing, XP from unique completed quests (10 XP each, a level every 50), and labelled sample data. Replaced the counter example.
+- **Screens (`packages/app`).** Profile (hero scene where the monkey climbs one hold per quest, focus, quest, flags, terrain triangle, movement, recent climbs, pet roster), Log, Hands, Tests, Evidence and About, with persistence through the existing storage capability.
+- **Subagents.** Four ran in parallel: the Log screen, the Hands screen, the Tests/Evidence/About screens, and unit tests for the pixel engine. Each had file-level ownership and the same style and copy rules, and the orchestrating agent reviewed their output and screenshots.
+
+**How the output was validated:**
+- `npm run check` (typecheck, lint, Jest) passes.
+- Every screen was rendered in Chromium through the web host at phone width, in light and dark mode, and inspected from screenshots.
+- `react-native bundle-harmony` builds a bundle and resolves `capabilities.harmony.ts`.
+- Not yet verified: running on a HarmonyOS device or emulator, and performance with the number of Views the pixel art uses (about 3,400 on the profile in the web build).
+
+**Honesty notes:** sample climbs are labelled "Example"; the movement radar shows example values and says it is not scored; quest text is a draft that needs coach review; the hand journal says it is not a diagnosis.
+

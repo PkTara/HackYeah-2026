@@ -1,5 +1,6 @@
 import { Text, type TextProps } from 'react-native';
 import { useTheme, type Theme } from '../theme';
+import { useTone } from '../tone';
 
 type Props = TextProps & {
   variant?: keyof Theme['typography'];
@@ -13,11 +14,12 @@ export function AppText({
   ...rest
 }: Props) {
   const theme = useTheme();
+  const tone = useTone();
   return (
     <Text
       style={[
         theme.typography[variant],
-        { color: muted ? theme.colors.textMuted : theme.colors.text },
+        { color: muted ? tone.textMuted : tone.text },
         style,
       ]}
       {...rest}
