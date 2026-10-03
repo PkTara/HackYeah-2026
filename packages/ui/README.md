@@ -1,6 +1,6 @@
 # @hackyeah/ui: the jungle pixel kit
 
-Everything you see in Climbing Monkey is drawn with plain React Native `View`s. There are no images, SVG or custom fonts, so the same code renders on HarmonyOS (RNOH), Android, iOS and the web.
+Everything you see in Climbing Monkey is drawn with plain React Native `View`s. There are no images, SVG or font files, so the same code renders on Android, iOS and the web.
 
 ## How the pixel art works
 

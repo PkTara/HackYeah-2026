@@ -7,9 +7,5 @@ module.exports = {
   },
   // Shared packages have no node_modules; resolve their imports from this app.
   modulePaths: ['<rootDir>/node_modules'],
-  modulePathIgnorePatterns: [
-    '<rootDir>/harmony/',
-    '<rootDir>/android/',
-    '<rootDir>/ios/',
-  ],
+  modulePathIgnorePatterns: ['<rootDir>/android/', '<rootDir>/ios/'],
 };

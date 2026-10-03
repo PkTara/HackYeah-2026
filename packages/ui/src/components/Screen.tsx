@@ -24,9 +24,9 @@ type Props = {
  * Page container: safe area, background, scrolling, status bar style and the
  * phone or desktop frame (bottom tab bar or side rail, see layout.tsx).
  *
- * Uses React Native's built-in SafeAreaView because RNOH implements it natively
- * on Harmony. If you add react-native-safe-area-context (plus its
- * @react-native-ohos port), switch to it here and every screen follows.
+ * Uses React Native's built-in SafeAreaView, which needs no extra native
+ * dependency. If you add react-native-safe-area-context, switch to it here and
+ * every screen follows.
  */
 export function Screen({ children, hero, footer, rail }: Props) {
   const theme = useTheme();
