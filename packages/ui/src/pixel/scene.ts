@@ -123,7 +123,10 @@ export function jungleScene(
   }
 
   // Vines hanging from the canopy, with leaves on alternate sides.
-  const vineXs = [5, 14, 23, 33, 44, 52].filter(x => x < trunkX - 2);
+  const vineXs: number[] = [];
+  for (let x = 5, i = 0; x < trunkX - 2; x += 8 + (i % 3) * 2, i++) {
+    vineXs.push(x);
+  }
   vineXs.forEach((vx, i) => {
     const length = 14 + Math.floor(rand() * (height * 0.45));
     for (let y = 2; y < length; y++) {

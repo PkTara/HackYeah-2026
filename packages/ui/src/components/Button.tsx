@@ -21,6 +21,9 @@ type Props = {
 
 const LIFT = PX * 2;
 
+/** Pressable state; hovered is only reported on web and desktop. */
+type PressState = { pressed: boolean; hovered?: boolean };
+
 /**
  * Chunky game button. It sits on a solid shadow and drops onto it when
  * pressed, like a real key.
@@ -78,11 +81,13 @@ export function Button({
       hitSlop={4}
       style={style}
     >
-      {({ pressed }) => {
-        const down = pressed || disabled;
+      {(state: PressState) => {
+        const down = state.pressed || disabled;
+        // On hover the key brightens to its bevel colour.
+        const lit = Boolean(state.hovered) && !disabled;
         return (
           <PixelBox
-            fill={fill}
+            fill={lit && light ? light : fill}
             outline={c.outline}
             light={light}
             shade={shade}

@@ -15,6 +15,7 @@ export function SyncNotice() {
         value={{ text: theme.colors.text, textMuted: theme.colors.textMuted }}
       >
         <PixelBox
+          style={styles.box}
           fill={theme.colors.dangerSoft}
           outline={theme.colors.outline}
           shadow={theme.colors.backgroundDeep}
@@ -32,7 +33,14 @@ export function SyncNotice() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { position: 'absolute', top: 12, left: 12, right: 12 },
+  wrap: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    right: 12,
+    alignItems: 'center',
+  },
+  box: { width: '100%', maxWidth: 520 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   text: { flex: 1 },
 });

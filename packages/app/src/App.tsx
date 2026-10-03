@@ -10,6 +10,7 @@ import { CelebrationOverlay } from './components/CelebrationOverlay';
 import { StatusGate } from './components/StatusGate';
 import { SyncNotice } from './components/SyncNotice';
 import { Navigator } from './navigation/Navigator';
+import { OnboardingGate } from './onboarding/OnboardingGate';
 import { screens, type RouteName } from './navigation/routes';
 import { GameProvider } from './state/GameProvider';
 
@@ -39,7 +40,9 @@ export function App({
       <GameProvider backend={data} today={today}>
         <View style={{ flex: 1 }}>
           <StatusGate>
-            <Navigator<RouteName> initialRoute="Profile" screens={screens} />
+            <OnboardingGate>
+              <Navigator<RouteName> initialRoute="Profile" screens={screens} />
+            </OnboardingGate>
           </StatusGate>
           <CelebrationOverlay />
           <SyncNotice />

@@ -18,7 +18,6 @@ type Props = {
   title: string;
 };
 
-const SCALE = 4;
 const HEIGHT = 62; // art pixels
 const MONKEY_W = 32;
 const MONKEY_H = 28;
@@ -37,7 +36,9 @@ export function JungleHero({
   title,
 }: Props) {
   const theme = useTheme();
-  const cols = Math.ceil(width / SCALE);
+  // Chunkier pixels on wide screens so the scene keeps its character.
+  const scale = width >= 700 ? 5 : 4;
+  const cols = Math.ceil(width / scale);
 
   const night = theme.scheme === 'dark';
   const { scene, stepTops } = useMemo(() => {
@@ -75,29 +76,29 @@ export function JungleHero({
   }, [tick, target]);
 
   const monkeyLeft = scene.trunkX + scene.trunkWidth / 2 - HOLD_X;
-  const titleScale = width >= 380 ? 4 : 3;
+  const titleScale = width >= 700 ? 6 : width >= 380 ? 4 : 3;
 
   return (
-    <View style={{ width, height: HEIGHT * SCALE, overflow: 'hidden' }}>
-      <PixelArt rows={scene.rows} colors={colors} scale={SCALE} />
+    <View style={{ width, height: HEIGHT * scale, overflow: 'hidden' }}>
+      <PixelArt rows={scene.rows} colors={colors} scale={scale} />
       <PixelText
         text={title}
         heading
         scale={titleScale}
         color="#FFF4DC"
         shadow="#22180F"
-        style={{ position: 'absolute', left: 16, top: 18 }}
+        style={{ position: 'absolute', left: scale * 4, top: scale * 5 }}
       />
       <Monkey
-        scale={SCALE}
+        scale={scale}
         cosmetics={cosmetics}
         cheerKey={cheerKey}
         accessibilityLabel={`Your monkey, on hold ${clamped + 1} of ${steps} up the tree`}
         style={{
           position: 'absolute',
-          left: monkeyLeft * SCALE,
-          top: top * SCALE,
-          width: MONKEY_W * SCALE,
+          left: monkeyLeft * scale,
+          top: top * scale,
+          width: MONKEY_W * scale,
         }}
       />
     </View>

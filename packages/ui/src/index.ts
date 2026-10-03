@@ -10,11 +10,22 @@ export { JungleHero } from './components/JungleHero';
 export { Meter, Pips } from './components/Meter';
 export { Monkey } from './components/Monkey';
 export { MovementRadar, type MovementAxis } from './components/MovementRadar';
+export { NavRail } from './components/NavRail';
 export { Panel, type PanelVariant } from './components/Panel';
 export { PixelArt } from './components/PixelArt';
 export { PixelBox } from './components/PixelBox';
 export { PixelText } from './components/PixelText';
-export { Screen, useContentWidth, MAX_WIDTH } from './components/Screen';
+export { Screen } from './components/Screen';
+export {
+  Column,
+  Columns,
+  CONTENT_MAX,
+  RAIL_WIDTH,
+  layoutFor,
+  useContentWidth,
+  useLayout,
+  type Layout,
+} from './layout';
 export { TabBar, type Tab } from './components/TabBar';
 export { Tag } from './components/Tag';
 export {
