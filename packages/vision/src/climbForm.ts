@@ -3,8 +3,8 @@
  * device.
  *
  * Input: the PoseFrames of one climb, from any source (MediaPipe on a video
- * file on the web, the HarmonyOS skeleton module, or keypoints from the
- * backend). Output: a few descriptive observations, each with the frames and
+ * file on the web, MediaPipe on Android or iOS once that exists, or
+ * keypoints from the backend). Output: a few descriptive observations, each with the frames and
  * timestamps it came from and a confidence. These are candidate observations
  * to check against the video, not grades, not coaching verdicts and not an
  * injury assessment.

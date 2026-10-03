@@ -7,9 +7,9 @@
  *
  *   web       MediaPipe Pose Landmarker in the browser (see mediapipe.ts; the
  *             web host injects the landmarker, this package never imports it)
- *   harmony   Core Vision Kit skeleton detection through a TurboModule (see
- *             harmony.ts for the result mapping; native side not built yet)
- *   other     createUnavailableSource() until a native source exists
+ *   android,  MediaPipe Tasks Pose Landmarker for Android and iOS, through a
+ *   ios       native module that sends landmarks to JS. Not built yet: use
+ *             createUnavailableSource() or createSimulatedSource() until then.
  *
  * Counters only see PoseFrames, so they behave the same with every source,
  * including the replayed and simulated ones used in tests and demos.
@@ -17,7 +17,7 @@
 import type { PoseFrame } from './pose';
 
 export type KeypointSourceInfo = Readonly<{
-  /** e.g. "mediapipe-web", "harmony-core-vision", "replay", "simulated". */
+  /** e.g. "mediapipe-web", "replay", "simulated". */
   id: string;
   /** Human-readable model name. */
   model: string;

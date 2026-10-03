@@ -23,14 +23,18 @@ import {
   type PoseFrame,
 } from '@hackyeah/vision';
 
+const params = new URLSearchParams(location.search);
 // "full" by default; see MEDIAPIPE_POSE_MODELS for why not "lite".
 // "?model=/models/pose_landmarker_full.task" uses a local copy (offline use).
-const MODEL_URL =
-  new URLSearchParams(location.search).get('model') ??
-  MEDIAPIPE_POSE_MODELS.full;
+const MODEL_URL = params.get('model') ?? MEDIAPIPE_POSE_MODELS.full;
+// CPU by default. In a headless check with software WebGL, the full model
+// found nobody on the GPU delegate while CPU found the person, so GPU has to
+// be checked per browser first: "?delegate=GPU".
+const DELEGATE: 'GPU' | 'CPU' =
+  params.get('delegate') === 'GPU' ? 'GPU' : 'CPU';
 const MODEL_VERSION = `tasks-vision 1.0.1, ${
   MODEL_URL.split('/').pop() ?? 'unknown model'
-}`;
+}, ${DELEGATE}`;
 
 const $ = <T extends HTMLElement>(id: string) =>
   document.getElementById(id) as T;
@@ -64,9 +68,9 @@ async function createLandmarker(): Promise<PoseLandmarker> {
       numPoses: 1,
     });
   try {
-    return await create('GPU');
+    return await create(DELEGATE);
   } catch {
-    // No WebGL (some browsers, headless test runs): the CPU path is slower but works.
+    // No WebGL in this browser: fall back to the CPU.
     return create('CPU');
   }
 }

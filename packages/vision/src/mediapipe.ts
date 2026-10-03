@@ -1,22 +1,24 @@
 /**
  * Live keypoints in the browser with MediaPipe Pose Landmarker.
  *
- * This package never imports `@mediapipe/tasks-vision`: the HarmonyOS and
- * Android bundles must not contain it, and the mobile typecheck would fail on
- * it. The web host creates the landmarker and passes it in, typed by the small
- * structural types below (a real PoseLandmarker fits them). Wiring, as the web
- * host or services/vision/web-harness does it:
+ * This package never imports `@mediapipe/tasks-vision`: it is a browser
+ * library, so the Android and iOS bundles must not contain it, and the mobile
+ * typecheck does not install it. The web host creates the landmarker and
+ * passes it in, typed by the small structural types below (a real
+ * PoseLandmarker fits them; harness/tsconfig.json checks that). Wiring, as the
+ * web host or harness/main.ts does it:
  *
  *   import { FilesetResolver, PoseLandmarker } from '@mediapipe/tasks-vision';
  *   const fileset = await FilesetResolver.forVisionTasks(WASM_BASE_URL);
  *   const landmarker = await PoseLandmarker.createFromOptions(fileset, {
- *     baseOptions: { modelAssetPath: MEDIAPIPE_POSE_MODELS.lite, delegate: 'GPU' },
+ *     baseOptions: { modelAssetPath: MEDIAPIPE_POSE_MODELS.full, delegate: 'CPU' },
  *     runningMode: 'VIDEO',
  *     numPoses: 1,
  *   });
  *   const source = createMediaPipeSource({ landmarker, video: videoElement });
  *
- * Inference runs on the device. No camera frame leaves the browser.
+ * Inference runs on the device. No camera frame leaves the browser, but the
+ * MediaPipe runtime sends usage metrics to Google (see the README).
  */
 import {
   fromMediaPipeLandmarks,

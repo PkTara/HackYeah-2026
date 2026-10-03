@@ -1,12 +1,12 @@
 /**
  * One shared description of a body pose, whatever produced it.
  *
- * Sources disagree on the skeleton: MediaPipe Pose Landmarker returns 33
- * points, ViTPose (the Python service) and HarmonyOS Core Vision Kit return
- * the 17 COCO points. The 17 COCO points are a subset of MediaPipe's, so they
- * are the shared core: every counter in this package only reads those. The
- * extra MediaPipe points (heels, toes, fingers, mouth) are kept when a source
- * has them, for later use.
+ * Pose models disagree on the skeleton: MediaPipe Pose Landmarker returns 33
+ * points, while many other models (MoveNet, ViTPose and others) return the 17
+ * COCO points. The 17 COCO points are a subset of MediaPipe's, so they are
+ * the shared core: every counter in this package only reads those. The extra
+ * MediaPipe points (heels, toes, fingers, mouth) are kept when a source has
+ * them, for later use.
  */
 
 /** The 17 COCO keypoints, in COCO order. Every source provides these. */
@@ -172,14 +172,14 @@ export function fromMediaPipeLandmarks(
   return { t, width, height, landmarks };
 }
 
-// COCO-17 sources (ViTPose through the Python service, HarmonyOS Core Vision Kit)
+// Models that return the 17 COCO keypoints (MoveNet, ViTPose and others)
 
 /** `[x, y, score]` with x and y normalised to [0, 1]. */
 export type CocoKeypoint = readonly [number, number, number];
 
 /**
  * Converts 17 COCO keypoints in COCO order to a PoseFrame. A point at exactly
- * (0, 0) is ViTPose's "not visible" marker, so it is left out.
+ * (0, 0) is a common "not visible" marker (ViTPose uses it), so it is left out.
  */
 export function fromCoco17(
   keypoints: readonly CocoKeypoint[] | undefined,

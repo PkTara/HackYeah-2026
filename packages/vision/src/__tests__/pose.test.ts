@@ -1,5 +1,4 @@
 import { angleDeg, pointOf, verticalOffsetFromLine } from '../geometry';
-import { fromHarmonySkeletons, type HarmonySkeleton } from '../harmony';
 import {
   BODY_LANDMARKS,
   MEDIAPIPE_POSE_LANDMARKS,
@@ -78,42 +77,6 @@ describe('COCO-17 keypoints', () => {
       y: 0.5,
       visibility: 0.8,
     });
-  });
-});
-
-describe('HarmonyOS Core Vision Kit skeletons', () => {
-  const skeleton = (score: number, offset: number): HarmonySkeleton => ({
-    score,
-    boundingBox: { left: 0, top: 0, width: 100, height: 200 },
-    points: BODY_LANDMARKS.map((_, type) => ({
-      point: { x: 100 + offset + type, y: 200 + type * 10 },
-      score: 0.7,
-      type,
-    })),
-  });
-
-  it('normalises pixel coordinates and keeps the most confident person', () => {
-    const frame = fromHarmonySkeletons(
-      [skeleton(0.4, 500), skeleton(0.9, 0)],
-      40,
-      1000,
-      2000,
-    );
-
-    expect(frame.landmarks.nose).toEqual({ x: 0.1, y: 0.1, visibility: 0.7 });
-    // SkeletonPointType 16 is RIGHT_ANKLE.
-    expect(frame.landmarks.right_ankle).toEqual({
-      x: 0.116,
-      y: 0.18,
-      visibility: 0.7,
-    });
-  });
-
-  it('returns an empty frame for no skeletons or a bad size', () => {
-    expect(fromHarmonySkeletons([], 0, 1000, 2000).landmarks).toEqual({});
-    expect(fromHarmonySkeletons([skeleton(1, 0)], 0, 0, 0).landmarks).toEqual(
-      {},
-    );
   });
 });
 
