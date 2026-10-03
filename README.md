@@ -4,7 +4,7 @@
 
 # HackYeah 2026
 
-**Climbing Monkey** is a jungle-themed, profile-first climbing app: understand your climbing styles, choose an achievable next action, and grow a monkey companion through consistent participation. Its primary problem brief is [Open: Sport & Healthcare](context/tracks/open-sport-healthcare.md). Read the [product design](docs/climbing-app-design.md) and [alignment analysis](docs/climbing-monkey-alignment.md); product features are currently design proposals, separate from the existing platform scaffold.
+**Climbing Monkey** is a jungle-themed, profile-first climbing app: understand your climbing styles, choose an achievable next action, and grow a monkey companion through consistent participation. Its primary problem brief is [Open: Sport & Healthcare](context/tracks/open-sport-healthcare.md). Read the [product design](docs/climbing-app-design.md) and [alignment analysis](docs/climbing-monkey-alignment.md). A working prototype of the profile loop (profile, focus, quests, climb log, hand flags, monkey XP) runs on labelled sample data. The rest of the design is still proposals.
 
 A React Native app for **HarmonyOS / OpenHarmony**, built with [React Native for OpenHarmony (RNOH)](https://gitcode.com/CPF-RN/ohos_react_native). The same code also runs on Android, iOS and the web.
 
@@ -28,13 +28,14 @@ apps/
   web/               Browser host (Vite + react-native-web), renders the same @hackyeah/app
 packages/            Shared code, imported as @hackyeah/<name>
   core/              Domain logic. Plain TypeScript: no React, no react-native, no I/O
+  data/              Where data lives: the backend contract, on-device storage, HTTP client
   platform/          Capability interfaces + one implementation per OS
-  ui/                Theme tokens and shared components (react-native primitives only)
+  ui/                Jungle pixel UI kit (react-native primitives only, see its README)
   app/               Screens, navigation, root <App/>
 context/             Hackathon brief, rules and judging criteria (Markdown)
 ```
 
-Dependencies only flow downwards: `app → ui, platform, core`. `core` depends on nothing, and the hosts in `apps/` stay thin. To add another target (a tablet layout, a different web shell, a desktop app), write a new host that renders `@hackyeah/app`. If the target needs different native behaviour, add a `capabilities.<platform>.ts` file in `packages/platform`.
+Dependencies only flow downwards: `app → ui, data, platform, core`, and `data → core, platform`. `core` depends on nothing, and the hosts in `apps/` stay thin. To add another target (a tablet layout, a different web shell, a desktop app), write a new host that renders `@hackyeah/app`. If the target needs different native behaviour, add a `capabilities.<platform>.ts` file in `packages/platform`.
 
 ### How platform-specific code is selected
 
@@ -47,6 +48,10 @@ Shared code imports `react-native` and `@hackyeah/platform` normally. Each bundl
 | Web | Vite | `react-native-web` | `capabilities.web.ts` |
 
 Screens read capabilities through `useCapabilities()`, so tests inject fakes with `<App capabilities={...} />`.
+
+### Connecting a backend
+
+Screens only talk to `useGame()`. It saves through a `ClimbingBackend` from `packages/data`: on-device storage by default, or an HTTP API once `API_BASE_URL` is set. Endpoints and JSON shapes each live in one file. See [packages/data/README.md](packages/data/README.md).
 
 ## Setup
 

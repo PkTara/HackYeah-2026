@@ -43,7 +43,8 @@ export type GameAction =
   | { type: 'removeClimb'; id: string }
   | { type: 'completeQuest'; questId: string }
   | { type: 'skipQuest'; questId: string }
-  | { type: 'toggleFlag'; side: Side; finger: Finger; date: string }
+  /** Explicit on/off (not a toggle) so repeating it is harmless. */
+  | { type: 'setFlag'; flag: HandFlag; flagged: boolean }
   | { type: 'saveReach'; reach: Reach }
   | { type: 'load'; state: GameState }
   | { type: 'reset'; state: GameState };
@@ -80,17 +81,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           action.questId,
         ],
       };
-    case 'toggleFlag': {
+    case 'setFlag': {
       const same = (f: HandFlag) =>
-        f.side === action.side && f.finger === action.finger;
+        f.side === action.flag.side && f.finger === action.flag.finger;
+      const others = state.flags.filter(f => !same(f));
       return {
         ...state,
-        flags: state.flags.some(same)
-          ? state.flags.filter(f => !same(f))
-          : [
-              ...state.flags,
-              { side: action.side, finger: action.finger, date: action.date },
-            ],
+        flags: action.flagged ? [...others, action.flag] : others,
       };
     }
     case 'saveReach':
