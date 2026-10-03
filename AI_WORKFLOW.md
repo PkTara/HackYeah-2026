@@ -125,7 +125,7 @@ None yet. When the app gets an AI feature, document:
 - **UI kit (`packages/ui`).** Stepped-corner panels with wooden title tabs, press-down buttons, chips, XP meter, climb pips, tags, the animated monkey (idle, blink, cheer, two level-up cosmetics) and the locked gazelle, a tab bar, and a day/night theme. See `packages/ui/README.md`.
 - **Profile rules (`packages/core`).** Climb logs, terrain and movement tallies, the focus rule (fewer than 3 logs means "log more", never "weak"), a draft quest library with finger-flag pausing, XP from unique completed quests (10 XP each, a level every 50), and labelled sample data. Replaced the counter example.
 - **Screens (`packages/app`).** Profile (hero scene where the monkey climbs one hold per quest, focus, quest, flags, terrain triangle, movement, recent climbs, pet roster), Log, Hands, Tests, Evidence and About, with persistence through the existing storage capability.
-- **Subagents.** Four ran in parallel: the Log screen, the Hands screen, the Tests/Evidence/About screens, and unit tests for the pixel engine. Each had file-level ownership and the same style and copy rules, and the orchestrating agent reviewed their output and screenshots.
+- **Subagents.** Four ran in parallel: the Log screen, the Hands screen, the Tests/Evidence/About screens, and unit tests for the pixel engine. Each had file-level ownership and the same style and copy rules, and the orchestrating agent reviewed their output and screenshots. Their reviews also caught real issues that were then fixed: a lost-update race in the local backend, low contrast on red in dark mode, and selected states that web screen readers could not hear.
 
 **How the output was validated:**
 - `npm run check` (typecheck, lint, Jest) passes.
@@ -134,4 +134,12 @@ None yet. When the app gets an AI feature, document:
 - Not yet verified: running on a HarmonyOS device or emulator, and performance with the number of Views the pixel art uses (about 3,400 on the profile in the web build).
 
 **Honesty notes:** sample climbs are labelled "Example"; the movement radar shows example values and says it is not scored; quest text is a draft that needs coach review; the hand journal says it is not a diagnosis.
+
+### 10. Backend-ready data layer (2026-10-03)
+
+**Prompt:** "Ensure the frontend is modular so that it can connect to a backend (and so when we know what the endpoints and shit are for the actual version, we can connect easily)."
+
+**Output:** `packages/data` with a `ClimbingBackend` contract, an on-device backend (the demo) and a fetch-based HTTP backend. Endpoint paths live in `endpoints.ts` and JSON shapes in `wire.ts`, both marked as placeholders. `useGame()` applies each change on screen, saves it through the backend, and on failure reloads the saved state and shows a notice. See `packages/data/README.md`.
+
+**Validation:** Jest tests run the HTTP backend against a fake server (paths, methods, bodies, auth header, error handling) and the local backend against the memory store (persistence, same-tick saves, corrupt data). An app test forces a failed save and checks the rollback. The HarmonyOS bundle includes the new package. No real API exists yet, so the HTTP backend has only been tested against the fake server.
 
