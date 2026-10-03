@@ -102,13 +102,7 @@ export function Scoreboard({
         importantForAccessibility={label ? 'auto' : 'no-hide-descendants'}
         style={styles.boardText}
       >
-        <PixelText
-          text={text}
-          scale={7}
-          color={c.primary}
-          shadow={c.primaryShade}
-          accessible={false}
-        />
+        <PixelText text={text} scale={7} color={c.primary} accessible={false} />
         {caption ? (
           <PixelText text={caption} color="#E8CFA6" accessible={false} />
         ) : null}

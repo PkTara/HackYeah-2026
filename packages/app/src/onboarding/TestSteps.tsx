@@ -30,26 +30,21 @@ export function TestsIntroStep({
   return (
     <Panel title="Home tests" badge={<Tag text="Optional" tone="muted" />}>
       <AppText>
-        Six quick tests, one at a time. Each gives your profile a starting point
-        to compare with later.
+        One test per screen. Each gives your profile a starting point to
+        compare with later.
       </AppText>
-      <NumberedList
-        items={BASELINE_TESTS.map(test => (
-          <View
-            key={test.id}
-            accessible
-            accessibilityLabel={`${test.name}: ${AREA_LABEL[test.area]}`}
-          >
-            <AppText>{test.name}</AppText>
-            <AppText variant="caption" muted>
-              {AREA_LABEL[test.area]}
-            </AppText>
-          </View>
+      <View
+        accessible
+        accessibilityLabel={`The tests: ${BASELINE_TESTS.map(t => t.name).join(', ')}`}
+        style={styles.tags}
+      >
+        {BASELINE_TESTS.map(test => (
+          <Tag key={test.id} text={test.name} tone="muted" />
         ))}
-      />
+      </View>
       <AppText variant="caption">
-        You need a pull-up bar, some floor, a ruler, and a wall or chair close
-        by. Skip any test you cannot do.
+        You need a pull-up bar, some floor and a ruler. Skip any test you
+        cannot do.
       </AppText>
       <SafetyLine text="Warm up first. Skip the tests if you are injured, and stop if anything hurts." />
       <Button title="Start tests" icon="tests" onPress={onStart} />
@@ -182,4 +177,5 @@ const styles = StyleSheet.create({
   },
   rule: { height: 3 },
   results: { gap: 2 },
+  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
 });

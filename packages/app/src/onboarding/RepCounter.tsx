@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { parseWholeNumber } from '@hackyeah/core';
-import { AppText, Button } from '@hackyeah/ui';
+import { AppText, Button, PX, PixelBox, PixelText, useTheme } from '@hackyeah/ui';
 import { useCapabilities } from '../capabilities';
 import { Scoreboard } from './bits';
 import { NumberField } from './NumberField';
@@ -62,12 +62,11 @@ export function RepCounter({
   return (
     <View style={styles.root}>
       <View style={styles.row}>
-        <Button
-          title="-"
+        <CounterKey
+          glyph="-"
           onPress={() => step(-1)}
           disabled={value <= min}
           accessibilityLabel={`One less, ${label}`}
-          style={styles.key}
         />
         {/* Screen readers can also swipe up and down on the number. */}
         <View
@@ -87,12 +86,11 @@ export function RepCounter({
             caption={unit}
           />
         </View>
-        <Button
-          title="+"
+        <CounterKey
+          glyph="+"
           onPress={() => step(1)}
           disabled={value >= max}
           accessibilityLabel={`One more, ${label}`}
-          style={styles.key}
         />
       </View>
 
@@ -132,10 +130,66 @@ export function RepCounter({
   );
 }
 
+/**
+ * A big square key with a chunky plus or minus, sinking onto its shadow
+ * when pressed like the kit's Button.
+ */
+function CounterKey({
+  glyph,
+  onPress,
+  disabled,
+  accessibilityLabel,
+}: {
+  glyph: '+' | '-';
+  onPress: () => void;
+  disabled: boolean;
+  accessibilityLabel: string;
+}) {
+  const { colors: c } = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      hitSlop={4}
+    >
+      {({ pressed }) => {
+        const down = pressed || disabled;
+        return (
+          <PixelBox
+            fill={disabled ? c.surfaceShade : c.primary}
+            outline={c.outline}
+            light={disabled ? undefined : '#FFE58A'}
+            shade={disabled ? undefined : c.primaryShade}
+            shadow={c.backgroundDeep}
+            lift={down ? 0 : PX * 2}
+            style={{ marginTop: down ? PX * 2 : 0 }}
+            contentStyle={styles.key}
+          >
+            <PixelText
+              text={glyph}
+              scale={5}
+              color={disabled ? c.textMuted : c.onPrimary}
+              accessible={false}
+            />
+          </PixelBox>
+        );
+      }}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   root: { gap: 12 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   grow: { flex: 1 },
-  key: { width: 60 },
+  key: {
+    width: 60,
+    height: 64,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   center: { textAlign: 'center' },
 });
