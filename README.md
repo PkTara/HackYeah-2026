@@ -59,7 +59,7 @@ If Android and iOS ever need different code, add `capabilities.android.ts` or `c
 
 Screens only talk to `useGame()`. It saves through a `ClimbingBackend` from `packages/data`: on-device storage by default, or the HTTP API when a server address is set. Endpoints and JSON shapes each live in one file. See [packages/data/README.md](packages/data/README.md).
 
-To use the FastAPI backend, run `npm run backend:setup` once, then `MONKEY_CORS_ORIGINS=http://localhost:5173 npm run backend:start`, and start the web app with `VITE_MONKEY_API_URL=http://127.0.0.1:8000 npm run web`. Without the variable the app keeps everything on the device. Native builds read `API_BASE_URL` in `packages/data/src/config.ts` instead.
+To use the FastAPI backend, run `npm run backend:setup` once, then `MONKEY_CORS_ORIGINS=http://localhost:5173 npm run backend:start`, and start the web app with `VITE_MONKEY_API_URL=http://127.0.0.1:8000 npm run web`. Without the variable the app keeps everything on the device. Native builds read `API_BASE_URL` in `packages/data/src/config.ts` instead. The same address is used by the camera screens (the camera assessment on the Tests tab and hand photos on the Hands tab); without a server they say they need one. See the [camera and video guide](docs/camera-video.md).
 
 ## Setup
 

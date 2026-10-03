@@ -60,6 +60,14 @@ describe('ICONS', () => {
     );
     expect(sizes).toEqual(expected);
   });
+
+  it("draws the bin in ink and paper only, so it takes the button's colour", () => {
+    expect([...keysOf(ICONS.bin)].sort()).toEqual(['#', '.', 'W']);
+  });
+
+  it('draws the bin the same on both sides', () => {
+    expect(mirror(ICONS.bin)).toEqual(ICONS.bin);
+  });
 });
 
 describe('monkeyRows', () => {

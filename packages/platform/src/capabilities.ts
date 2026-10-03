@@ -6,6 +6,8 @@
  * add capabilities.android.ts or capabilities.ios.ts; Metro picks those first.
  */
 import { Platform, Vibration } from 'react-native';
+import { CameraPreview } from './camera';
+import { CaptureMediaPreview } from './capturePreview';
 import { createMemoryStore } from './memoryStore';
 import type { Capabilities } from './types';
 
@@ -19,4 +21,5 @@ export const capabilities: Capabilities = {
   },
   // TODO: swap for persistent storage (e.g. @react-native-async-storage/async-storage).
   storage: createMemoryStore(),
+  camera: { Preview: CameraPreview, MediaPreview: CaptureMediaPreview },
 };

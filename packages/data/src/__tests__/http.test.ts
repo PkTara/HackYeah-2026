@@ -1,8 +1,13 @@
-import type { ClimbLog, HandFlag, OnboardingResult } from '@hackyeah/core';
+import {
+  emptyGame,
+  type ClimbLog,
+  type HandFlag,
+  type OnboardingResult,
+} from '@hackyeah/core';
 import { createMemoryStore, type KeyValueStore } from '@hackyeah/platform';
 import { BackendError } from '../backend';
 import { createBackend } from '../config';
-import { API_TOKEN_KEY } from '../device';
+import { API_TOKEN_KEY, DEVICE_STORAGE_KEY } from '../device';
 import { createHttpBackend, type FetchLike } from '../http';
 import { createFakeApi, type FakeApi } from '../testing/fakeApi';
 import { fromQuestDto, type QuestDto } from '../wire';
@@ -659,6 +664,142 @@ describe('answers to changes', () => {
     await expect(backend.completeQuest(first)).rejects.toMatchObject({
       status: 0,
     });
+  });
+});
+
+describe('profile reset', () => {
+  const answers: OnboardingResult = {
+    version: 1,
+    date: '2026-10-03',
+    details: {
+      places: ['outdoors'],
+      experience: '6-to-24-months',
+      grade: 'V3',
+      goal: 'injury-free',
+      body: null,
+    },
+    connections: [],
+    baseline: [],
+    skippedTests: [],
+  };
+
+  it('deletes the climber, forgets this device, and loads as a new climber', async () => {
+    const { api, backend, storage } = setup();
+    await backend.finishOnboarding(answers);
+    await backend.addClimb(climb);
+    const old = await storage.getItem(API_TOKEN_KEY);
+    api.calls.length = 0;
+
+    const state = await backend.resetProfile();
+
+    expect(api.calls[0]).toEqual({
+      method: 'DELETE',
+      path: '/v1/me',
+      body: undefined,
+      token: old,
+    });
+    expect(() => api.climberOf(old!)).toThrow();
+    const fresh = await storage.getItem(API_TOKEN_KEY);
+    expect(fresh).toBeTruthy();
+    expect(fresh).not.toBe(old);
+    // The setup answers were forgotten first, so the goal is the default.
+    expect(bodiesTo(api, '/v1/climbers')).toEqual([
+      { name: 'Climber', goal: 'general' },
+    ]);
+    expect(await storage.getItem(DEVICE_STORAGE_KEY)).toBeNull();
+    expect(state).toMatchObject({
+      logs: [],
+      flags: [],
+      completed: [],
+      skipped: [],
+      reach: null,
+      onboarding: null,
+      onboardingSkipped: false,
+      baseline: [],
+    });
+    expect(state.assigned).not.toBeNull();
+
+    // Later loads are the new climber's, without making another one.
+    expect((await backend.load()).assigned?.id).toBe(state.assigned?.id);
+    expect(api.only()).toBe(api.climberOf(fresh!));
+  });
+
+  it.each([401, 404])(
+    'counts a %i on the delete as already gone, and makes one new climber',
+    async status => {
+      const api = createFakeApi();
+      const fetch: FetchLike = (url, init) =>
+        init.method === 'DELETE'
+          ? api.fetch(url, init).then(() => ({
+              ok: false,
+              status,
+              text: async () => '',
+            }))
+          : api.fetch(url, init);
+      const { backend, storage } = setup({ api: { ...api, fetch } });
+      await backend.addClimb(climb);
+      const old = await storage.getItem(API_TOKEN_KEY);
+      api.calls.length = 0;
+
+      const state = await backend.resetProfile();
+
+      expect(requests(api).filter(r => r === 'DELETE /v1/me')).toHaveLength(1);
+      expect(requests(api).filter(r => r === 'POST /v1/climbers')).toHaveLength(
+        1,
+      );
+      expect(await storage.getItem(API_TOKEN_KEY)).not.toBe(old);
+      expect(state.logs).toEqual([]);
+    },
+  );
+
+  it('deletes after the changes already made', async () => {
+    const api = createFakeApi({
+      delay: (method, path) =>
+        method === 'POST' && path === '/v1/me/climbs' ? 20 : 0,
+    });
+    const { backend } = setup({ api });
+    await backend.load();
+
+    backend.addClimb(climb);
+    const state = await backend.resetProfile();
+
+    expect(state.logs).toEqual([]);
+    expect(
+      requests(api).filter(r => /^(POST \/v1\/me\/climbs|DELETE)/.test(r)),
+    ).toEqual(['POST /v1/me/climbs', 'DELETE /v1/me']);
+  });
+
+  it('keeps everything when the server cannot be reached', async () => {
+    const { api, backend, storage } = setup();
+    await backend.finishOnboarding(answers);
+    const old = await storage.getItem(API_TOKEN_KEY);
+    api.setOffline(true);
+
+    await expect(backend.resetProfile()).rejects.toMatchObject({ status: 0 });
+
+    api.setOffline(false);
+    expect(await storage.getItem(API_TOKEN_KEY)).toBe(old);
+    expect((await backend.load()).onboarding).toEqual(answers);
+  });
+
+  it('answers with an empty profile when only loading the new one failed', async () => {
+    const api = createFakeApi();
+    let reading = true;
+    const fetch: FetchLike = (url, init) =>
+      reading || init.method !== 'GET'
+        ? api.fetch(url, init)
+        : Promise.reject(new Error('network down'));
+    const { backend, storage } = setup({ api: { ...api, fetch } });
+    await backend.addClimb(climb);
+    const old = await storage.getItem(API_TOKEN_KEY);
+    reading = false;
+
+    // The old profile is gone either way, so showing it would be wrong.
+    expect(await backend.resetProfile()).toEqual({
+      ...emptyGame,
+      assigned: null,
+    });
+    expect(() => api.climberOf(old!)).toThrow();
   });
 });
 

@@ -8,19 +8,22 @@ Use this file for significant AI/external-resource disclosure in the Sport & Hea
 |---|---|---|
 | Claude Code (VS Code extension) | Claude Opus 5.5 (`claude-opus-5-5`) | Converting the challenge PDFs to Markdown, researching the React Native setup, scaffolding the project, writing code and docs |
 | Codex desktop | GPT-6 | Drafting the climbing app product design and checking MediaPipe capability documentation |
-| Claude Code (claude.ai cloud session, with parallel subagents) | Claude | Pixel-art pets, the jungle pixel UI kit, the climbing profile rules, the app screens, the web layout, onboarding, and connecting the app to the backend |
+| Codex (with subagents) | GPT-6.1 Sol, reviewed by GPT-6 Astra | The FastAPI backend, its video and live camera APIs, the first camera adapters and capture screens, and the scientific evidence notes (log entries 11 and 20) |
+| Claude Code (claude.ai cloud session, with parallel subagents) | Claude | Pixel-art pets, the jungle pixel UI kit, the climbing profile rules, the app screens, the web layout, onboarding, connecting the app to the backend, and the camera screens |
 
 The Codex design-drafting step used the `superpowers:using-superpowers` and `superpowers:brainstorming` skills, plus web browsing of official MediaPipe documentation.
 
 ## AI features in the app
 
-No AI feature is in the app screens yet. `packages/vision` is ready for one: on-device pose counting with MediaPipe Pose Landmarker (log entry 18). Before it is wired in, document here:
-- the model or service;
-- the inference flow (on-device, remote or hybrid);
-- what data is sent and stored;
-- limitations and failure handling;
-- how outputs are validated;
-- privacy considerations.
+**Camera assessment (server-side pose).** The Tests tab's camera assessment sends a photo, a recorded clip (web) or sampled live frames to the FastAPI backend, which runs MediaPipe Pose Landmarker (a Google model, Apache-2.0, configured with `POSE_MODEL_PATH` and not in Git) and returns the angle between the legs in the picture.
+- Inference flow: remote, on the team's own server. Nothing goes to a third-party service.
+- Data sent and stored: media leaves the device only after the climber ticks "Send for analysis" for that photo or clip; the screen names the server first. The server analyses it in memory and keeps nothing. A result is stored only when the climber reviews it and presses Save, as their own report.
+- Limitations and failures: a projected 2D angle, not a validated flexibility test; camera height, angle and clothing change it, and the screen says so. A capture without visible hips and ankles returns a reason and no number. Without a model the server answers 503 and the screen says so. Without a server the screens say they need one and never show a result.
+- Validation: unit tests with a fake server, backend tests with real decoding, and browser runs against the real model with a public sample photo (log entry 21). Not yet compared with a measured angle.
+
+**Hand photos** are not analysed by any model: they are kept privately on the server with the climber's own entry, after a separate upload and retention consent.
+
+`packages/vision` (on-device pose counting, log entry 18) is not wired into the screens yet.
 
 ## Log
 
@@ -236,3 +239,19 @@ No AI feature is in the app screens yet. `packages/vision` is ready for one: on-
 **Scientific limits:** Camera leg-spread geometry remains an unvalidated 2D estimate. Baar-related engineered-tissue schedules, small biomarker trials and single-athlete cases are not climbing prescriptions. Dossier entries identify population, methods, reading depth and limits. The citations have not yet been installed as main-app evidence components.
 
 **Native/runtime limits:** Physical device cameras, runtime permission dialogs and Android and iOS native builds were not available. JS bundles do not establish native build success. Android and iOS expose snapshot and live-frame workflows; the web also records clips. This Mac's restrictive sandbox can abort MediaPipe native initialization; PyAV/OpenCV emit a duplicate FFmpeg Objective-C class notice outside it, though smoke tests succeeded. Existing native credential storage remains in-memory; production setup is separate work.
+
+### 21. Camera screens in the app (2026-10-03)
+
+**Prompt:** "Integrate origin/codex/climbing-monkey-backend with our frontend - our frontend may need to be extended to accommodate for the backend. Ensure there is a frontend for the camera app bit. May need to extend backend and also extend the frontend. Use TDD for the backend." Earlier: do not duplicate existing work, and keep the app to Android, iOS and the web.
+
+**Output:**
+- The backend branch's video work was merged (merge commit on this branch), keeping only its Android, iOS and web parts. Its own capture screen, written for the old starter app, was replaced.
+- `packages/data`: `media.ts` (photo and clip analysis, confirmed camera results, private hand photos), `live.ts` (the live WebSocket session with one frame in flight), routes in `endpoints.ts` and JSON in `wire.ts`. It shares the HTTP backend's anonymous token and never makes its own climber. One server address for everything (`VITE_MONKEY_API_URL`, `API_BASE_URL`); the separate camera default was dropped.
+- `packages/platform`: the web and Android/iOS camera adapters became a `camera` capability. The unused system-recorder path was removed.
+- `packages/app`: a camera assessment screen (Tests tab, replacing the "Leg spread, Soon" card) and a hand photo screen (Hands tab and the finger close-up), in the jungle UI kit with breadcrumbs and trays. A finger entry feeds the existing finger flags and keeps the marked spots. In the on-device demo both say they need the server.
+- No backend change was needed.
+
+**Validation:** Jest: 19 capture tests (consent, review and retake, 30 second clips, live backpressure and close, background and permission states, late answers, cleanup, 503), 6 App-level entry tests, 16 media and 6 live client tests; `npm run check` passes. Backend: 197 tests and Ruff pass with the video extra. Android and iOS release bundles build. Playwright with Chromium's fake camera, fed a public MediaPipe sample photo, ran every flow at 390 and 1280 px against the real backend with the official Pose Landmarker lite model and a temporary database (31 checks).
+
+**Not verified:** a real camera, Android or iOS native builds, and runtime permission dialogs on a phone.
+

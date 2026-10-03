@@ -351,6 +351,21 @@ export const ICONS = {
     ............
     ............
   `),
+  // Rubbish bin with a handle on the lid, for deleting.
+  bin: art(`
+    ....####....
+    ....#..#....
+    ############
+    .#WWWWWWWW#.
+    .#WW#WW#WW#.
+    .#WW#WW#WW#.
+    .#WW#WW#WW#.
+    .#WW#WW#WW#.
+    .#WW#WW#WW#.
+    ..#WWWWWW#..
+    ..########..
+    ............
+  `),
   // Hold types, same 12 x 12 grid.
   jug: art(`
     ............

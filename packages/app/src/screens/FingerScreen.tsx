@@ -26,6 +26,7 @@ import { SPOT_LAYER_NAME, fingerLabel, spotsText } from '../labels';
 import { useNavigation } from '../navigation/Navigator';
 import type { RouteName } from '../navigation/routes';
 import { anatomyParams, fingerParams } from '../navigation/trail';
+import { useMedia } from '../media';
 import { useGame } from '../state/GameProvider';
 
 // Symptom screen: quiet panels and plain words. No monkey, no rewards.
@@ -50,6 +51,7 @@ export function FingerScreen() {
   const { params, canGoBack, goBack, reset, navigate } =
     useNavigation<RouteName>();
   const { state, today, setFingerSpots, clearFinger } = useGame();
+  const media = useMedia();
   // Wide windows have room for a bigger drawing and a one-line title.
   const wide = useLayout().rail;
   const { side, finger } = fingerParams(params);
@@ -155,6 +157,26 @@ export function FingerScreen() {
           </>
         ) : null}
       </View>
+      {/* The photo journal writes to this same flag. Needs the server. */}
+      {media ? (
+        <>
+          <Divider />
+          <View style={styles.status}>
+            <AppText variant="caption" muted>
+              Want a record of how it looks? Add a private photo to your hand
+              journal.
+            </AppText>
+            <Button
+              title="Add a photo"
+              variant="secondary"
+              small
+              accessibilityLabel={`Add a photo of your ${label.toLowerCase()}`}
+              onPress={() => navigate('HandCapture', { side, finger })}
+              style={styles.start}
+            />
+          </View>
+        </>
+      ) : null}
     </View>
   );
 

@@ -421,3 +421,147 @@ export function toGameState(
       : null,
   };
 }
+
+// Camera: pose analysis, live frames and hand photos (media.ts, live.ts)
+
+/**
+ * One analysed photo or frame. The value is the leg spread as an angle in
+ * the picture (hips to both ankles), not a validated flexibility test.
+ * invalid_capture comes with a reason and no value.
+ */
+export type PoseResultDto = {
+  status: 'ok' | 'invalid_capture';
+  metric: 'leg_spread';
+  value: number | null;
+  unit: 'degrees';
+  /** Lowest visibility of the hips and ankles, 0 to 1. */
+  confidence: number;
+  reason: string | null;
+  method: 'camera';
+  protocol: string;
+};
+
+/** A clip: frames sampled about every 200 ms. Nothing is saved. */
+export type VideoResultDto = {
+  frames: (PoseResultDto & { timestamp_ms: number })[];
+  duration_ms: number;
+  sampled_frame_count: number;
+  valid_frame_count: number;
+};
+
+/** What the climber sees from one analysis: a photo, a clip or live frames. */
+export type PoseReading = Readonly<{
+  /** The latest valid sample, or null when none was valid. */
+  result: PoseResultDto | null;
+  /** The latest sample, valid or not, for its reason. */
+  last: PoseResultDto | null;
+  valid: number;
+  total: number;
+}>;
+
+export function isVideoResult(
+  dto: PoseResultDto | VideoResultDto,
+): dto is VideoResultDto {
+  return Array.isArray((dto as VideoResultDto).frames);
+}
+
+/** A photo or clip answer as one reading. */
+export function toPoseReading(
+  dto: PoseResultDto | VideoResultDto,
+): PoseReading {
+  if (isVideoResult(dto)) {
+    const valid = dto.frames.filter(f => f.status === 'ok');
+    return {
+      result: valid[valid.length - 1] ?? null,
+      last: dto.frames[dto.frames.length - 1] ?? null,
+      valid: dto.valid_frame_count,
+      total: dto.sampled_frame_count,
+    };
+  }
+  const ok = dto.status === 'ok' && dto.value !== null;
+  return { result: ok ? dto : null, last: dto, valid: ok ? 1 : 0, total: 1 };
+}
+
+/** Adds one live sample to a reading. */
+export function addLiveSample(
+  reading: PoseReading | null,
+  sample: PoseResultDto,
+): PoseReading {
+  const ok = sample.status === 'ok' && sample.value !== null;
+  return {
+    result: ok ? sample : reading?.result ?? null,
+    last: sample,
+    valid: (reading?.valid ?? 0) + (ok ? 1 : 0),
+    total: (reading?.total ?? 0) + 1,
+  };
+}
+
+/**
+ * A camera result the climber confirmed. The server stores it as their own
+ * report; it does not measure anything again.
+ */
+export type CameraAssessmentBody = {
+  metric: 'leg_spread';
+  value: number;
+  unit: 'degrees';
+  method: 'camera';
+  confidence: number;
+  protocol: string;
+  occurred_at: string;
+};
+
+export function toCameraAssessmentBody(
+  result: PoseResultDto,
+  at: Date,
+): CameraAssessmentBody | null {
+  if (result.status !== 'ok' || result.value === null) {
+    return null;
+  }
+  return {
+    metric: result.metric,
+    value: result.value,
+    unit: result.unit,
+    method: 'camera',
+    confidence: result.confidence,
+    protocol: result.protocol,
+    occurred_at: at.toISOString(),
+  };
+}
+
+/** The journal entry that goes with a hand photo. */
+export type HandPhotoEntry = Readonly<{
+  side: Side;
+  view: 'palm' | 'back';
+  region: HandRegion;
+  /** null: sore, not rated. 0: no pain, clears a finger flag. */
+  pain: number | null;
+  /** Spots already marked on that finger, kept with the new report. */
+  spots: readonly string[];
+  note: string;
+}>;
+
+export type HandPhotoReportBody = {
+  side: Side;
+  region: HandRegion;
+  pain: number | null;
+  spots: string[];
+  note: string;
+  photo_id: string;
+  occurred_at: string;
+};
+
+export function toHandPhotoReportBody(
+  entry: HandPhotoEntry,
+  photoId: string,
+  at: Date,
+): HandPhotoReportBody {
+  return {
+    side: entry.side,
+    region: entry.region,
+    pain: entry.pain,
+    spots: [...entry.spots],
+    note: entry.note.trim(),
+    photo_id: photoId,
+    occurred_at: at.toISOString(),
+  };
+}

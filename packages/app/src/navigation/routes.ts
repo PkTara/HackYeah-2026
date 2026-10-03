@@ -1,9 +1,10 @@
 import type { ComponentType } from 'react';
 import { AboutScreen } from '../screens/AboutScreen';
 import { AnatomyScreen } from '../screens/AnatomyScreen';
-import { AssessmentScreen, HandCaptureScreen } from '../screens/CaptureScreen';
+import { AssessmentScreen } from '../screens/AssessmentScreen';
 import { EvidenceScreen } from '../screens/EvidenceScreen';
 import { FingerScreen } from '../screens/FingerScreen';
+import { HandCaptureScreen } from '../screens/HandCaptureScreen';
 import { HandsScreen } from '../screens/HandsScreen';
 import { HomeTestScreen } from '../screens/HomeTestScreen';
 import { LogScreen } from '../screens/LogScreen';
@@ -24,7 +25,9 @@ export const screens = {
   Anatomy: AnatomyScreen,
   /** Params: id, a home test id from core's BASELINE_TESTS. */
   Test: HomeTestScreen,
+  /** Camera assessment (leg spread), from the Tests tab. */
   Assessment: AssessmentScreen,
+  /** Hand journal photo. Optional params: side and finger, to start there. */
   HandCapture: HandCaptureScreen,
 } satisfies Record<string, ComponentType>;
 

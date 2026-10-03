@@ -48,6 +48,13 @@ export interface ClimbingBackend {
   /** One home test done again from the Tests tab. Replaces that test's result. */
   saveBaseline(result: BaselineResult): Promise<GameState | void>;
 
+  /**
+   * Deletes the whole profile: climbs, finger flags, quest progress, reach,
+   * home tests and setup answers. Answers with the new, empty state, so
+   * setup runs again. No sample data comes back; that is resetDemo.
+   */
+  resetProfile(): Promise<GameState>;
+
   /** Demo only: restore the sample data. Servers can leave this out. */
   resetDemo?(): Promise<GameState>;
 }

@@ -1,4 +1,6 @@
 /** Browser implementation (resolved by Vite via the ".web.ts" extension). */
+import { CameraPreview } from './camera';
+import { CaptureMediaPreview } from './capturePreview';
 import { createMemoryStore } from './memoryStore';
 import type { Capabilities, KeyValueStore } from './types';
 
@@ -66,4 +68,5 @@ export const capabilities: Capabilities = {
     },
   },
   storage: createLocalStorageStore(),
+  camera: { Preview: CameraPreview, MediaPreview: CaptureMediaPreview },
 };
