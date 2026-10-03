@@ -30,7 +30,7 @@ const PACKAGES = [
   },
   {
     name: 'ui',
-    text: 'The pixel kit. Drawn with plain Views, so it runs on HarmonyOS without SVG or images.',
+    text: 'The pixel kit. Drawn with plain Views, so it needs no SVG, images or font files and runs the same on phones and the web.',
   },
   {
     name: 'app',

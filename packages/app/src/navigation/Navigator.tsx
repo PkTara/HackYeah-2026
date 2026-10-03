@@ -11,12 +11,11 @@ import { BackHandler, Platform } from 'react-native';
 
 /**
  * Minimal stack navigator with no native dependencies, so it runs unchanged on
- * Harmony, Android, iOS and web. The system back gesture/button pops the stack.
+ * Android, iOS and web. The system back gesture/button pops the stack.
  * Tabs call `reset` so each tab starts a fresh stack.
  *
- * If the app outgrows it, React Navigation also works on Harmony via the
- * @react-native-ohos ports of react-native-screens / safe-area-context /
- * gesture-handler; only this file and the screen registry need to change.
+ * If the app outgrows it, React Navigation works on Android, iOS and web;
+ * only this file and the screen registry need to change.
  */
 
 type Params = Readonly<Record<string, string>>;
