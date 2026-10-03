@@ -1,0 +1,90 @@
+/**
+ * Where each pushed screen sits in the app, from its tab down to itself.
+ * Breadcrumbs show this trail rather than the history, so a web link
+ * straight to a finger close-up still starts with Hands.
+ */
+import {
+  ANATOMY_LAYERS,
+  BASELINE_TESTS,
+  FINGERS,
+  type Finger,
+  type Side,
+} from '@hackyeah/core';
+import { FINGER_NAME, SIDE_NAME, fingerLabel } from '../labels';
+import type { TrailStep } from './Navigator';
+import type { RouteName } from './routes';
+
+type Params = Readonly<Record<string, string>>;
+
+export type Crumb = TrailStep<RouteName> &
+  Readonly<{
+    label: string;
+    /** For narrow screens: "Right ring" for "Right ring finger". */
+    short?: string;
+  }>;
+
+const tab = (route: RouteName): Crumb => ({ route, label: route });
+
+/** The side and finger in the params, with the finger close-up's defaults. */
+export function fingerParams(params: Params): { side: Side; finger: Finger } {
+  return {
+    side: params.side === 'left' ? 'left' : 'right',
+    finger: FINGERS.find(f => f === params.finger) ?? 'index',
+  };
+}
+
+function fingerCrumb(params: Params): Crumb {
+  const { side, finger } = fingerParams(params);
+  return {
+    route: 'Finger',
+    params: { side, finger },
+    label: fingerLabel(side, finger),
+    short: `${SIDE_NAME[side]} ${FINGER_NAME[finger].toLowerCase()}`,
+  };
+}
+
+/** The trail for a screen; empty for the tabs themselves. */
+export function trailFor(route: RouteName, params: Params): Crumb[] {
+  switch (route) {
+    case 'Finger':
+      return [tab('Hands'), fingerCrumb(params)];
+    case 'Anatomy': {
+      // Opened from a finger close-up it sits under that finger.
+      const here = { route, params };
+      const fromFinger = FINGERS.some(f => f === params.finger);
+      return fromFinger
+        ? [tab('Hands'), fingerCrumb(params), { ...here, label: 'Anatomy' }]
+        : [tab('Hands'), { ...here, label: 'Hand anatomy', short: 'Anatomy' }];
+    }
+    case 'Evidence':
+      return [tab('Profile'), { route, params, label: 'Evidence' }];
+    case 'About':
+      return [tab('Tests'), { route, label: 'About' }];
+    case 'Test': {
+      const test = BASELINE_TESTS.find(t => t.id === params.id) ?? BASELINE_TESTS[0];
+      return [tab('Tests'), { route, params, label: test.name }];
+    }
+    default:
+      return [];
+  }
+}
+
+/** Params the anatomy screen understands, for links into it. */
+export function anatomyParams(o: {
+  side: Side;
+  finger?: Finger;
+  spot?: string;
+  layer?: (typeof ANATOMY_LAYERS)[number];
+}): Params {
+  const out: Record<string, string> = { side: o.side };
+  if (o.finger) {
+    out.finger = o.finger;
+  }
+  if (o.spot) {
+    out.spot = o.spot;
+  }
+  if (o.layer) {
+    out.layer = o.layer;
+  }
+  return out;
+}

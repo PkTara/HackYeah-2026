@@ -44,7 +44,12 @@ import type { KeypointSourceInfo } from './sources';
 export const CLIMB_FORM_DISCLAIMER =
   'Candidate observations from 2D pose estimates. Not a grade, not coaching advice and not an injury assessment. Check them against the video.';
 
-export type ClimbView = 'back' | 'side' | 'unclear';
+/**
+ * From the shoulder width relative to the torso. "face_on": the camera sees
+ * the broad side of the body (from behind the climber, or from the front;
+ * shoulder width cannot tell those apart). "side_on": the camera is to the side.
+ */
+export type ClimbView = 'face_on' | 'side_on' | 'unclear';
 
 export type ClimbObservationId =
   | 'straight_arms'
@@ -91,9 +96,14 @@ export type ClimbFormReport = Readonly<{
     personCoverage: number;
     meanVisibility: number;
     fps: number;
-    /** From the shoulder width relative to the torso: wide means behind, narrow means side on. */
     view: ClimbView;
     shoulderToTorso: number;
+    /**
+     * Median frame-to-frame wobble of the keypoints that is not smooth
+     * motion, in torso lengths. A confident model on a still person gives a
+     * few hundredths; a model that has misread the pose gives much more.
+     */
+    keypointJitterTL: number;
     /** The part of the clip on the wall, found from the hips rising above where they started. */
     climbStartS: number;
     climbEndS: number;
@@ -115,6 +125,8 @@ export type ClimbFormSettings = Readonly<{
   /** Share of frames that must show the climber. */
   minCoverage: number;
   minMeanVisibility: number;
+  /** Keypoint wobble above this (torso lengths) means the model is unsure of the pose. */
+  maxJitterTL: number;
   /** Smoothing window for positions, in seconds. */
   smoothS: number;
   /** Fill keypoint gaps up to this long. */
@@ -145,6 +157,7 @@ export const DEFAULT_CLIMB_FORM_SETTINGS: ClimbFormSettings = {
   minDurationS: 4,
   minCoverage: 0.6,
   minMeanVisibility: 0.5,
+  maxJitterTL: 0.08,
   smoothS: 0.15,
   maxGapS: 0.3,
   stillSpeed: 0.15,
@@ -288,6 +301,23 @@ function hullPerimeter(points: readonly Point[]): number {
   );
 }
 
+/**
+ * Median size of |p[i-1] - 2 p[i] + p[i+1]|, in `unit`s. Smooth movement
+ * leaves almost nothing here, frame-to-frame jitter leaves a lot.
+ */
+function jitter(series: Series, unit: number): number {
+  const values: number[] = [];
+  for (let i = 1; i + 1 < series.length; i += 1) {
+    const a = series[i - 1];
+    const b = series[i];
+    const c = series[i + 1];
+    if (a && b && c) {
+      values.push(Math.hypot(a.x - 2 * b.x + c.x, a.y - 2 * b.y + c.y) / unit);
+    }
+  }
+  return median(values);
+}
+
 const mean = (values: readonly number[]) =>
   values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
 
@@ -353,10 +383,26 @@ export function analyzeClimbForm(
   const view: ClimbView = !Number.isFinite(shoulderToTorso)
     ? 'unclear'
     : shoulderToTorso < 0.35
-    ? 'side'
+    ? 'side_on'
     : shoulderToTorso > 0.55
-    ? 'back'
+    ? 'face_on'
     : 'unclear';
+  // Wobble of the body's main points, as one robust number.
+  const jitterTL =
+    torso > 0
+      ? median(
+          [
+            hipRaw,
+            shoulderMid,
+            wrists.left,
+            wrists.right,
+            ankles.left,
+            ankles.right,
+          ]
+            .map(series => jitter(series, torso))
+            .filter(Number.isFinite),
+        )
+      : NaN;
 
   const report = (
     verdict: ClimbVerdict,
@@ -377,6 +423,7 @@ export function analyzeClimbForm(
       shoulderToTorso: Number.isFinite(shoulderToTorso)
         ? round(shoulderToTorso, 2)
         : 0,
+      keypointJitterTL: Number.isFinite(jitterTL) ? round(jitterTL, 3) : 0,
       climbStartS: n ? round(t[window[0]], 2) : 0,
       climbEndS: n ? round(t[window[1]], 2) : 0,
       climbWindowFound: window[2],
@@ -436,6 +483,17 @@ export function analyzeClimbForm(
       detail: 'Shoulders and hips were never visible together.',
     });
   }
+  // Visibility alone does not catch a misread pose: a model can be sure of
+  // points it has put in the wrong place. Those points wobble, though.
+  if (jitterTL > s.maxJitterTL) {
+    lowReasons.push({
+      code: 'unstable_keypoints',
+      detail: `Keypoints wobbled by ${round(
+        jitterTL,
+        2,
+      )} torso lengths per frame (limit ${s.maxJitterTL}).`,
+    });
+  }
   if (lowReasons.length) {
     return report('low_confidence', lowReasons, whole, []);
   }
@@ -489,7 +547,7 @@ export function analyzeClimbForm(
           Math.max(visibilityOf(f, 'left_hip'), visibilityOf(f, 'right_hip')),
         ),
     );
-  const viewFactor = view === 'back' ? 1 : view === 'unclear' ? 0.8 : 0.6;
+  const viewFactor = view === 'face_on' ? 1 : view === 'unclear' ? 0.8 : 0.6;
   const observations: ClimbObservation[] = [];
 
   // Straight arms while holding a position.

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { FINGERS, ageLabel, type Finger, type Side } from '@hackyeah/core';
 import {
@@ -7,6 +8,7 @@ import {
   Column,
   Columns,
   HAND_HEIGHT,
+  HandAnatomy,
   HAND_WIDTH,
   LEFT_HAND_FINGERS,
   Panel,
@@ -63,6 +65,9 @@ export function HandsScreen() {
     flags.filter(f => f.side === side).map(f => f.finger);
   const open = (side: Side, finger: Finger) =>
     navigate('Finger', { side, finger });
+  // The anatomy tray: which hand, and the part picked on it.
+  const [anatomySide, setAnatomySide] = useState<Side>('right');
+  const [part, setPart] = useState<string | null>(null);
 
   return (
     <TabScreen>
@@ -89,6 +94,15 @@ export function HandsScreen() {
               Palms up. Tap a finger or its name to mark where it hurts.
             </AppText>
           </Panel>
+
+          <HandAnatomy
+            title="Hand anatomy"
+            side={anatomySide}
+            onSideChange={setAnatomySide}
+            selected={part}
+            onSelect={setPart}
+            onOpenFinger={finger => open(anatomySide, finger)}
+          />
         </Column>
 
         <Column>
