@@ -206,7 +206,7 @@ Use the repository's existing React Native structure, with HarmonyOS as the curr
 
 Data flow: camera/manual/imported input → quality checks and normalization → confirmed observation → persisted history → profile rules → explained result.
 
-Backend implementation now exists for anonymous profiles, confirmed records, descriptive style summaries, assessment trends, private hand photos, historical discomfort maps, eligible journal/reflection quests, pet XP and optional pose analysis. The React Native UI is still the scaffold and is not yet wired to those APIs. Server measurements and stored records are opt-in capabilities; the client must show what leaves the device and obtain upload/retention consent.
+Backend implementation now exists for anonymous profiles, confirmed records, descriptive style summaries, assessment trends, private hand photos, historical discomfort maps, eligible journal/reflection quests, pet XP and optional image/video/live pose analysis. Camera assessment and hand-journal capture screens now connect to the APIs; the main profile UI is still subsequent work. Live previews stay local until explicit analysis/upload consent, and image workflows use reviewed snapshots. See the [camera/video guide](camera-video.md) and [scientific citation handoff](climbing-scientific-evidence.md).
 
 Core records: `ClimberProfile`, `AssessmentResult`, `ActivityRecord`, `HandObservation`, `PhotoAsset` and `ProfileInsight`. An insight references the observations and rule version that produced it. A hand observation records side, view, anatomical region, timestamp, symptoms and optional photo; hand landmark detection must not silently decide the affected region.
 
@@ -214,7 +214,7 @@ Gamification records: `PetProgress`, versioned `QuestDefinition`, `AssignedQuest
 
 MediaPipe is a candidate, not a settled dependency. Google documents body landmarks in image/world coordinates and hand landmark detection, which could support overlays and movement estimates. Those capabilities do not themselves provide calibrated anthropometry or injury assessment. See the [Pose Landmarker guide](https://developers.google.com/edge/mediapipe/solutions/vision/pose_landmarker) and [Hand Landmarker guide](https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker).
 
-The documentation reviewed does not establish a ready-to-use HarmonyOS/RNOH integration. The Python backend now provides an optional MediaPipe Tasks image adapter; real inference on an official sample succeeded outside the macOS sandbox. This does not establish on-device HarmonyOS feasibility. Validate native capture, client consent, latency and any native inference bridge separately. Manual assessment entry remains available; demonstration data must be labeled.
+The Python backend provides optional MediaPipe Tasks IMAGE and VIDEO adapters; real image, clip and live-session inference succeeded outside the macOS sandbox. The browser camera/recording flow passed a fake-device end-to-end check. HarmonyOS capture uses a paired camera-kit port and system-video TurboModule; SDK API types and JavaScript bundles passed, while physical operation and native/HAP builds remain unverified. This does not establish on-device MediaPipe feasibility. Manual assessment entry remains available; demonstration data must be labeled.
 
 ## Privacy and failure behavior
 

@@ -1,6 +1,6 @@
 # Climbing Monkey backend
 
-FastAPI service for the profile → eligible quest → monkey XP loop. Python **3.12** is the tested setup (3.13 is permitted; 3.14 is excluded). SQLite, Pydantic and pytest keep the service small and independently testable. See [backend design](../docs/backend-design.md) and the [scenario plan](../docs/superpowers/plans/2026-10-03-backend.md).
+FastAPI service for the profile → eligible quest → monkey XP loop, with image, recorded-video and sampled live-camera analysis. Python **3.12** is the tested setup (3.13 is permitted; 3.14 is excluded). SQLite, Pydantic and pytest keep the service small and independently testable. See [backend design](../docs/backend-design.md), the [camera/video guide](../docs/camera-video.md) and [scientific evidence handoff](../docs/climbing-scientific-evidence.md).
 
 ## Setup and checks
 
@@ -105,8 +105,26 @@ Obtain a model from the [official MediaPipe Python guide](https://developers.goo
 
 `POST /v1/pose/landmarks` accepts up to 33 normalized MediaPipe-style landmarks with explicit `x`, `y`, `visibility` (optional `z`). Supply `image_width` and `image_height` together for aspect-correct geometry. If omitted, the result uses normalized-square coordinates. The returned leg-spread angle uses hip midpoint and ankles in the image plane; it is not a 3D flexibility measurement. Missing/low-confidence/degenerate captures return `status=invalid_capture`, null value and a reason. To retain a good result, the client must obtain confirmation and separately post the supported assessment fields.
 
+## Recorded video and live camera
+
+Install `.[test,video]` with the same constraints to enable PyAV and MediaPipe VIDEO mode. The base runtime includes `websockets` so Uvicorn can serve streaming connections. `POSE_MODEL_PATH` configures both image and video inference.
+
+`POST /v1/pose/video` accepts multipart `file` and `upload_consent=true`. Supported byte containers are modern MP4/MOV (`ftyp`) and WebM, not manifests, playlists, URLs or elementary H.264. External media references are disabled. Clips are limited to 32 MiB, 60 seconds, 1,800 decoded frames and 16 million pixels per raw frame. Phone-resolution frames are rotated using their display metadata and reduced without changing aspect ratio to fit 1280×720. Frames are sampled approximately every 200 ms through one VIDEO-mode detector. Missing/nonfinite presentation timestamps are rejected rather than invented. Temporary files are removed on success and failure.
+
+The response contains `duration_ms`, `sampled_frame_count`, `valid_frame_count` and `frames`, each with `timestamp_ms` and the existing pose result fields. Counts describe visibility/geometry acceptance, not scientifically validated measurements. No assessment is saved automatically.
+
+`WS /v1/pose/stream` uses this sequential protocol:
+
+```json
+{"type":"start","token":"your privately stored token","upload_consent":true}
+```
+
+After the server's `ready` message, send `{"type":"frame","timestamp_ms":0}` followed by binary JPEG bytes. Wait for the matching `result` before sending another pair. Timestamps must strictly increase. Send `{"type":"stop"}` to finish. Credentials belong in the first message, never in the URL. Identity is checked again before each frame, so deletion revokes an existing stream.
+
+Each live session owns one detector, limits JPEGs to 8 MiB/16 million pixels, applies EXIF orientation and downsamples to 1280×720. It has a 60-second lifetime, 1,800-frame cap, 1 KiB control messages and 10-second message timeouts. Processing runs in worker threads; disconnects and errors close the detector. There is no frame retention. The client samples with backpressure rather than attempting to send every native camera frame.
+
 ## Verification and scope
 
 The scenario plan records the TDD behaviors. Tests exercise real SQLite, HTTP validation, identity isolation, restart persistence, historical heatmaps, image retention/deletion, stale quest handling and concurrent completion. Optional inference tests replace the expensive native detector boundary while retaining image decoding; a separate real-model smoke check verifies integration without bundling model assets.
 
-Client UI wiring, real provider OAuth/imports, clinical symptom routing, broad form coaching, calibrated grade/style scoring and personalized stretching prescriptions remain subsequent work. This backend does not infer injury type or a healing date from a photo.
+Assessment and hand-journal capture screens now use these APIs, with local live previews, review/retake and explicit upload/retention consent. The main profile UI, real provider OAuth/imports, clinical symptom routing, broad form coaching, calibrated grade/style scoring and personalized stretching prescriptions remain subsequent work. This backend does not infer injury type or a healing date from a photo.

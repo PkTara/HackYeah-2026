@@ -23,8 +23,22 @@ export function HomeScreen() {
 
   return (
     <Screen>
-      <AppText variant="title">HackYeah 2026</AppText>
+      <AppText variant="title">🌿 Climbing Monkey</AppText>
+      <AppText muted>Your climbing camera and hand journal</AppText>
       <AppText muted>Running on {platformLabel}</AppText>
+
+      <Card>
+        <AppText variant="heading">Capture your session</AppText>
+        <Button
+          title="Camera assessment"
+          onPress={() => navigate('Assessment')}
+        />
+        <Button
+          title="Hand journal"
+          variant="secondary"
+          onPress={() => navigate('HandCapture')}
+        />
+      </Card>
 
       <Card>
         <AppText variant="heading">Counter</AppText>

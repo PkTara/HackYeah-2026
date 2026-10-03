@@ -11,6 +11,10 @@
     {
       "name": "EntryAbility_label",
       "value": "HackYeahApp"
+    },
+    {
+      "name": "camera_permission_reason",
+      "value": "Show climbing movement and hands to capture evidence for your profile."
     }
   ]
 }

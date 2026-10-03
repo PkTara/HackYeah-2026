@@ -1,0 +1,170 @@
+diff --git a/node_modules/@react-native-ohos/react-native-camera-kit/harmony/camera_kit/src/main/ets/RTNCameraKit.ets b/node_modules/@react-native-ohos/react-native-camera-kit/harmony/camera_kit/src/main/ets/RTNCameraKit.ets
+index be284a7..198ea5b 100644
+--- a/node_modules/@react-native-ohos/react-native-camera-kit/harmony/camera_kit/src/main/ets/RTNCameraKit.ets
++++ b/node_modules/@react-native-ohos/react-native-camera-kit/harmony/camera_kit/src/main/ets/RTNCameraKit.ets
+@@ -230,6 +230,9 @@ export struct RTNCameraKitView {
+   private onCameraInitSuccess() {
+     this.isInitSuccess = true;
+     this.updateProps(this.currentProps);
++    // Match camera-kit's startup zoom event so JS waits for a running session.
++    const zoom = this.currentProps.zoom ?? 1;
++    this.eventEmitter?.emit('zoom', { zoom: zoom > 0 ? zoom : 1 });
+   }
+ 
+   getLastWindow() {
+diff --git a/node_modules/@react-native-ohos/react-native-camera-kit/harmony/camera_kit/src/main/ets/service/CameraService.ts b/node_modules/@react-native-ohos/react-native-camera-kit/harmony/camera_kit/src/main/ets/service/CameraService.ts
+index 15ddf42..8e66162 100644
+--- a/node_modules/@react-native-ohos/react-native-camera-kit/harmony/camera_kit/src/main/ets/service/CameraService.ts
++++ b/node_modules/@react-native-ohos/react-native-camera-kit/harmony/camera_kit/src/main/ets/service/CameraService.ts
+@@ -66,7 +66,7 @@ class CameraService {
+   public photoPreviewScale: number = 1; // 预览缩放倍数
+   private cameraDeviceIndex: number = 0;
+   private surfaceId: string = '';
+-  private outPathArray: string[] = ['photo', 'video'];
++  private outPathArray: string[] = ['climbing-camera'];
+   private basicPath: string = '';
+ 
+   private onCaptureStartCallback = (_err: BusinessError, captureStartInfo: camera.CaptureStartInfo): void => {
+@@ -84,19 +84,13 @@ class CameraService {
+     Logger.error(TAG, `photoOutPut error: ${JSON.stringify(data)}`);
+     this.rejectPendingTakePicture(new Error(`photoOutput error: ${JSON.stringify(data)}`));
+   };
+-  private onPhotoAssetAvailableCallback = (err: BusinessError, photoAsset: photoAccessHelper.PhotoAsset): void => {
+-    Logger.info(TAG, 'photoAssetAvailable begin');
+-    if (err && err.code !== 0) {
+-      Logger.error(TAG, `photoAssetAvailable error: ${JSON.stringify(err)}`);
+-      this.rejectPendingTakePicture(new Error(`photoAssetAvailable failed: ${JSON.stringify(err)}`));
++  // Stream frames stay in the app cache; photoAssetAvailable would save every frame to Gallery.
++  private onPhotoAvailableCallback = (err: BusinessError, photo: camera.Photo): void => {
++    if ((err && err.code !== 0) || !photo) {
++      this.rejectPendingTakePicture(new Error('Camera photo buffer is unavailable'));
+       return;
+     }
+-    if (photoAsset === undefined) {
+-      Logger.error(TAG, 'photoAsset is undefined');
+-      this.rejectPendingTakePicture(new Error('photoAsset is undefined'));
+-      return;
+-    }
+-    this.savePicture(photoAsset);
++    this.savePicture(photo);
+   };
+   private onPreviewFrameStartCallback = (): void => {
+     Logger.debug(TAG, 'Preview frame started');
+@@ -146,7 +140,7 @@ class CameraService {
+ 
+   constructor() {
+     this.phAccessHelper = photoAccessHelper.getPhotoAccessHelper(this.context);
+-    this.basicPath = this.context.filesDir;
++    this.basicPath = this.context.cacheDir;
+     this.outPathArray.forEach((outPath: string) => {
+       this.initTempPath(outPath);
+     });
+@@ -607,7 +601,7 @@ class CameraService {
+     this.photoOutput?.off('frameShutter', this.onFrameShutterCallback);
+     this.photoOutput?.off('captureEnd', this.onCaptureEndCallback);
+     this.photoOutput?.off('error', this.onPhotoOutputErrorCallback);
+-    this.photoOutput?.off('photoAssetAvailable', this.onPhotoAssetAvailableCallback);
++    this.photoOutput?.off('photoAvailable', this.onPhotoAvailableCallback);
+     this.previewOutput?.off('frameStart', this.onPreviewFrameStartCallback);
+     this.previewOutput?.off('frameEnd', this.onPreviewFrameEndCallback);
+     this.previewOutput?.off('error', this.onPreviewErrorCallback);
+@@ -793,54 +787,31 @@ class CameraService {
+   /*
+  * 保存照片
+  * */
+-  async savePicture(photoAccess: photoAccessHelper.PhotoAsset): Promise<void> {
+-    if (!photoAccess || !photoAccess.uri) {
+-      const message = 'savePicture failed: photoAccess is invalid';
+-      Logger.error(TAG, message);
+-      this.onError(message);
+-      this.rejectPendingTakePicture(new Error(message));
+-      return;
+-    }
+-    const photoFile = `${this.basicPath}/${this.outPathArray[0]}/${Date.now().toString()}.jpeg`;
+-    let readFile: fs.File | undefined = undefined;
++  async savePicture(photo: camera.Photo): Promise<void> {
++    const captureAsset = this.pendingCaptureAsset;
+     let writeFile: fs.File | undefined = undefined;
+-    let fileSize = 0;
+     try {
+-      readFile = await fs.open(photoAccess.uri, fs.OpenMode.READ_ONLY);
+-      const stat = await fs.stat(readFile.fd);
+-      fileSize = stat.size;
+-      const buffer = new ArrayBuffer(stat.size);
+-      await fs.read(readFile.fd, buffer);
+-      writeFile = await fs.open(photoFile, fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE);
+-      await fs.write(writeFile.fd, buffer);
+-      if (!this.pendingCaptureAsset) {
+-        return;
++      const component = await photo.main.getComponent(image.ComponentType.JPEG);
++      if (!captureAsset || !component.byteBuffer) {
++        throw new Error('Camera photo buffer is empty');
+       }
+-      this.pendingCaptureAsset.path = photoFile;
+-      this.pendingCaptureAsset.uri = photoAccess.uri;
+-      this.pendingCaptureAsset.name = photoAccess.displayName;
+-      this.pendingCaptureAsset.size = fileSize;
+-      Logger.info(TAG, `photoFile:${JSON.stringify(photoFile)}`);
++      const photoFile = `${this.basicPath}/${this.outPathArray[0]}/${Date.now()}.jpeg`;
++      writeFile = await fs.open(photoFile, fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE);
++      await fs.write(writeFile.fd, component.byteBuffer);
++      // Close before publishing the path so readers see the complete JPEG.
++      await fs.close(writeFile);
++      writeFile = undefined;
++      captureAsset.path = photoFile;
++      captureAsset.uri = `file://${photoFile}`;
++      captureAsset.name = photoFile.substring(photoFile.lastIndexOf('/') + 1);
++      captureAsset.size = component.byteBuffer.byteLength;
+     } catch (error) {
+       const message = `savePicture failed: ${JSON.stringify(error)}`;
+-      Logger.error(TAG, message);
+       this.onError(message);
+       this.rejectPendingTakePicture(new Error(message));
+     } finally {
+-      if (readFile) {
+-        try {
+-          await fs.close(readFile);
+-        } catch (closeError) {
+-          Logger.error(TAG, `savePicture close read file failed: ${JSON.stringify(closeError)}`);
+-        }
+-      }
+-      if (writeFile) {
+-        try {
+-          await fs.close(writeFile);
+-        } catch (closeError) {
+-          Logger.error(TAG, `savePicture close write file failed: ${JSON.stringify(closeError)}`);
+-        }
+-      }
++      if (writeFile) {await fs.close(writeFile);}
++      await photo.release();
+     }
+   }
+ 
+@@ -853,7 +824,7 @@ class CameraService {
+       photoOutput.on('frameShutter', this.onFrameShutterCallback);
+       photoOutput.on('captureEnd', this.onCaptureEndCallback);
+       photoOutput.on('error', this.onPhotoOutputErrorCallback);
+-      photoOutput.on('photoAssetAvailable', this.onPhotoAssetAvailableCallback);
++      photoOutput.on('photoAvailable', this.onPhotoAvailableCallback);
+     } catch (err) {
+       Logger.error(TAG, 'photoOutputCallBack error');
+     }
+diff --git a/node_modules/@react-native-ohos/react-native-camera-kit/package.json b/node_modules/@react-native-ohos/react-native-camera-kit/package.json
+index 40c4c84..4495997 100644
+--- a/node_modules/@react-native-ohos/react-native-camera-kit/package.json
++++ b/node_modules/@react-native-ohos/react-native-camera-kit/package.json
+@@ -61,7 +61,13 @@
+   "harmony": {
+     "alias": "react-native-camera-kit",
+     "autolinking": {
+-      "ohPackageName": "@react-native-ohos/react-native-camera-kit",
++      "ohPackageName": [
++        {
++          "harName": "camera_kit.har",
++          "packageName": "@react-native-ohos/react-native-camera-kit",
++          "version": "file:../node_modules/@react-native-ohos/react-native-camera-kit/harmony/camera_kit"
++        }
++      ],
+       "etsPackageClassName": "RTNCameraKitPackage",
+       "cppPackageClassName": "CameraKitPackage",
+       "cmakeLibraryTargetName": "rnoh_camera_kit"

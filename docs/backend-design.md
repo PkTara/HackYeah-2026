@@ -34,6 +34,8 @@ SQLite stores identities, evidence and quest state with foreign-key deletion and
 | `GET /v1/me/export` | Export own records, photo metadata, quests and progress |
 | `POST /v1/pose/landmarks` | Estimate planar leg-spread angle from client-provided normalized landmarks |
 | `POST /v1/pose/image` | Consented transient image analysis using optional configured MediaPipe model |
+| `POST /v1/pose/video` | Consented, bounded MP4/MOV/WebM analysis with sampled timestamped results |
+| `WS /v1/pose/stream` | Consented/authenticated sequential camera frames through one VIDEO-mode detector |
 
 Accepted input schemas are published by FastAPI at `/docs` and `/openapi.json`. Response shapes are described in [backend setup/API notes](../backend/README.md) and protected by tests, including invalid inputs, unknown resources, repeat completion and identity isolation. Some derived response schemas remain generic in OpenAPI; typed client-generation models are subsequent work.
 
@@ -50,6 +52,8 @@ Assignment computes the candidate after acquiring SQLite's write lock; completio
 ## Pose measurements
 
 MediaPipe Tasks identifies landmarks. The first measurement estimates the image-plane angle between ankle directions from the hip midpoint, accounting for image aspect ratio when dimensions are supplied. It is camera-derived geometry, not true three-dimensional flexibility, force, arm-span calibration or diagnosis.
+
+Video and sampled live frames now use the same geometry in a persistent temporal detector. Clips preserve presentation timestamps, apply rotation metadata and downsample phone-resolution frames. The client shows live preview, supports snapshots and offers recorded-video/live analysis where the platform adapter exposes them. See [camera/video implementation](camera-video.md) for protocol, platform support and build limitations; see the [scientific evidence handoff](climbing-scientific-evidence.md) for claim boundaries.
 
 Reject low visibility, missing landmarks, degenerate geometry and invalid/nonfinite coordinates. A successful result remains transient until the user confirms it through the assessment API. Missing model/runtime produces an explicit service-unavailable result rather than sample output. Server analysis requires explicit upload consent; pose images are not retained.
 

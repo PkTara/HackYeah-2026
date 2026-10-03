@@ -2,21 +2,21 @@ import { useColorScheme } from 'react-native';
 
 const palette = {
   light: {
-    background: '#F6F7F9',
-    surface: '#FFFFFF',
+    background: '#F2F4E8',
+    surface: '#FFFAF0',
     text: '#14161A',
     textMuted: '#5C6370',
-    primary: '#C7000B',
+    primary: '#1B6B42',
     onPrimary: '#FFFFFF',
     border: '#E2E5EA',
   },
   dark: {
-    background: '#0E0F12',
-    surface: '#1A1C21',
+    background: '#102018',
+    surface: '#1B3024',
     text: '#F2F3F5',
     textMuted: '#A0A6B1',
-    primary: '#FF4D55',
-    onPrimary: '#0E0F12',
+    primary: '#80C99A',
+    onPrimary: '#102018',
     border: '#2C2F36',
   },
 } as const;
