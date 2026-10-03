@@ -54,6 +54,8 @@ type Props = {
   title?: string;
   /** Start with the list of parts open. */
   initialListOpen?: boolean;
+  /** A quiet line under the explanation, e.g. that this is not a diagnosis. */
+  note?: string;
 };
 
 const STOPS = ANATOMY_LAYERS.map(key => ({
@@ -67,7 +69,7 @@ const LIGHTBOX = '#16231E';
 /** From this tray width the explanation sits beside the hand. */
 const WIDE = 640;
 
-/** "right ring finger", "left thumb", "left hand". */
+/** "Right ring finger", "Left thumb", or "Left hand" for parts of the palm. */
 function whereWords(side: Side, part: AnatomyStructure): string {
   const finger = part.finger;
   if (!finger) {
@@ -96,10 +98,11 @@ export function HandAnatomy({
   onOpenFinger,
   title,
   initialListOpen = false,
+  note,
 }: Props) {
   const theme = useTheme();
   const c = theme.colors;
-  const window = useWindowDimensions();
+  const windowHeight = useWindowDimensions().height;
   const [layer, setLayer] = useState<AnatomyLayer>(initialLayer);
   const [drag, setDrag] = useState<number | null>(null);
   const [width, setWidth] = useState(0);
@@ -131,13 +134,15 @@ export function HandAnatomy({
   };
 
   const wide = width >= WIDE;
-  const pictureRoom = (wide ? (width - spacing.lg * 2) / 2 : width) - PX * 4;
+  // Room for the picture: its column, less the light box frame. Its height
+  // is kept to 60% of the window so the explanation stays close.
+  const pictureRoom = (wide ? (width - spacing.lg * 2 - PX * 2) / 2 : width) - PX * 4;
   const scale = Math.max(
     3,
     Math.min(
       7,
       Math.floor(pictureRoom / HAND_ANATOMY_WIDTH),
-      Math.floor((window.height * 0.6) / HAND_ANATOMY_HEIGHT),
+      Math.floor((windowHeight * 0.6) / HAND_ANATOMY_HEIGHT),
     ),
   );
 
@@ -188,6 +193,12 @@ export function HandAnatomy({
     </View>
   );
 
+  const noteLine = note ? (
+    <AppText variant="caption" muted>
+      {note}
+    </AppText>
+  ) : null;
+
   const explanation = shown ? (
     <View style={styles.block} accessibilityLiveRegion="polite" aria-live="polite">
       <View style={styles.row}>
@@ -222,6 +233,7 @@ export function HandAnatomy({
           style={styles.start}
         />
       ) : null}
+      {noteLine}
     </View>
   ) : (
     <View style={styles.block}>
@@ -230,6 +242,7 @@ export function HandAnatomy({
       <AppText variant="caption" muted>
         Tap a part of the hand, or pick one from the list.
       </AppText>
+      {noteLine}
     </View>
   );
 

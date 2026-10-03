@@ -80,6 +80,7 @@ export function HandsScreen() {
       selected={part}
       onSelect={setPart}
       onOpenFinger={finger => open(anatomySide, finger)}
+      note="General anatomy for learning, not a diagnosis."
     />
   );
 

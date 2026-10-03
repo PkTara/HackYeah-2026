@@ -3,13 +3,13 @@
 The screens never fetch anything. They call `useGame()` (in `packages/app/src/state/GameProvider.tsx`), which updates the screen straight away and then hands the change to a **`ClimbingBackend`**. Swapping the backend changes where data is stored without touching a single screen.
 
 ```
-screens -> useGame() -> ClimbingBackend -> local storage (today)
-                                        -> your API (later)
+screens -> useGame() -> ClimbingBackend -> on-device storage (createLocalBackend)
+                                        -> the FastAPI server in backend/ (createHttpBackend)
 ```
 
 ## The contract
 
-`src/backend.ts` defines the interface. Both implementations follow it:
+`src/backend.ts` defines the interface. Both backends follow it:
 
 | Method | When the app calls it |
 |---|---|
@@ -18,39 +18,65 @@ screens -> useGame() -> ClimbingBackend -> local storage (today)
 | `completeQuest(id)` / `skipQuest(id)` | Quest card on the profile |
 | `setHandFlag(flag, flagged)` | Hands screen and the finger close-up |
 | `saveReach(reach)` | Tests screen |
-| `resetDemo()` (optional) | Tests screen, local demo only |
+| `finishOnboarding(result)` / `skipOnboarding()` | First-run setup |
+| `saveBaseline(result)` | One home test redone from the Tests tab |
+| `resetDemo()` (optional) | Tests screen, on-device demo only |
 
-Rules the backend can rely on, and should keep:
-- **Ids and dates are made on the device.** A retried `addClimb` sends the same id, so the server can treat repeats as no-ops.
-- **Commands are safe to repeat.** `setHandFlag` is on or off, not a toggle, and a PUT replaces the whole flag. Completing a quest twice must not count twice.
-- **XP and the profile are derived, not stored.** The app computes the focus, the quest and the monkey's level from the climbs and completed quest ids (`packages/core`). The server only needs to store records.
+A backend that picks quests itself may answer any write with the new state. The app shows it once no other change is still saving. The on-device backend answers nothing and picks quests from the library in `packages/core`.
 
-## Connecting the real API
+## Running the app against the server
 
-1. **Endpoints:** edit `src/endpoints.ts`. Every path and HTTP method is listed there.
-2. **Payloads:** edit `src/wire.ts`. It holds the JSON shapes (currently a guess in snake_case) and the functions that convert them to app types.
-3. **Switch it on:** set `API_BASE_URL` in `src/config.ts`. A host can also pass its own backend: `<App backend={createHttpBackend({ baseUrl, getAuthToken })} />`.
-4. **Auth:** `createHttpBackend` takes `getAuthToken()`; whatever it returns is sent as `Authorization: Bearer <token>`.
-5. **Check it:** `src/__tests__/http.test.ts` runs the HTTP backend against a fake server. Update the expected paths and bodies there and you have a contract test for the real API.
+1. Start the server with the web app's address allowed: `MONKEY_CORS_ORIGINS=http://localhost:5173 npm run backend:start` (set up once with `npm run backend:setup`; see `backend/README.md`).
+2. Start the web app pointed at it: `VITE_MONKEY_API_URL=http://127.0.0.1:8000 npm run web`. Without the variable the web app keeps everything in the browser, as before.
+3. Native builds read `API_BASE_URL` in `src/config.ts` (null means on the device). An Android emulator or phone cannot reach the computer's 127.0.0.1 by itself: run `adb reverse tcp:8000 tcp:8000`, or use the computer's network address with the server listening on it (`--host 0.0.0.0`). The iOS simulator can use 127.0.0.1. Not tried on a device yet.
 
-Current placeholder API:
+`createBackend(storage, { apiBaseUrl })` returns the HTTP backend when a URL is set, else the on-device one.
 
-| Call | Method and path | Body |
-|---|---|---|
-| Load everything | `GET /me/profile` | answer: `ProfileDto` |
-| Log a climb | `POST /me/climbs` | `ClimbDto` |
-| Remove a climb | `DELETE /me/climbs/:id` | |
-| Complete / skip a quest | `POST /me/quests/:id/complete`, `POST /me/quests/:id/skip` | |
-| Flag / clear a finger | `PUT` / `DELETE /me/hand-flags/:side/:finger` | `HandFlagDto` on PUT |
-| Save reach | `PUT /me/reach` | `ReachDto` |
+## What the HTTP backend does
 
-`HandFlagDto` is `{ side, finger, date, spots }`. `spots` lists where it hurts as spot ids from `packages/core/src/spots.ts` (for example `["pip", "a2"]`); an empty list means sore, not sure where. Every tap on the finger close-up sends a PUT with the full list. A server that leaves `spots` out of `hand_flags` is read as an empty list, so it keeps working before it stores spots.
+Routes are in `src/endpoints.ts`, JSON shapes and their mapping in `src/wire.ts`, the requests in `src/http.ts`, and what stays on the device in `src/device.ts`. The server owns quests, XP and its rules; the client only translates.
 
-## What happens when the server says no
+**Identity.** On first use the backend makes an anonymous climber (`POST /v1/climbers`, name "Climber", goal "general") and keeps its token in the platform store under `climbing-monkey/api-token/v1`. Every other request sends `Authorization: Bearer <token>`. If the server answers 401 (it no longer knows the token, for example after its database was reset), the backend forgets the token, makes one new climber for all requests waiting, and retries each request once. There is no login: losing the token loses the server profile.
 
-`useGame()` shows the change immediately. If the backend call fails, it reloads the last saved state from the backend and shows a short notice at the top of the screen. If the very first load fails, the app shows a "Try again" screen instead of an empty profile.
+**Loading.** `load()` asks for five things at once: `GET /v1/me/climbs`, `/hands`, `/assessments`, `/quests` and `POST /v1/me/quests` (the current quest; the server answers with the same one while it still fits). It then builds the state:
 
-## Not done yet
+| App state | From the server |
+|---|---|
+| `logs` | Climbs. `movements` (or `[movement]` for older records), `holds` (or none), `completed` as `sent`, the local date of `occurred_at` as `date` |
+| `flags` | Hand reports, latest per side and finger. A flag while `pain` is null or above 0. Dated by the first report of the current run of sore reports, so editing the spots keeps the date. Spots from the latest report. Palm, back and wrist are left out for now |
+| `completed`, `skipped` | Ids of quests with that status |
+| `reach` | The latest `height` and `arm_span`, null until both exist |
+| `assigned` | The current quest: `recovery_checkin` shows as a check-in, `reflect_climb` as plan, `record_assessment` as assess. Task from `instructions`, why from `reason`, minutes from `estimated_minutes` |
+| `onboarding`, `onboardingSkipped`, `baseline` | The device store, `climbing-monkey/device/v1` |
 
-- No offline queue: with the HTTP backend, a change made without signal is rolled back, not retried later.
-- Quests come from the library in `packages/core/src/quests.ts`. If the server should own quest content, add a `loadQuests()` call to the contract and pass the result to `pickQuest`.
+**Saving.**
+
+| App call | Requests |
+|---|---|
+| `addClimb` | `POST /v1/me/climbs` with `movement` (the first style), `movements`, `holds`, `completed`, `grade`, `grade_system: "V"` and `occurred_at` at noon UTC on the log's date. The server makes its own id; the backend remembers which server id each new climb got. Sending the same log again adds nothing |
+| `removeClimb` | `DELETE /v1/me/climbs/:serverId`, after any add still on its way. A 404 counts as already gone |
+| `setHandFlag` | `POST /v1/me/hands` for the finger's region: `pain: null` plus the spots to flag, `pain: 0` to clear |
+| `saveReach` | Two manual assessments, `height` and `arm_span` in cm, protocol `self-measured-v1` |
+| `completeQuest`, `skipQuest` | `POST /v1/me/quests/:id/complete` or `/skip` |
+| `finishOnboarding` | Saves the answers on the device, `PATCH /v1/me` with the goal, then manual assessments for height and arm span (`self-measured-v1`), dead hang (`hang_duration`, seconds) and pull-ups (`pullups`, repetitions), protocol `<testId>-v1` |
+| `skipOnboarding` | Device only |
+| `saveBaseline` | Device (latest result per test), plus an assessment for dead hang and pull-ups |
+
+Setup goals map to the server's four: harder grades and more styles to `technique`, stay injury free to `mobility`, stronger fingers to `endurance`, climb more to `general` (`SERVER_GOAL` in `wire.ts`).
+
+Writes go out one at a time in the order they were made, so a quick add then delete reaches the server in that order, and `load()` waits for writes already made. Every write that reaches the server ends by reading the state back, so the server's quest is re-read after every change (flagging a finger switches it to a check-in straight away). That costs one write plus the five load requests per change. If only the read back fails, the change is saved anyway and the app keeps what it shows.
+
+A 409 on a quest is not an error for the climber: the backend answers with the fresh state, which shows the quest that fits now. With the read back after every change this only happens when the quest changed on another device between loading and tapping Done.
+
+## What stays on the device or is not stored yet
+
+- Setup answers the server has no place for: places, experience, usual grade and app connection choices. The anonymous profile belongs to the device anyway.
+- Four of the six home tests (sit and reach, plank, one-leg balance, push-ups). The server has metrics only for dead hang and pull-ups. Every result is kept on the device.
+- Palm, back and wrist reports are stored on the server but not shown as flags; the app only flags fingers.
+- `attempts`, `location` and notes: the app does not ask, so climbs are sent without them.
+- XP and level come from the completed quest ids: 10 XP per quest and a level per 50 XP, the same rule as the server's pet. The server's cosmetic is not used.
+- No offline queue: a change made without signal is rolled back, not retried later. The map from app ids to server ids lives in memory.
+
+## Tests
+
+`src/__tests__/http.test.ts` runs the HTTP backend against `src/testing/fakeApi.ts`, an in-memory stand-in for the server's routes with its JSON shapes and status codes but none of its rules. It covers identity, token reuse, 401 recovery, climbs with both styles and holds, delete right after add, hand reports to flags, reach, quests (assign, complete, skip, 409), setup and home tests, and the read back after each change. `src/__tests__/local.test.ts` covers the on-device backend.
