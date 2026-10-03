@@ -24,12 +24,15 @@ type Props = {
   backend?: ClimbingBackend;
   /** Fixed "today" for tests. */
   today?: string;
+  /** First screen. Hosts can deep link, e.g. the web host reads #Hands. */
+  initialRoute?: RouteName;
 };
 
 export function App({
   capabilities = platformCapabilities,
   backend,
   today,
+  initialRoute = 'Profile',
 }: Props) {
   const data = useMemo(
     () => backend ?? createBackend(capabilities.storage),
@@ -41,7 +44,10 @@ export function App({
         <View style={{ flex: 1 }}>
           <StatusGate>
             <OnboardingGate>
-              <Navigator<RouteName> initialRoute="Profile" screens={screens} />
+              <Navigator<RouteName>
+                initialRoute={initialRoute}
+                screens={screens}
+              />
             </OnboardingGate>
           </StatusGate>
           <CelebrationOverlay />

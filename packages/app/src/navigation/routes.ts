@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 import { AboutScreen } from '../screens/AboutScreen';
+import { AnatomyScreen } from '../screens/AnatomyScreen';
 import { EvidenceScreen } from '../screens/EvidenceScreen';
 import { FingerScreen } from '../screens/FingerScreen';
 import { HandsScreen } from '../screens/HandsScreen';
@@ -18,6 +19,11 @@ export const screens = {
   About: AboutScreen,
   /** Params: side ('left' | 'right') and finger. */
   Finger: FingerScreen,
+  Anatomy: AnatomyScreen,
 } satisfies Record<string, ComponentType>;
 
 export type RouteName = keyof typeof screens;
+
+export function isRouteName(name: string): name is RouteName {
+  return Object.prototype.hasOwnProperty.call(screens, name);
+}
