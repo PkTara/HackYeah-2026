@@ -62,11 +62,15 @@ describe('gameReducer', () => {
     });
   });
 
-  it('toggles a finger flag on and off', () => {
-    const flag = { type: 'toggleFlag', side: 'right', finger: 'ring', date: '2026-10-02' } as const;
-    const on = gameReducer(emptyGame, flag);
-    expect(on.flags).toEqual([{ side: 'right', finger: 'ring', date: '2026-10-02' }]);
-    expect(gameReducer(on, flag).flags).toEqual([]);
+  it('sets and clears a finger flag, and repeating it changes nothing', () => {
+    const flag = { side: 'right', finger: 'ring', date: '2026-10-02' } as const;
+    const on = gameReducer(emptyGame, { type: 'setFlag', flag, flagged: true });
+    expect(on.flags).toEqual([flag]);
+    expect(gameReducer(on, { type: 'setFlag', flag, flagged: true }).flags).toEqual([flag]);
+
+    const off = gameReducer(on, { type: 'setFlag', flag, flagged: false });
+    expect(off.flags).toEqual([]);
+    expect(gameReducer(off, { type: 'setFlag', flag, flagged: false }).flags).toEqual([]);
   });
 
   it('only loads saved state that looks valid', () => {

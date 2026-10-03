@@ -19,9 +19,11 @@ Climbing Monkey's primary product brief is **Open: Sport & Healthcare** (see `co
 
 - **Shared code lives in `packages/`** and is imported as `@hackyeah/<name>`. Hosts in `apps/` stay thin.
   - `core`: pure TS, no React or react-native.
+  - `data`: the `ClimbingBackend` contract, on-device backend and HTTP backend. Endpoints in `endpoints.ts`, JSON shapes in `wire.ts`.
   - `platform`: capability interfaces + `capabilities.{harmony,web}.ts` / `capabilities.ts`.
-  - `ui`: theme + components.
+  - `ui`: jungle pixel UI kit; everything is drawn with Views (no SVG, images or font files).
   - `app`: screens, navigation, `<App/>`.
+- **Screens never fetch.** They use `useGame()`; data goes through the backend in `packages/data`.
 - **Platform-specific code** goes in `packages/platform` as `*.harmony.ts` / `*.web.ts` siblings, behind an interface in `types.ts`. Don't use `Platform.OS` branches in screens.
 - **No npm workspaces.** Each app has its own `node_modules`. Metro, Vite, Jest and tsconfig all resolve shared-package imports from the host app.
 - **Native libraries need Harmony ports** (`@react-native-ohos/*`, `rnoh0.84` tag). Prefer pure-JS solutions where possible.

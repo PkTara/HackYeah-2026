@@ -11,25 +11,24 @@ import {
 } from 'react';
 import {
   COSMETICS,
+  emptyGame,
   gameReducer,
-  parseGameState,
   petStatus,
   pickFocus,
   pickQuest,
-  sampleGame,
   toLocalDate,
   type ClimbLog,
   type Finger,
   type Focus,
+  type GameAction,
   type GameState,
+  type HandFlag,
   type PetStatus,
   type QuestPick,
   type Reach,
   type Side,
 } from '@hackyeah/core';
-import { useCapabilities } from '../capabilities';
-
-const STORAGE_KEY = 'climbing-monkey/game/v1';
+import type { ClimbingBackend } from '@hackyeah/data';
 
 export type Celebration = Readonly<{
   id: number;
@@ -41,6 +40,14 @@ export type Celebration = Readonly<{
 }>;
 
 type GameApi = Readonly<{
+  /** 'loading' until the backend answers the first time. */
+  status: 'loading' | 'ready' | 'error';
+  /** Set when a change could not be saved; the screen shows the saved state. */
+  syncError: string | null;
+  dismissSyncError: () => void;
+  retry: () => void;
+  backendKind: ClimbingBackend['kind'];
+
   state: GameState;
   today: string;
   focus: Focus;
@@ -48,6 +55,7 @@ type GameApi = Readonly<{
   pet: PetStatus;
   celebration: Celebration | null;
   dismissCelebration: () => void;
+
   completeQuest: (id: string) => void;
   skipQuest: (id: string) => void;
   logClimb: (log: Omit<ClimbLog, 'id' | 'date'>) => void;
@@ -69,44 +77,57 @@ export function useGame(): GameApi {
 
 type Props = {
   children: ReactNode;
+  backend: ClimbingBackend;
   /** Fixed date for tests; defaults to the device's local date. */
   today?: string;
 };
 
+function newId(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 /**
- * Holds the game state, saves it through the platform storage capability,
- * and derives everything the screens show from it.
+ * Holds what the screens show and keeps it in step with the backend.
+ *
+ * Every change is applied on screen first, then sent to the backend. If the
+ * backend says no, the provider reloads the saved state and shows a notice.
+ * Screens only use useGame(); they never see the backend.
  */
-export function GameProvider({ children, today: fixedToday }: Props) {
-  const { storage } = useCapabilities();
-  const [state, dispatch] = useReducer(gameReducer, sampleGame);
-  const [loaded, setLoaded] = useState(false);
+export function GameProvider({ children, backend, today: fixedToday }: Props) {
+  const [state, dispatch] = useReducer(gameReducer, emptyGame);
+  const [status, setStatus] = useState<GameApi['status']>('loading');
+  const [syncError, setSyncError] = useState<string | null>(null);
   const [celebration, setCelebration] = useState<Celebration | null>(null);
   const today = fixedToday ?? toLocalDate(new Date());
-  const nextId = useRef(1);
+  const celebrationId = useRef(1);
 
-  useEffect(() => {
-    let live = true;
-    storage
-      .getItem(STORAGE_KEY)
-      .then(json => {
-        const saved = parseGameState(json);
-        if (live && saved) {
-          dispatch({ type: 'load', state: saved });
-        }
-      })
-      .catch(() => {})
-      .finally(() => live && setLoaded(true));
-    return () => {
-      live = false;
-    };
-  }, [storage]);
-
-  useEffect(() => {
-    if (loaded) {
-      storage.setItem(STORAGE_KEY, JSON.stringify(state)).catch(() => {});
+  const reload = useCallback(async () => {
+    try {
+      dispatch({ type: 'load', state: await backend.load() });
+      setStatus('ready');
+    } catch {
+      setStatus(s => (s === 'ready' ? s : 'error'));
     }
-  }, [loaded, state, storage]);
+  }, [backend]);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
+
+  /** Show the change now, then save it. */
+  const commit = useCallback(
+    (action: GameAction, save: () => Promise<void>) => {
+      dispatch(action);
+      save().then(
+        () => setSyncError(null),
+        () => {
+          setSyncError('Could not save that change. Showing your last saved data.');
+          reload();
+        },
+      );
+    },
+    [reload],
+  );
 
   const focus = useMemo(() => pickFocus(state.logs), [state.logs]);
   const quest = useMemo(
@@ -129,20 +150,43 @@ export function GameProvider({ children, today: fixedToday }: Props) {
       const after = petStatus([...state.completed, id]);
       const levelUp = after.level > before.level ? after.level : null;
       setCelebration({
-        id: nextId.current++,
+        id: celebrationId.current++,
         xp: after.xp - before.xp,
         level: levelUp,
         unlocked: levelUp
           ? COSMETICS.find(c => c.level === levelUp)?.name ?? null
           : null,
       });
-      dispatch({ type: 'completeQuest', questId: id });
+      commit({ type: 'completeQuest', questId: id }, () =>
+        backend.completeQuest(id),
+      );
     },
-    [state.completed],
+    [state.completed, commit, backend],
+  );
+
+  const toggleFlag = useCallback(
+    (side: Side, finger: Finger) => {
+      const flag: HandFlag = { side, finger, date: today };
+      const flagged = !state.flags.some(
+        f => f.side === side && f.finger === finger,
+      );
+      commit({ type: 'setFlag', flag, flagged }, () =>
+        backend.setHandFlag(flag, flagged),
+      );
+    },
+    [state.flags, today, commit, backend],
   );
 
   const api = useMemo<GameApi>(
     () => ({
+      status,
+      syncError,
+      dismissSyncError: () => setSyncError(null),
+      retry: () => {
+        setStatus('loading');
+        reload();
+      },
+      backendKind: backend.kind,
       state,
       today,
       focus,
@@ -151,20 +195,43 @@ export function GameProvider({ children, today: fixedToday }: Props) {
       celebration,
       dismissCelebration: () => setCelebration(null),
       completeQuest,
-      skipQuest: id => dispatch({ type: 'skipQuest', questId: id }),
-      logClimb: log =>
-        dispatch({
-          type: 'logClimb',
-          log: { ...log, id: `log-${Date.now()}-${nextId.current++}`, date: today },
-        }),
-      removeClimb: id => dispatch({ type: 'removeClimb', id }),
-      toggleFlag: (side, finger) =>
-        dispatch({ type: 'toggleFlag', side, finger, date: today }),
-      saveReach: reach =>
-        dispatch({ type: 'saveReach', reach: { ...reach, date: today } }),
-      resetDemo: () => dispatch({ type: 'reset', state: sampleGame }),
+      toggleFlag,
+      skipQuest: id =>
+        commit({ type: 'skipQuest', questId: id }, () => backend.skipQuest(id)),
+      logClimb: input => {
+        const log: ClimbLog = { ...input, id: newId(), date: today };
+        commit({ type: 'logClimb', log }, () => backend.addClimb(log));
+      },
+      removeClimb: id =>
+        commit({ type: 'removeClimb', id }, () => backend.removeClimb(id)),
+      saveReach: input => {
+        const reach: Reach = { ...input, date: today };
+        commit({ type: 'saveReach', reach }, () => backend.saveReach(reach));
+      },
+      resetDemo: () => {
+        if (backend.resetDemo) {
+          backend.resetDemo().then(
+            fresh => dispatch({ type: 'reset', state: fresh }),
+            () => setSyncError('Could not reset the demo data.'),
+          );
+        }
+      },
     }),
-    [state, today, focus, quest, pet, celebration, completeQuest],
+    [
+      status,
+      syncError,
+      reload,
+      backend,
+      state,
+      today,
+      focus,
+      quest,
+      pet,
+      celebration,
+      completeQuest,
+      toggleFlag,
+      commit,
+    ],
   );
 
   return <GameContext.Provider value={api}>{children}</GameContext.Provider>;

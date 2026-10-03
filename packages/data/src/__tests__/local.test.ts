@@ -1,0 +1,49 @@
+import { emptyGame, sampleGame } from '@hackyeah/core';
+import { createMemoryStore } from '@hackyeah/platform';
+import { createLocalBackend, LOCAL_STORAGE_KEY } from '../local';
+
+const climb = {
+  id: 'c1',
+  date: '2026-10-03',
+  terrain: 'vertical',
+  movement: 'dynamic',
+  grade: 'V3',
+  sent: true,
+} as const;
+
+describe('local backend', () => {
+  it('starts from the sample data on a fresh install', async () => {
+    const backend = createLocalBackend(createMemoryStore());
+    expect(await backend.load()).toEqual(sampleGame);
+  });
+
+  it('saves every change so a restart sees it', async () => {
+    const storage = createMemoryStore();
+    const first = createLocalBackend(storage, emptyGame);
+    await first.addClimb(climb);
+    await first.completeQuest('vertical-read');
+    await first.completeQuest('vertical-read');
+    await first.setHandFlag({ side: 'left', finger: 'index', date: '2026-10-03' }, true);
+    await first.saveReach({ armSpanCm: 180, heightCm: 176, date: '2026-10-03' });
+
+    const restarted = createLocalBackend(storage, emptyGame);
+    const state = await restarted.load();
+    expect(state.logs).toEqual([climb]);
+    expect(state.completed).toEqual(['vertical-read']);
+    expect(state.flags).toHaveLength(1);
+    expect(state.reach?.armSpanCm).toBe(180);
+  });
+
+  it('falls back to the seed when saved data is unreadable', async () => {
+    const storage = createMemoryStore();
+    await storage.setItem(LOCAL_STORAGE_KEY, '{broken');
+    expect(await createLocalBackend(storage, emptyGame).load()).toEqual(emptyGame);
+  });
+
+  it('resets the demo to the seed', async () => {
+    const backend = createLocalBackend(createMemoryStore());
+    await backend.removeClimb(sampleGame.logs[0].id);
+    expect(await backend.resetDemo?.()).toEqual(sampleGame);
+    expect(await backend.load()).toEqual(sampleGame);
+  });
+});
