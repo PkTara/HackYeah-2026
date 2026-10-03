@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from typing import Annotated, Literal
 
 from pydantic import (
+    AfterValidator,
     AwareDatetime,
     BaseModel,
     ConfigDict,
@@ -13,6 +14,10 @@ from pydantic import (
 
 Text = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
 Goal = Literal["general", "technique", "mobility", "endurance"]
+Movement = Literal["controlled", "dynamic"]
+Hold = Literal["jug", "crimp", "sloper", "pinch", "pocket", "volume"]
+# Where a finger hurts, as a spot id from the app's packages/core/src/spots.ts, e.g. "a2".
+SpotId = Annotated[str, StringConstraints(pattern=r"^[a-z0-9-]{1,32}$")]
 HandRegion = Literal[
     "thumb",
     "index_finger",
@@ -23,6 +28,18 @@ HandRegion = Literal[
     "back",
     "wrist",
 ]
+
+
+def _distinct(values):
+    if len(set(values)) != len(values):
+        raise ValueError("List items must not repeat")
+    return values
+
+
+# One climb can be controlled, dynamic or both.
+Movements = Annotated[list[Movement], Field(min_length=1, max_length=2), AfterValidator(_distinct)]
+Holds = Annotated[list[Hold], AfterValidator(_distinct)]
+Spots = Annotated[list[SpotId], Field(max_length=24), AfterValidator(_distinct)]
 
 
 class Input(BaseModel):
@@ -51,12 +68,27 @@ class Evidence(Input):
 
 class ClimbCreate(Evidence):
     terrain: Literal["slab", "vertical", "overhang"]
-    movement: Literal["controlled", "dynamic"]
+    movement: Movement | None = None
+    movements: Movements | None = None
+    holds: Holds = Field(default_factory=list)
     completed: bool
-    attempts: int = Field(ge=1, le=1000)
+    attempts: int | None = Field(default=None, ge=1, le=1000)
     grade: Text | None = None
     grade_system: Text | None = None
     location: Text | None = None
+
+    @model_validator(mode="after")
+    def movement_styles(self):
+        """Accept `movement`, `movements` or both; store both, `movement` listed first."""
+        if self.movement is None and self.movements is None:
+            raise ValueError("Supply movement or movements")
+        movements = self.movements or [self.movement]
+        movement = self.movement or movements[0]
+        if movement not in movements:
+            raise ValueError("Movement must be one of movements")
+        self.movement = movement
+        self.movements = [movement, *(other for other in movements if other != movement)]
+        return self
 
 
 class AssessmentCreate(Evidence):
@@ -97,7 +129,9 @@ class AssessmentCreate(Evidence):
 class HandCreate(Evidence):
     side: Literal["left", "right"]
     region: HandRegion
-    pain: int = Field(ge=0, le=10)
+    # None means sore, intensity not rated. 0 means no discomfort and clears the location.
+    pain: int | None = Field(default=None, ge=0, le=10)
+    spots: Spots = Field(default_factory=list)
     note: Annotated[str, StringConstraints(max_length=2000)] = ""
     photo_id: Text | None = None
 

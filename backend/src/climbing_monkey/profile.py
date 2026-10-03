@@ -6,6 +6,11 @@ TERRAINS = ("slab", "vertical", "overhang")
 MOVEMENTS = ("controlled", "dynamic")
 
 
+def _movements(climb):
+    """Styles of a climb. Records saved before `movements` existed have one `movement`."""
+    return climb.get("movements") or [climb["movement"]]
+
+
 def _summarize(climbs):
     completed_count = sum(record["completed"] for record in climbs)
     return {
@@ -55,7 +60,12 @@ def _active_hand_flags(hands):
     latest_by_region = {}
     for record in _newest_first(hands):
         latest_by_region.setdefault((record["side"], record["region"]), record)
-    return [dict(record) for record in latest_by_region.values() if record["pain"] > 0]
+    # Pain None means sore without a rating, which is still an active flag; 0 clears it.
+    return [
+        dict(record)
+        for record in latest_by_region.values()
+        if record["pain"] is None or record["pain"] > 0
+    ]
 
 
 def _focus(terrain):
@@ -93,7 +103,7 @@ def build_profile(climbs, assessments, hands, activities) -> dict:
     return {
         "terrain": terrain,
         "movement": {
-            movement: _summarize([record for record in climbs if record["movement"] == movement])
+            movement: _summarize([record for record in climbs if movement in _movements(record)])
             for movement in MOVEMENTS
         },
         "grid": {
@@ -102,7 +112,7 @@ def build_profile(climbs, assessments, hands, activities) -> dict:
                     [
                         record
                         for record in climbs
-                        if record["terrain"] == terrain and record["movement"] == movement
+                        if record["terrain"] == terrain and movement in _movements(record)
                     ]
                 )
                 for movement in MOVEMENTS

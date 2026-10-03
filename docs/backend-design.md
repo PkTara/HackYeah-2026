@@ -17,10 +17,10 @@ SQLite stores identities, evidence and quest state with foreign-key deletion and
 | `GET /health` | Process health |
 | `POST /v1/climbers` | Create anonymous profile and issue token once |
 | `GET/PATCH/DELETE /v1/me` | Read preferences, update goal/name/pet visibility, delete identity and records |
-| `POST/GET /v1/me/climbs` | Record/list terrain and movement outcomes with grading context |
+| `POST/GET /v1/me/climbs` | Record/list terrain, one or both movement styles, optional hold types and attempts, and outcomes with grading context |
 | `POST/GET /v1/me/assessments` | Record/list confirmed manual/camera metrics with protocol and provenance |
-| `POST/GET /v1/me/hands` | Record/list side/region discomfort, note and optional retained-photo link |
-| `GET /v1/me/hands/heatmap` | Latest reported severity per location, or historical snapshot with `at`; unknown remains null |
+| `POST/GET /v1/me/hands` | Record/list side/region discomfort (intensity optional), marked spots, note and optional retained-photo link |
+| `GET /v1/me/hands/heatmap` | Latest report per location, or historical snapshot with `at`; unknown remains null, and an unrated report keeps its evidence ID with null severity |
 | `POST/GET /v1/me/activities` | Manual activity context; real provider imports remain later |
 | `DELETE /v1/me/{climbs,assessments,hands,activities}/{id}` | Delete owned evidence and recompute derived results |
 | `GET /v1/me/profile` | Terrain/movement/grid summaries, unscored radar axes, comparable assessment trends, current hand flags and explained focus |
@@ -39,9 +39,9 @@ Accepted input schemas are published by FastAPI at `/docs` and `/openapi.json`. 
 
 ## Meaning of the profile
 
-Terrain/movement summaries are **observed completion statistics** with counts and evidence IDs. They are not calibrated ability values or terrain-specific grade predictions. The three terrain dimensions vary independently. The movement radar returns unknown for techniques that do not yet have validated observations; clients must not turn null into zero.
+Terrain/movement summaries are **observed completion statistics** with counts and evidence IDs. A climb can be controlled, dynamic or both: it counts under each of its movements in the movement and grid summaries and once in its terrain. Records saved before climbs had a `movements` list read as their single `movement`. They are not calibrated ability values or terrain-specific grade predictions. The three terrain dimensions vary independently. The movement radar returns unknown for techniques that do not yet have validated observations; clients must not turn null into zero.
 
-Assessment trends compare the latest record only with matching metric, unit, protocol and method. Current hand flags use the latest dated report for each side/region; a zero rating clears that location's active flag. Old symptoms remain in history. Removing records recalculates the profile; task completion never changes measured ability.
+Assessment trends compare the latest record only with matching metric, unit, protocol and method. Current hand flags use the latest dated report for each side/region; a zero rating clears that location's active flag. A report without a rating (null pain) means sore but not rated, and is still an active flag. Reports can list marked spots (ids from the app's finger close-up); the server stores them and does not interpret them. Old symptoms remain in history. Removing records recalculates the profile; task completion never changes measured ability.
 
 Quest selection uses explicit evidence rules. Insufficient data yields an assessment/logging task; supported terrain observations can yield reflection; active hand discomfort prioritizes a check-in. These do not claim medical clearance or automatically prescribe exercises. Stretching/practice content needs a reviewed task library before it can be offered as a supported intervention.
 

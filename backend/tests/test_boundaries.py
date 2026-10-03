@@ -27,8 +27,79 @@ def test_personal_reads_require_valid_credentials(client, path):
     [
         ("climbs", {"terrain": "roof", "movement": "dynamic", "completed": True, "attempts": 1}),
         ("climbs", {"terrain": "slab", "movement": "controlled", "completed": True, "attempts": 0}),
+        (
+            "climbs",
+            {"terrain": "slab", "movement": "controlled", "completed": True, "attempts": 1001},
+        ),
+        ("climbs", {"terrain": "slab", "completed": True, "attempts": 1}),
+        ("climbs", {"terrain": "slab", "movements": [], "completed": True, "attempts": 1}),
+        (
+            "climbs",
+            {
+                "terrain": "slab",
+                "movements": ["dynamic", "dynamic"],
+                "completed": True,
+                "attempts": 1,
+            },
+        ),
+        (
+            "climbs",
+            {
+                "terrain": "slab",
+                "movements": ["dynamic", "controlled", "dynamic"],
+                "completed": True,
+                "attempts": 1,
+            },
+        ),
+        (
+            "climbs",
+            {"terrain": "slab", "movements": ["crimpy"], "completed": True, "attempts": 1},
+        ),
+        (
+            "climbs",
+            {
+                "terrain": "slab",
+                "movement": "controlled",
+                "movements": ["dynamic"],
+                "completed": True,
+                "attempts": 1,
+            },
+        ),
+        (
+            "climbs",
+            {
+                "terrain": "slab",
+                "movement": "controlled",
+                "holds": ["jug", "jug"],
+                "completed": True,
+                "attempts": 1,
+            },
+        ),
+        (
+            "climbs",
+            {
+                "terrain": "slab",
+                "movement": "controlled",
+                "holds": ["crack"],
+                "completed": True,
+                "attempts": 1,
+            },
+        ),
         ("hands", {"side": "left", "region": "ring_finger", "pain": 11}),
         ("hands", {"side": "right", "region": "palm", "pain": -1}),
+        ("hands", {"side": "left", "region": "ring_finger", "pain": 2, "spots": ["A2"]}),
+        ("hands", {"side": "left", "region": "ring_finger", "pain": 2, "spots": [""]}),
+        ("hands", {"side": "left", "region": "ring_finger", "pain": 2, "spots": ["a" * 33]}),
+        ("hands", {"side": "left", "region": "ring_finger", "pain": 2, "spots": ["a2", "a2"]}),
+        (
+            "hands",
+            {
+                "side": "left",
+                "region": "ring_finger",
+                "pain": 2,
+                "spots": [f"spot-{index}" for index in range(25)],
+            },
+        ),
         ("activities", {"kind": "climbing", "duration_minutes": 0}),
         ("activities", {"kind": "climbing", "duration_minutes": 30, "source": "strava"}),
         (

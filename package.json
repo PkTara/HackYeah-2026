@@ -3,6 +3,7 @@
   "private": true,
   "description": "Root task runner. Each app installs its own dependencies; there are no npm workspaces (RNOH expects node_modules next to apps/mobile/harmony).",
   "scripts": {
+    "backend:setup": "python3.12 -m venv backend/.venv && backend/.venv/bin/python -m pip install -c backend/constraints.txt -e 'backend[test]'",
     "backend:start": "backend/.venv/bin/python -m uvicorn climbing_monkey.main:create_app --factory --host 127.0.0.1 --port 8000",
     "backend:test": "backend/.venv/bin/python -m pytest backend/tests",
     "backend:check": "backend/.venv/bin/python -m pytest backend/tests && backend/.venv/bin/ruff check backend/src backend/tests && backend/.venv/bin/ruff format --check backend/src backend/tests",
