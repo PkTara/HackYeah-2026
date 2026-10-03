@@ -1,43 +1,140 @@
-import { AppText, Button, Panel as Card, Screen } from '@hackyeah/ui';
+import { StyleSheet, View } from 'react-native';
+import { AppText, Button, Icon, Monkey, Panel, PixelText } from '@hackyeah/ui';
 import { useCapabilities } from '../capabilities';
+import { PageHeader } from '../components/PageHeader';
+import { TabScreen } from '../components/TabScreen';
 import { useNavigation } from '../navigation/Navigator';
 import type { RouteName } from '../navigation/routes';
+import { useGame } from '../state/GameProvider';
 
-const layers = [
-  ['@hackyeah/core', 'Domain logic in plain TypeScript'],
-  ['@hackyeah/platform', 'Per-OS capability adapters'],
-  ['@hackyeah/ui', 'Theme and shared components'],
-  ['@hackyeah/app', 'Screens and navigation'],
+const PACKAGES = [
+  {
+    name: 'core',
+    text: 'Rules and data: climbs, the focus, quests and XP. Plain TypeScript with tests.',
+  },
+  {
+    name: 'data',
+    text: 'Loads and saves your climbs, on this device or through a server.',
+  },
+  {
+    name: 'platform',
+    text: 'Services for each OS, like storage and haptics.',
+  },
+  {
+    name: 'ui',
+    text: 'The pixel kit. Drawn with plain Views, so it runs on HarmonyOS without SVG or images.',
+  },
+  {
+    name: 'app',
+    text: 'The screens and navigation.',
+  },
+] as const;
+
+const HONEST_BITS = [
+  'Sample climbs are labelled Example.',
+  'Quest content is a draft. A climbing coach should review it.',
+  'Nothing here is medical advice.',
 ] as const;
 
 export function AboutScreen() {
   const { platform, platformLabel, haptics } = useCapabilities();
-  const { goBack } = useNavigation<RouteName>();
+  const { backendKind } = useGame();
+  const { canGoBack, goBack } = useNavigation<RouteName>();
 
   return (
-    <Screen>
-      <AppText variant="title">About</AppText>
+    <TabScreen>
+      {canGoBack ? (
+        <Button
+          title="Back"
+          variant="secondary"
+          small
+          onPress={goBack}
+          style={styles.back}
+        />
+      ) : null}
+      <PageHeader
+        title="About"
+        subtitle="Climbing Monkey, a HackYeah 2026 prototype."
+      />
 
-      <Card>
-        <AppText variant="heading">Platform</AppText>
-        <AppText>Adapter: {platform}</AppText>
-        <AppText>OS: {platformLabel}</AppText>
-        <AppText>
-          Haptics: {haptics.isAvailable ? 'available' : 'unavailable'}
+      <Panel title="Platform">
+        <Fact label="Adapter" value={platform} />
+        <Fact label="OS" value={platformLabel} />
+        <Fact
+          label="Haptics"
+          value={haptics.isAvailable ? 'Available' : 'Not available'}
+        />
+        <Fact
+          label="Data"
+          value={
+            backendKind === 'local'
+              ? 'Stored on this device'
+              : 'Synced with the server'
+          }
+        />
+        <AppText variant="caption" muted>
+          Each OS plugs in its own adapter. The screens never check which one
+          they run on.
         </AppText>
-      </Card>
+      </Panel>
 
-      <Card>
-        <AppText variant="heading">Architecture</AppText>
-        {layers.map(([name, description]) => (
-          <AppText key={name}>
-            {name}
-            <AppText muted> · {description}</AppText>
-          </AppText>
+      <Panel title="How it is built">
+        {PACKAGES.map(p => (
+          <View key={p.name} style={styles.pkg}>
+            <View style={styles.pkgName}>
+              <PixelText text={p.name} />
+              <AppText variant="caption" muted>
+                packages/{p.name}
+              </AppText>
+            </View>
+            <AppText>{p.text}</AppText>
+          </View>
         ))}
-      </Card>
+      </Panel>
 
-      <Button title="Back" variant="secondary" onPress={goBack} />
-    </Screen>
+      <Panel title="Honest bits">
+        {HONEST_BITS.map(line => (
+          <View key={line} style={styles.bullet}>
+            <Icon name="leaf" />
+            <AppText style={styles.grow}>{line}</AppText>
+          </View>
+        ))}
+      </Panel>
+
+      <View style={styles.credit}>
+        <Monkey scale={2} still />
+        <AppText variant="caption" muted style={styles.grow}>
+          AI tools helped build this app. See AI_WORKFLOW.md for what we used
+          and how we checked it.
+        </AppText>
+      </View>
+    </TabScreen>
   );
 }
+
+/** One label and value row, e.g. "OS  Web browser". */
+function Fact({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.fact}>
+      <PixelText text={label} />
+      <AppText style={styles.value}>{value}</AppText>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  back: { alignSelf: 'flex-start' },
+  grow: { flex: 1 },
+  fact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    minHeight: 28,
+  },
+  value: { flexShrink: 1, textAlign: 'right' },
+  pkg: { gap: 2 },
+  pkgName: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  bullet: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  credit: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+});
