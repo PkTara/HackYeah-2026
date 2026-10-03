@@ -114,3 +114,5 @@ None yet. When the app gets an AI feature, document:
 **Output:** `docs/pitch-problem-solution.md`: description-ready problem and solution paragraphs (~270 words together), slide versions, a benefits table, deliberate non-claims, a pre-submission checklist and a sources table.
 
 **Validation:** Statistics came from web searches. The environment's proxy blocked direct fetches of journal, IFSC and WHO pages, so each figure was cross-checked against search-indexed abstracts and coverage. Figures that could not be attributed cleanly were dropped. The file notes that each link should be opened once before submission, and that no published statistic covers the core "what should I train next?" need. Product statements describe intended features, not the current scaffold.
+
+**Revision:** At the user's request, rewrote both answers as one narrative (problem → monkey quests → data collection → weakness analysis → training plan). Removed the injury, WHO and gamification statistics; only the climber-count and new-gym figures remain.

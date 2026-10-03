@@ -1,71 +1,80 @@
 # Climbing Monkey — problem and solution (pitch copy)
 
-Date: 3 October 2026. Draft copy for the submission description (≤ 500 words) and deck (≤ 10 slides). Built from the [product design](climbing-app-design.md) and [alignment analysis](climbing-monkey-alignment.md). Every number links to its source in the [table below](#sources).
+Date: 3 October 2026. Draft copy for the submission description (≤ 500 words) and deck (≤ 10 slides). Built from the [product design](climbing-app-design.md) and [alignment analysis](climbing-monkey-alignment.md). Both numbers link to their sources in the [table below](#sources).
+
+## Throughline
+
+> **No data → no diagnosis → no plan.** Climbers stall because nobody records what happens on the wall. Climbing Monkey makes recording it fun, and turns what you record into a diagnosis and a plan.
+
+Both answers follow the same chain: **problem → play with the monkey → collect data → find your weaknesses → get your plan → repeat.**
 
 ## 1. Why we're building it
 
-### Description-ready paragraph (~140 words)
+### Description-ready paragraph (~120 words)
 
-> Climbing is booming: an IFSC-commissioned study estimates **44.5 million climbers** worldwide, and North America alone opened **53 new climbing gyms in 2025**. For a recreational boulderer, though, the information that should guide training is scattered. Grades sit in a logbook, sessions on a watch, and a sore finger is remembered only when it hurts. None of it answers the question asked before every session: *what should I work on next?* So climbers repeat the styles they already like and push through warning signs in a sport that loads the fingers hard. In one survey, **76.6% of recreational climbers reported a climbing injury**, most often joint pain or pulley or tendon injuries, yet **fewer than half saw a healthcare provider**. At a specialist clinic, **77.1% of 633 climbing injuries** were in the upper extremities, and finger injuries were the most common.
+> Climbing is booming. An IFSC-commissioned study estimates **44.5 million climbers** worldwide, and North America alone opened **53 new climbing gyms in 2025**. Behind those numbers are millions of recreational climbers who hit the same wall: after the first fast gains, progress stalls and they can't tell why. Is it footwork? Overhangs? Avoiding dynamic moves? Answering that takes data, and most climbers have none. Grades sit in one app, sessions on a watch, and how a move felt is forgotten by the drive home. A training log feels like homework, and few recreational climbers have a coach to keep one for them. **Without data there's no diagnosis, and without a diagnosis there's no plan**, so climbers keep repeating the problems they already like.
 
 ### Slide version
 
-**Problem: climbers have data but no direction**
+**Problem: climbers stall because they have no data**
 
-- **44.5 M** climbers worldwide; **+53** new gyms in North America in 2025 alone
-- **76.6%** of recreational climbers report a climbing injury, but **< 50%** see a professional
-- **77.1%** of climbing injuries hit the arms and hands; fingers are the most common site
-- Grades, sessions and pain live in different places, and none of them says what to train next
-
-### Supporting context (backup slide or Q&A)
-
-- **31% of adults (1.8 billion)** did not get enough physical activity in 2022, and WHO projects 35% by 2030. A sport people enjoy is worth keeping them in, safely.
-- **Fewer than 40% of surveyed healthcare providers** felt they had a comprehensive understanding of climbing injuries. A dated, specific hand journal makes the appointment conversation easier.
-- **73% of North American gym operators** reported worsening economic conditions in 2025. Member retention matters to gyms, a possible future customer.
+- **44.5 M** climbers worldwide, and **53** new gyms in North America in 2025 alone
+- After the beginner phase, progress stalls and nobody can say why
+- Finding out needs data, but logging feels like homework, so nobody keeps a log
+- **No data → no diagnosis → no plan → the same problems every session**
 
 ## 2. What we're building and why it helps
 
-### Description-ready paragraph (~130 words)
+### Description-ready paragraphs (~230 words)
 
-> **Climbing Monkey** turns those scattered records into one visual profile and one achievable next step. After a session, the climber tags each problem by terrain (slab, vertical, overhang) and movement (controlled or dynamic) and marks whether they sent it. A **terrain triangle** and **movement radar** show where their climbing is strong and where evidence is missing, and every statement links back to the climbs or assessments behind it. A **monkey companion** offers one quest for the chosen focus, such as trying two vertical problems or completing a missing assessment. If the climber logs a sore finger in the **hand journal**, finger-loading quests are paused and a safe alternative is offered. Completing quests levels up the monkey. Only new evidence changes the profile, and rest days never cost progress.
+> **Climbing Monkey makes collecting that data the fun part.**
+>
+> **Play.** Meet your monkey companion. Each session he hands you quests, such as *send two slabs*, *try a dynamic move* or *tell me how your fingers feel*. Completed quests earn XP, level him up and unlock gear for his jungle.
+>
+> **Collect.** Every quest is also a data point. In a quick check-in you tag what you climbed by terrain (slab, vertical, overhang) and movement (controlled or dynamic), and whether you sent it. Optional guided tests (a camera-assisted mobility check, arm span) and a hand journal add context about your body.
+>
+> **Analyse.** That data draws your climbing shape. A **terrain triangle** and **movement radar** show where you're strong and where you struggle, and every point links back to the climbs behind it. Styles you haven't tried yet show as unknown, not as weaknesses.
+>
+> **Plan.** The monkey turns your biggest gap into a plan: one focus, the quests that train it and a reassessment that shows whether it worked. *Send most vertical problems at your grade but few overhangs? This week's quests target overhangs.* If you log a sore finger, finger-heavy quests pause and he suggests something else.
+>
+> Then the loop restarts: new quests, new data, a sharper picture. Climbers finally get an answer to *"what should I work on next?"*, and gyms get members who leave with a reason to come back.
 
-### Benefits
+### Benefits along the throughline
 
-| For | Benefit | Why it's credible |
-|---|---|---|
-| Climber | **Knows what to work on.** One focus, explained in plain language, instead of a single grade number | Style evidence comes from their own logged climbs; unknown styles show as "not assessed", not as weaknesses |
-| Climber | **Trains around pain, not through it.** A wellbeing check-in changes what is suggested, so they don't get a finger-loading quest for a sore finger | Symptom flags pause affected quests by explicit rule; the dated journal is ready to show a physio |
-| Climber | **Stays motivated.** The monkey rewards showing up, reflecting and resting well, not volume or pain | Gamified interventions had a small-to-medium positive effect on physical activity across 16 RCTs (Hedges g = 0.42) |
-| Climber | **Low effort, private by default.** A quick post-session check-in works without wearables, a camera or an account | Manual entry first; on-device storage is the design default |
-| Gym / coach *(future customer, hypothesis)* | Members leave each session with a plan for the next one, a reason to come back | Not yet validated; ties to gyms' retention pressure above |
+| Step | What the climber gets |
+|---|---|
+| **Play** | A reason to show up and log: the monkey makes tracking a game, not homework |
+| **Collect** | A complete climbing history built without extra effort, one quest at a time |
+| **Analyse** | A clear picture of strengths and weaknesses by style, backed by their own climbs instead of a single grade number |
+| **Plan** | One focus and a concrete set of quests for the next sessions, adjusted when their body needs a break |
+| **Repeat** | Visible progress: reassessment shows whether the plan worked, and the monkey keeps growing alongside them |
+| *Gyms (customer)* | Members who leave each session with a plan for the next one |
 
 ### Slide version
 
-**Solution: one profile, one next step, one happy monkey**
+**Solution: your monkey turns climbing into data, and data into a plan**
 
-- **Log** a session in a quick check-in: terrain, movement, sent or not
-- **See** your style shape: terrain triangle + movement radar, every point backed by evidence
-- **Act** on one quest from your monkey, paused automatically if your fingers hurt
-- **Grow**: the monkey levels up with participation; your profile changes only with new evidence
+- **Play:** your monkey gives you quests; completing them levels him up
+- **Collect:** each quest logs terrain, movement and result in a quick check-in
+- **Analyse:** terrain triangle + movement radar show your strengths and gaps, backed by evidence
+- **Plan:** one focus, targeted quests and a reassessment; sore fingers pause finger-heavy quests
 
-### What we deliberately don't claim
+## Keeping the pitch defensible
 
-No grade prediction, no diagnosis, no medical clearance. Camera results are estimates, and sample data in the demo is labeled. Saying this out loud builds trust with judges who know the sport or medicine.
+- **"Diagnosis" means climbing analysis, not medical diagnosis.** The hand journal pauses quests; it doesn't diagnose injuries or clear anyone to climb.
+- **The monkey grows with participation; the profile changes only with new climbing evidence.** Completing a quest doesn't itself raise a style score.
+- **No grade prediction.** The triangle and radar describe style strengths, not a predicted grade. Demo sample data is labeled.
 
 ## Before this goes into the submission
 
-1. **Mark what's working.** The repository currently holds the platform scaffold; the features above are the intended product. In the final description, say which parts the demo shows working, which use sample data and which are future work.
-2. **Get one statistic of our own.** No published figure covers the core "what should I train next?" need. Ask 10–15 climbers at the venue or a Kraków gym two questions: *"Do you have a clear plan for what to work on next session?"* and *"Do you keep climbing when a finger hurts?"* A number like "9 of 12 climbers we asked had no plan" is the strongest problem evidence we can add today. Report the sample size honestly.
-3. **Open each source link once.** The development environment's proxy blocked direct page fetches. Figures were checked against search-indexed abstracts and coverage, not the full texts.
-4. **Mind the word budget.** The two paragraphs are ~270 words together, which leaves ~230 for "how it works", team names and emails.
+1. **Mark what's working.** The repository currently holds the platform scaffold, and the features above are the intended product. In the final description, say which parts the demo shows working, which use sample data and which are future work.
+2. **Get one statistic of our own.** No published figure covers the "I've stalled and don't know why" problem. Ask 10–15 climbers at the venue or a Kraków gym: *"Do you know what you should work on next session?"* and *"Do you keep any record of your climbing?"* A line like "9 of 12 climbers we asked had no plan" is the strongest problem evidence we can add today. Report the sample size honestly.
+3. **Open both source links once.** The development environment's proxy blocked direct page fetches. The figures were checked against search-indexed coverage, not the full pages.
+4. **Mind the word budget.** The two answers are ~350 words together, which leaves ~150 for team names, emails and anything else.
 
 ## Sources
 
 | Claim | Source |
 |---|---|
 | 44.5 million climbers worldwide (indoor + outdoor; 2018 estimate by Vertical Life for the IFSC) | IFSC, [About World Climbing](https://www.worldclimbing.com/ifsc); reported in [Climbing Business Journal](https://climbingbusinessjournal.com/ifsc-releases-its-2019-annual-report/) |
-| 53 new gyms in North America in 2025; 4.7% net gym growth; 73% of operators reported worsening economic conditions (survey of 240 facilities) | Climbing Business Journal, [Gyms and Trends 2025](https://climbingbusinessjournal.com/gyms-and-trends-2025/) |
-| 76.6% of recreational climbers reported ≥ 1 injury (most often joint pain, pulley and flexor-tendon injuries); fewer than half sought care; < 40% of providers felt they had a comprehensive understanding of climbing injuries | Dual survey of recreational climbers and healthcare providers on finger, hand and wrist injuries, [BMJ Open Sport & Exercise Medicine 12(2): e003239](https://bmjopensem.bmj.com/content/12/2/e003239) |
-| 633 injuries in 436 patients (2017–18); 77.1% upper extremity; finger injuries (tenosynovitis, pulley lesions) most common | Lutter C. et al., "Current trends in sport climbing injuries after the inclusion into the Olympic program", *Muscles, Ligaments and Tendons Journal* 10(2): 201–210, 2020 ([record](https://cris.fau.de/publications/239704795)) |
-| 31% of adults (1.8 billion) insufficiently active in 2022; projected 35% by 2030 | WHO, [news release, 26 June 2024](https://www.who.int/news/item/26-06-2024-nearly-1.8-billion-adults-at-risk-of-disease-from-not-doing-enough-physical-activity) (Lancet Global Health study) |
-| Gamification: 16 RCTs, 2,407 participants, Hedges g = 0.42 on physical activity | Mazeas A. et al., [JMIR 2022; 24(1): e26779](https://www.jmir.org/2022/1/e26779) |
+| 53 new climbing gyms opened in North America in 2025 (41 net after 12 closures; survey of 240 facilities) | Climbing Business Journal, [Gyms and Trends 2025](https://climbingbusinessjournal.com/gyms-and-trends-2025/) |
