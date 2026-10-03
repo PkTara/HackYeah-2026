@@ -6,7 +6,14 @@
  * Swapping the local demo store for a real server means passing a
  * different ClimbingBackend; no screen changes.
  */
-import type { ClimbLog, GameState, HandFlag, Reach } from '@hackyeah/core';
+import type {
+  BaselineResult,
+  ClimbLog,
+  GameState,
+  HandFlag,
+  OnboardingResult,
+  Reach,
+} from '@hackyeah/core';
 
 export interface ClimbingBackend {
   /** 'local' keeps data on the device; 'remote' talks to a server. */
@@ -19,14 +26,25 @@ export interface ClimbingBackend {
   addClimb(log: ClimbLog): Promise<void>;
   removeClimb(id: string): Promise<void>;
 
-  /** Completing twice must not count twice (XP comes from unique ids). */
-  completeQuest(questId: string): Promise<void>;
-  skipQuest(questId: string): Promise<void>;
+  /**
+   * Completing twice must not count twice (XP comes from unique ids).
+   * A backend that picks the quests itself answers with the new state, so
+   * the next quest shows straight away. The on-device backend answers nothing.
+   */
+  completeQuest(questId: string): Promise<GameState | void>;
+  skipQuest(questId: string): Promise<GameState | void>;
 
   /** Sets a finger flag on or off. Not a toggle, so retries are harmless. */
   setHandFlag(flag: HandFlag, flagged: boolean): Promise<void>;
 
   saveReach(reach: Reach): Promise<void>;
+
+  /** First-run setup. Finishing also saves the reach, if one was given. */
+  finishOnboarding(result: OnboardingResult): Promise<void>;
+  skipOnboarding(): Promise<void>;
+
+  /** One home test done again from the Tests tab. Replaces that test's result. */
+  saveBaseline(result: BaselineResult): Promise<void>;
 
   /** Demo only: restore the sample data. Servers can leave this out. */
   resetDemo?(): Promise<GameState>;

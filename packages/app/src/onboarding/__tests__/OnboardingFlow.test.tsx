@@ -4,7 +4,6 @@ import type { OnboardingResult } from '@hackyeah/core';
 import { createMemoryStore, type Capabilities } from '@hackyeah/platform';
 import { CapabilitiesContext } from '../../capabilities';
 import { OnboardingFlow } from '../OnboardingFlow';
-import { OnboardingGate } from '../OnboardingGate';
 import {
   STEP_ORDER,
   chapterOf,
@@ -29,7 +28,11 @@ function render(onFinish = jest.fn(), onSkip = jest.fn()) {
   act(() => {
     renderer = ReactTestRenderer.create(
       <CapabilitiesContext.Provider value={capabilities}>
-        <OnboardingFlow onFinish={onFinish} onSkip={onSkip} today="2026-10-03" />
+        <OnboardingFlow
+          onFinish={onFinish}
+          onSkip={onSkip}
+          today="2026-10-03"
+        />
       </CapabilitiesContext.Provider>,
     );
   });
@@ -163,7 +166,9 @@ describe('OnboardingFlow', () => {
     type(renderer, 'Height in cm', '178');
     type(renderer, 'Arm span in cm', '18');
     press(renderer, 'Next');
-    expect(screenText(renderer)).toContain('Use a whole number from 100 to 250.');
+    expect(screenText(renderer)).toContain(
+      'Use a whole number from 100 to 250.',
+    );
     type(renderer, 'Arm span in cm', '183');
     press(renderer, 'Next');
 
@@ -171,7 +176,9 @@ describe('OnboardingFlow', () => {
     expect(has(renderer, 'Connect Apple Health')).toBe(true);
     expect(has(renderer, 'Connect Health Connect')).toBe(false);
     press(renderer, 'Connect Strava');
-    expect(screenText(renderer)).toContain('Your routes, location, photos or followers.');
+    expect(screenText(renderer)).toContain(
+      'Your routes, location, photos or followers.',
+    );
     press(renderer, 'Allow Strava (demo)');
     expect(screenText(renderer)).toContain('Connected (demo)');
     press(renderer, 'Not now for Garmin', 'Next');
@@ -183,7 +190,12 @@ describe('OnboardingFlow', () => {
     type(renderer, 'Dead hang time in seconds', '34');
     press(renderer, 'Next');
     expect(isDisabled(renderer, 'Next')).toBe(true); // not counted yet
-    press(renderer, 'One more, Pull-ups', 'One more, Pull-ups', 'One less, Pull-ups');
+    press(
+      renderer,
+      'One more, Pull-ups',
+      'One more, Pull-ups',
+      'One less, Pull-ups',
+    );
     press(renderer, 'Next');
     press(renderer, 'One less, Sit and reach', 'Next'); // short of the toes
     press(renderer, 'Skip this one', 'Skip this one');
@@ -219,9 +231,13 @@ describe('OnboardingFlow', () => {
     press(renderer, 'Stop');
     expect(screenText(renderer)).toContain('Your time: ');
     press(renderer, 'Next');
-    ['Skip this one', 'Skip this one', 'Skip this one', 'Skip this one', 'Skip this one'].forEach(
-      label => press(renderer, label),
-    );
+    [
+      'Skip this one',
+      'Skip this one',
+      'Skip this one',
+      'Skip this one',
+      'Skip this one',
+    ].forEach(label => press(renderer, label));
     press(renderer, 'Go to my profile');
     const result: OnboardingResult = onFinish.mock.calls[0][0];
     expect(result.baseline).toEqual([
@@ -258,16 +274,16 @@ describe('the step order', () => {
   it('fills the progress bar step by step', () => {
     const chapters = STEP_ORDER.map(chapterOf);
     expect(chapters[0]).toBe(0);
-    chapters.slice(1).forEach((c, i) => expect(c).toBeGreaterThanOrEqual(chapters[i]));
+    chapters
+      .slice(1)
+      .forEach((c, i) => expect(c).toBeGreaterThanOrEqual(chapters[i]));
     expect(chapterOf('done')).toBe(7);
   });
 
   it('keeps the monkey plain-spoken, with one exclamation at the very end', () => {
     const lines = [...STEP_ORDER.map(lineFor), lineFor('consent:garmin')];
     lines.forEach(line =>
-      expect(line).not.toMatch(
-        /[–—]|let's|journey|unlock|empower|seamless/i,
-      ),
+      expect(line).not.toMatch(/[–—]|let's|journey|unlock|empower|seamless/i),
     );
     expect(lines.filter(line => line.includes('!'))).toEqual([lineFor('done')]);
   });
@@ -280,20 +296,5 @@ describe('the step order', () => {
       from: 'experience',
     });
     expect(goBack(startNav)).toBe(startNav);
-  });
-});
-
-describe('OnboardingGate', () => {
-  it('shows the app unless the #onboarding preview is asked for', () => {
-    let renderer!: Renderer;
-    act(() => {
-      renderer = ReactTestRenderer.create(
-        <OnboardingGate>
-          <Text>The app</Text>
-        </OnboardingGate>,
-      );
-    });
-    expect(screenText(renderer)).toBe('The app');
-    act(() => renderer.unmount());
   });
 });

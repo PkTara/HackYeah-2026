@@ -17,12 +17,14 @@ import {
   pickFocus,
   pickQuest,
   toLocalDate,
+  type BaselineResult,
   type ClimbLog,
   type Finger,
   type Focus,
   type GameAction,
   type GameState,
   type HandFlag,
+  type OnboardingResult,
   type PetStatus,
   type QuestPick,
   type Reach,
@@ -75,6 +77,12 @@ type GameApi = Readonly<{
   /** Flags a finger with no spots, or clears it if it is flagged. */
   toggleFlag: (side: Side, finger: Finger) => void;
   saveReach: (reach: Omit<Reach, 'date'>) => void;
+  /** Saves first-run setup (and its reach, if given). */
+  finishOnboarding: (result: OnboardingResult) => void;
+  /** Setup was skipped: stop asking on launch. */
+  skipOnboarding: () => void;
+  /** One home test done from the Tests tab. */
+  saveBaseline: (result: BaselineResult) => void;
   resetDemo: () => void;
 }>;
 
@@ -127,14 +135,37 @@ export function GameProvider({ children, backend, today: fixedToday }: Props) {
     reload();
   }, [reload]);
 
+  // A backend may answer a save with a fresh state (a server that picks the
+  // next quest). It is only shown once no other change is still saving, so it
+  // cannot hide a change made after it; otherwise the app reloads at the end.
+  const saving = useRef(0);
+  const reloadWhenIdle = useRef(false);
+
   /** Show the change now, then save it. */
   const commit = useCallback(
-    (action: GameAction, save: () => Promise<void>) => {
+    (action: GameAction, save: () => Promise<GameState | void>) => {
       dispatch(action);
+      saving.current += 1;
       save().then(
-        () => setSyncError(null),
+        fresh => {
+          saving.current -= 1;
+          setSyncError(null);
+          const idle = saving.current === 0;
+          if (fresh && idle) {
+            reloadWhenIdle.current = false;
+            dispatch({ type: 'load', state: fresh });
+          } else if (fresh || (idle && reloadWhenIdle.current)) {
+            reloadWhenIdle.current = !idle;
+            if (idle) {
+              reload();
+            }
+          }
+        },
         () => {
-          setSyncError('Could not save that change. Showing your last saved data.');
+          saving.current -= 1;
+          setSyncError(
+            'Could not save that change. Showing your last saved data.',
+          );
           reload();
         },
       );
@@ -143,14 +174,21 @@ export function GameProvider({ children, backend, today: fixedToday }: Props) {
   );
 
   const focus = useMemo(() => pickFocus(state.logs), [state.logs]);
-  const quest = useMemo(
+  const quest = useMemo<QuestPick>(
     () =>
-      pickQuest(focus, {
-        hasFlag: state.flags.length > 0,
-        completed: state.completed,
-        skipped: state.skipped,
-      }),
-    [focus, state.flags, state.completed, state.skipped],
+      // A server that picks quests decides alone; otherwise use the library.
+      state.assigned !== undefined
+        ? {
+            quest: state.assigned,
+            paused: [],
+            options: state.assigned ? [state.assigned] : [],
+          }
+        : pickQuest(focus, {
+            hasFlag: state.flags.length > 0,
+            completed: state.completed,
+            skipped: state.skipped,
+          }),
+    [focus, state.assigned, state.flags, state.completed, state.skipped],
   );
   const pet = useMemo(() => petStatus(state.completed), [state.completed]);
 
@@ -239,6 +277,16 @@ export function GameProvider({ children, backend, today: fixedToday }: Props) {
         const reach: Reach = { ...input, date: today };
         commit({ type: 'saveReach', reach }, () => backend.saveReach(reach));
       },
+      finishOnboarding: result =>
+        commit({ type: 'finishOnboarding', result }, () =>
+          backend.finishOnboarding(result),
+        ),
+      skipOnboarding: () =>
+        commit({ type: 'skipOnboarding' }, () => backend.skipOnboarding()),
+      saveBaseline: result =>
+        commit({ type: 'saveBaseline', result }, () =>
+          backend.saveBaseline(result),
+        ),
       resetDemo: () => {
         if (backend.resetDemo) {
           backend.resetDemo().then(
