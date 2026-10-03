@@ -106,3 +106,11 @@ None yet. When the app gets an AI feature, document:
 **Output:** `context/tracks/open-sport-healthcare.md`, `docs/climbing-monkey-alignment.md`, and updates to the design, shared open-track context, overview, repository guidance and README. Sport & Healthcare is the primary product brief; existing HarmonyOS technology and optional Huawei submission requirements are distinguished.
 
 **Validation:** System `pdftotext` was unavailable, so bundled `pypdf` extracted all four description pages and all three rules pages. The context-review agent independently read both PDFs and checked requirements, judging weights and alignment gaps. Matched general upload constraints separately; retained platform/start-time source discrepancies. Reviewed local links and whitespace. No product implementation or claimed user study was added.
+
+### 8. Problem and solution pitch copy (2026-10-03)
+
+**Prompt:** Using the design doc and the rest of the context, write a brief outline of why we want to build the project, with statistics showing the problem exists, and a brief description of the solution and its benefits for the user or customer.
+
+**Output:** `docs/pitch-problem-solution.md`: description-ready problem and solution paragraphs (~270 words together), slide versions, a benefits table, deliberate non-claims, a pre-submission checklist and a sources table.
+
+**Validation:** Statistics came from web searches. The environment's proxy blocked direct fetches of journal, IFSC and WHO pages, so each figure was cross-checked against search-indexed abstracts and coverage. Figures that could not be attributed cleanly were dropped. The file notes that each link should be opened once before submission, and that no published statistic covers the core "what should I train next?" need. Product statements describe intended features, not the current scaffold.
