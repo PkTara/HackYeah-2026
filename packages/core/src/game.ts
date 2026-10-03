@@ -2,7 +2,7 @@
  * Everything the app remembers, and the reducer that changes it.
  * The UI derives the profile, focus, quest and monkey level from this state.
  */
-import type { ClimbLog } from './climbing';
+import { normalizeClimbLog, type ClimbLog } from './climbing';
 
 export type Side = 'left' | 'right';
 export type Finger = 'thumb' | 'index' | 'middle' | 'ring' | 'little';
@@ -120,7 +120,12 @@ export function parseGameState(json: string | null): GameState | null {
       Array.isArray(value.completed) &&
       Array.isArray(value.skipped);
     return ok
-      ? { ...emptyGame, ...value, flags: value.flags.map(withSpots) }
+      ? {
+          ...emptyGame,
+          ...value,
+          logs: value.logs.map(normalizeClimbLog),
+          flags: value.flags.map(withSpots),
+        }
       : null;
   } catch {
     return null;

@@ -1,6 +1,7 @@
 import {
   cellTally,
   movementTallies,
+  normalizeClimbLog,
   pickFocus,
   terrainTallies,
   type ClimbLog,
@@ -12,7 +13,15 @@ import { sampleLogs } from '../sample';
 let next = 0;
 function climb(terrain: Terrain, sent: boolean, movement: Movement = 'controlled'): ClimbLog {
   next += 1;
-  return { id: `t${next}`, date: '2026-10-01', terrain, movement, grade: 'V3', sent };
+  return {
+    id: `t${next}`,
+    date: '2026-10-01',
+    terrain,
+    movements: [movement],
+    holds: [],
+    grade: 'V3',
+    sent,
+  };
 }
 
 describe('profile tallies', () => {
@@ -29,13 +38,27 @@ describe('profile tallies', () => {
     expect(t.vertical).toEqual({ logged: 0, sent: 0, rate: null });
   });
 
-  it('counts movement types and grid cells separately', () => {
+  it('counts a climb with both styles under each style', () => {
     const m = movementTallies(sampleLogs);
-    expect(m.controlled.logged + m.dynamic.logged).toBe(sampleLogs.length);
+    expect([m.controlled.sent, m.controlled.logged]).toEqual([7, 12]);
+    expect([m.dynamic.sent, m.dynamic.logged]).toEqual([3, 8]);
     expect(cellTally(sampleLogs, 'vertical', 'dynamic')).toEqual({
-      logged: 2,
+      logged: 3,
       sent: 1,
-      rate: null,
+      rate: 1 / 3,
+    });
+  });
+
+  it('upgrades climbs saved with a single style and no holds', () => {
+    const old = { id: 'o1', date: '2026-09-01', terrain: 'slab', movement: 'dynamic', grade: 'V1', sent: true };
+    expect(normalizeClimbLog(old)).toEqual({
+      id: 'o1',
+      date: '2026-09-01',
+      terrain: 'slab',
+      movements: ['dynamic'],
+      holds: [],
+      grade: 'V1',
+      sent: true,
     });
   });
 });

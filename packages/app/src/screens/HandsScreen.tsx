@@ -96,36 +96,38 @@ export function HandsScreen() {
             {flags.length === 0 ? (
               <AppText>Nothing flagged. Quests run as normal.</AppText>
             ) : (
-              flags.map(f => {
-                const label = fingerLabel(f.side, f.finger);
-                return (
-                  <View key={`${f.side}-${f.finger}`} style={styles.flag}>
-                    <AppText>
-                      <AppText style={styles.strong}>{label}:</AppText>{' '}
-                      {spotsText(f.finger, f.spots)}.
-                    </AppText>
-                    <AppText variant="caption" muted>
-                      Flagged {ageLabel(f.date, today)}.
-                    </AppText>
-                    <View style={styles.actions}>
-                      <Button
-                        title="Edit"
-                        variant="secondary"
-                        small
-                        accessibilityLabel={`Edit ${label.toLowerCase()}`}
-                        onPress={() => open(f.side, f.finger)}
-                      />
-                      <Button
-                        title="Clear"
-                        variant="secondary"
-                        small
-                        accessibilityLabel={`Clear ${label.toLowerCase()}`}
-                        onPress={() => clearFinger(f.side, f.finger)}
-                      />
+              <View style={styles.flags}>
+                {flags.map(f => {
+                  const label = fingerLabel(f.side, f.finger);
+                  return (
+                    <View key={`${f.side}-${f.finger}`} style={styles.flag}>
+                      <AppText>
+                        <AppText style={styles.strong}>{label}:</AppText>{' '}
+                        {spotsText(f.finger, f.spots)}.
+                      </AppText>
+                      <AppText variant="caption" muted>
+                        Flagged {ageLabel(f.date, today)}.
+                      </AppText>
+                      <View style={styles.actions}>
+                        <Button
+                          title="Edit"
+                          variant="secondary"
+                          small
+                          accessibilityLabel={`Edit ${label.toLowerCase()}`}
+                          onPress={() => open(f.side, f.finger)}
+                        />
+                        <Button
+                          title="Clear"
+                          variant="secondary"
+                          small
+                          accessibilityLabel={`Clear ${label.toLowerCase()}`}
+                          onPress={() => clearFinger(f.side, f.finger)}
+                        />
+                      </View>
                     </View>
-                  </View>
-                );
-              })
+                  );
+                })}
+              </View>
             )}
           </Panel>
 
@@ -162,10 +164,10 @@ export function HandsScreen() {
             <View style={styles.note}>
               <WarningSign />
               <AppText variant="caption" style={styles.grow}>
-                This is your own note, not a diagnosis. The app cannot tell
-                when a finger is ready for climbing. If the pain is sharp, you
-                felt a pop, there is swelling, or it keeps hurting, stop
-                climbing and see a physio or doctor.
+                This is your own note, not a diagnosis. The app cannot tell when
+                a finger is ready for climbing. If the pain is sharp, you felt a
+                pop, there is swelling, or it keeps hurting, stop climbing and
+                see a physio or doctor.
               </AppText>
             </View>
           </Panel>
@@ -228,6 +230,7 @@ const styles = StyleSheet.create({
   hand: { flex: 1, alignItems: 'center', gap: spacing.sm },
   area: { position: 'absolute' },
   chips: { alignSelf: 'stretch', gap: spacing.sm },
+  flags: { gap: spacing.lg },
   flag: { gap: spacing.xs },
   actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },

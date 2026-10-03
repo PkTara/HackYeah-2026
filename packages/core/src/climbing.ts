@@ -6,17 +6,30 @@
  */
 
 export type Terrain = 'slab' | 'vertical' | 'overhang';
+/** Style of a climb. One climb can have both. */
 export type Movement = 'controlled' | 'dynamic';
+export type HoldType = 'jug' | 'crimp' | 'sloper' | 'pinch' | 'pocket' | 'volume';
 
 export const TERRAINS: readonly Terrain[] = ['slab', 'vertical', 'overhang'];
 export const MOVEMENTS: readonly Movement[] = ['controlled', 'dynamic'];
+export const HOLD_TYPES: readonly HoldType[] = [
+  'jug',
+  'crimp',
+  'sloper',
+  'pinch',
+  'pocket',
+  'volume',
+];
 
 export type ClimbLog = Readonly<{
   id: string;
   /** Local date, YYYY-MM-DD. */
   date: string;
   terrain: Terrain;
-  movement: Movement;
+  /** Controlled, dynamic or both. */
+  movements: readonly Movement[];
+  /** Hold types on the climb. Optional, may be empty. */
+  holds: readonly HoldType[];
   /** Grade as written at the gym, e.g. "V3". */
   grade: string;
   sent: boolean;
@@ -57,8 +70,8 @@ export function movementTallies(
   logs: readonly ClimbLog[],
 ): Record<Movement, Tally> {
   return {
-    controlled: tally(logs.filter(log => log.movement === 'controlled')),
-    dynamic: tally(logs.filter(log => log.movement === 'dynamic')),
+    controlled: tally(logs.filter(log => log.movements.includes('controlled'))),
+    dynamic: tally(logs.filter(log => log.movements.includes('dynamic'))),
   };
 }
 
@@ -69,7 +82,9 @@ export function cellTally(
   movement: Movement,
 ): Tally {
   return tally(
-    logs.filter(log => log.terrain === terrain && log.movement === movement),
+    logs.filter(
+      log => log.terrain === terrain && log.movements.includes(movement),
+    ),
   );
 }
 
@@ -98,4 +113,27 @@ export function pickFocus(logs: readonly ClimbLog[]): Focus {
     (tallies[b].rate ?? 1) < (tallies[a].rate ?? 1) ? b : a,
   );
   return { kind: 'practice', terrain, tally: tallies[terrain] };
+}
+
+/**
+ * Brings a saved climb up to date. Climbs saved before style became
+ * multi-select have a single `movement` and no `holds`.
+ */
+export function normalizeClimbLog(raw: unknown): ClimbLog {
+  const log = raw as ClimbLog & { movement?: Movement };
+  const movements = Array.isArray(log.movements)
+    ? log.movements
+    : log.movement
+      ? [log.movement]
+      : [];
+  return {
+    id: log.id,
+    date: log.date,
+    terrain: log.terrain,
+    movements,
+    holds: Array.isArray(log.holds) ? log.holds : [],
+    grade: log.grade,
+    sent: log.sent,
+    ...(log.sample ? { sample: true } : {}),
+  };
 }

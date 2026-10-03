@@ -40,6 +40,7 @@ import { useGame } from '../state/GameProvider';
 export function FingerScreen() {
   const { params, goBack } = useNavigation<RouteName>();
   const { state, today, setFingerSpots, clearFinger } = useGame();
+  // Wide windows have room for a bigger drawing and a one-line title.
   const wide = useLayout().rail;
   const side: Side = params.side === 'left' ? 'left' : 'right';
   const finger: Finger = FINGERS.find(f => f === params.finger) ?? 'index';
@@ -55,6 +56,9 @@ export function FingerScreen() {
   // On a phone the whole name is too wide for one line of the big font.
   const title = wide ? label : label.replace(' finger', '\nfinger');
   const notSure = flag !== undefined && marked.length === 0;
+  const status = flag
+    ? `Flagged ${ageLabel(flag.date, today)}: ${spotsText(finger, marked)}.`
+    : 'Not flagged. Quests run as normal.';
 
   const toggle = (id: string) =>
     setFingerSpots(
@@ -92,6 +96,7 @@ export function FingerScreen() {
               spots={spots.filter(s => s.layer === layer)}
               marked={marked}
               onToggle={toggle}
+              scale={wide ? 8 : 6}
             />
             <AppText variant="caption" muted>
               Palm side, tip at the top.
@@ -101,11 +106,7 @@ export function FingerScreen() {
 
         <Column>
           <Panel variant="quiet">
-            <AppText>
-              {flag
-                ? `Flagged ${ageLabel(flag.date, today)}: ${spotsText(finger, marked)}.`
-                : 'Not flagged. Quests run as normal.'}
-            </AppText>
+            <AppText>{status}</AppText>
             {flag ? (
               <AppText variant="caption" muted>
                 Quests that load your fingers wait until you clear it.
@@ -113,7 +114,6 @@ export function FingerScreen() {
             ) : null}
             <CheckRow
               name="Sore, not sure where"
-              detail="Flags the finger with no spot marked."
               checked={notSure}
               onPress={() =>
                 notSure
@@ -135,10 +135,9 @@ export function FingerScreen() {
             <View style={styles.note}>
               <WarningSign />
               <AppText variant="caption" style={styles.grow}>
-                This marks where it hurts. It is not a diagnosis. If you heard
-                a pop, see swelling or bruising, or it hurts to bend or
-                straighten the finger, stop climbing and see a physio or
-                doctor.
+                This marks where it hurts. It is not a diagnosis. If you heard a
+                pop, see swelling or bruising, or it hurts to bend or straighten
+                the finger, stop climbing and see a physio or doctor.
               </AppText>
             </View>
           </Panel>
