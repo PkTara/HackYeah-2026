@@ -28,4 +28,10 @@ export const FINGER_NAME: Record<Finger, string> = {
   little: 'Little',
 };
 
+/** "Right ring finger", or "Left thumb". */
+export function fingerLabel(side: Side, finger: Finger): string {
+  const name = FINGER_NAME[finger].toLowerCase();
+  return `${SIDE_NAME[side]} ${finger === 'thumb' ? name : `${name} finger`}`;
+}
+
 export const GRADES = ['V0', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7'] as const;

@@ -28,11 +28,10 @@ import {
 } from '@hackyeah/ui';
 import { TabScreen } from '../components/TabScreen';
 import {
-  FINGER_NAME,
   MOVEMENT_NAME,
-  SIDE_NAME,
   TERRAIN_ICON,
   TERRAIN_NAME,
+  fingerLabel,
 } from '../labels';
 import { useNavigation } from '../navigation/Navigator';
 import type { RouteName } from '../navigation/routes';
@@ -202,8 +201,7 @@ export function ProfileScreen() {
         <Panel variant="alert" title="Hands" icon="flag">
           {state.flags.map(f => (
             <AppText key={`${f.side}-${f.finger}`}>
-              {SIDE_NAME[f.side]} {FINGER_NAME[f.finger].toLowerCase()} finger
-              flagged {ageLabel(f.date, today)}.
+              {fingerLabel(f.side, f.finger)} flagged {ageLabel(f.date, today)}.
             </AppText>
           ))}
           <AppText variant="caption" muted>

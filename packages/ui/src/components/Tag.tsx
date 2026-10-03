@@ -13,7 +13,7 @@ export function Tag({ text, tone = 'example' }: Props) {
   const c = theme.colors;
   const colors = {
     example: { bg: c.info, fg: '#FFFFFF' },
-    paused: { bg: c.danger, fg: '#FFFFFF' },
+    paused: { bg: c.danger, fg: c.onDanger },
     new: { bg: c.leaf, fg: '#FFFFFF' },
     muted: { bg: c.surfaceShade, fg: c.text },
   }[tone];

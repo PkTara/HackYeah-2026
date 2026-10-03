@@ -13,6 +13,8 @@ type Props = {
   disabled?: boolean;
   /** Smaller label and padding, for buttons inside lists. */
   small?: boolean;
+  /** Defaults to the title. Set it when several buttons share a title. */
+  accessibilityLabel?: string;
   accessibilityHint?: string;
   style?: StyleProp<ViewStyle>;
 };
@@ -30,6 +32,7 @@ export function Button({
   icon,
   disabled = false,
   small = false,
+  accessibilityLabel,
   accessibilityHint,
   style,
 }: Props) {
@@ -61,13 +64,13 @@ export function Button({
     : variant === 'primary'
       ? c.onPrimary
       : variant === 'danger'
-        ? '#FFF4DC'
+        ? c.onDanger
         : c.text;
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={title}
+      accessibilityLabel={accessibilityLabel ?? title}
       accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled }}
       disabled={disabled}
