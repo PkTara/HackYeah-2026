@@ -15,6 +15,8 @@ Read `context/00-OVERVIEW.md` first. It has the track comparison, prizes, judgin
 
 ## Codebase
 
+- **Backend:** `backend/` is Python 3.12–3.13 + FastAPI/Pydantic + SQLite, with optional MediaPipe Tasks image analysis. Setup/API notes: `backend/README.md`; design: `docs/backend-design.md`. Use Canon TDD: one behavior, observed red, minimal green, regression. Run `npm run backend:check` after backend virtualenv setup. Authoritative profile/quest/XP rules live in Python; clients consume API output. Do not store runtime databases, tokens, photos or model binaries in Git.
+
 Climbing Monkey's primary product brief is **Open: Sport & Healthcare** (see `context/tracks/open-sport-healthcare.md` and `docs/climbing-monkey-alignment.md`). The product is profile first: connect climbing/activity evidence to an understandable profile and one achievable next action. The existing implementation targets HarmonyOS using React Native 0.84.1 + RNOH 0.84.4, API 20; this is a technology choice, not a sports-track requirement. Huawei remains a separate submission option with its own rules in `context/tracks/huawei-harmonyos.md`. The README covers setup and layout.
 
 - **Shared code lives in `packages/`** and is imported as `@hackyeah/<name>`. Hosts in `apps/` stay thin.
