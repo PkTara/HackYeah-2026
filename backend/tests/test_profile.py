@@ -97,6 +97,26 @@ def test_climb_summaries_count_outcomes_independently_across_style_grid():
     assert all(value is None for value in profile["radar"].values())
 
 
+def test_two_style_climb_counts_under_each_movement_but_once_per_terrain():
+    both = {
+        **climb("both", terrain="overhang", movement="dynamic"),
+        "movements": ["dynamic", "controlled"],
+    }
+    older = climb("older", terrain="overhang", movement="dynamic", completed=True)
+    assert "movements" not in older
+
+    profile = build_profile([both, older], [], [], [])
+
+    assert profile["terrain"]["overhang"]["sample_count"] == 2
+    assert profile["terrain"]["overhang"]["evidence_ids"] == ["both", "older"]
+    assert profile["movement"]["controlled"]["evidence_ids"] == ["both"]
+    assert profile["movement"]["dynamic"]["evidence_ids"] == ["both", "older"]
+    assert profile["movement"]["dynamic"]["completion_rate"] == 0.5
+    assert profile["grid"]["overhang"]["controlled"]["evidence_ids"] == ["both"]
+    assert profile["grid"]["overhang"]["dynamic"]["evidence_ids"] == ["both", "older"]
+    assert profile["grid"]["slab"]["controlled"]["sample_count"] == 0
+
+
 def test_assessment_trend_skips_every_incompatible_setup_and_preserves_evidence():
     previous = assessment("previous", 90, "2026-10-01T08:00:00Z", confidence=0.8)
     latest = assessment("latest", 100, "2026-10-03T08:00:00Z", confidence=0.95)
@@ -150,6 +170,15 @@ def test_latest_hand_reports_clear_regions_independently_without_changing_climbs
 
     assert profile["active_hand_flags"] == [palm, left]
     assert profile["terrain"] == build_profile(climbs, [], [], [])["terrain"]
+
+
+def test_unrated_soreness_is_an_active_flag_until_a_zero_report_clears_it():
+    unrated = hand("unrated", None, "2026-10-02T08:00:00Z")
+    other = hand("other", None, "2026-10-02T09:00:00Z", side="left", region="index_finger")
+    cleared = hand("cleared", 0, "2026-10-03T08:00:00Z", side="left", region="index_finger")
+
+    assert build_profile([], [], [unrated], [])["active_hand_flags"] == [unrated]
+    assert build_profile([], [], [unrated, other, cleared], [])["active_hand_flags"] == [unrated]
 
 
 def test_hand_chronology_uses_instants_and_last_input_wins_timestamp_ties():

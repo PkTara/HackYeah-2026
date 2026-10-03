@@ -16,7 +16,7 @@ python3.12 -m venv .venv
 
 `constraints.txt` pins the tested Python 3.12 dependency versions. Constraints only apply to packages selected by the requested extras; the basic install does not install MediaPipe. Tests involving the real MediaPipe image container skip if that optional dependency is missing. The pure geometry, HTTP and database tests run without a model or network.
 
-The project `.venv` is already configured in this checkout. Root shortcuts: `npm run backend:test`, `npm run backend:check` and `npm run backend:start`.
+Root shortcuts: `npm run backend:setup` (creates `backend/.venv` with Python 3.12 and installs the test extra), `npm run backend:test`, `npm run backend:check` and `npm run backend:start`.
 
 ## Run
 
@@ -51,10 +51,10 @@ The response contains the profile ID and a random `token`. Save that token priva
 Input examples:
 
 ```json
-{"terrain":"vertical","movement":"dynamic","completed":false,"attempts":3,"grade":"6A","grade_system":"font","location":"My gym"}
+{"terrain":"vertical","movements":["dynamic","controlled"],"holds":["crimp","pinch"],"completed":false,"attempts":3,"grade":"6A","grade_system":"font","location":"My gym"}
 ```
 
-Post to `/v1/me/climbs`. Each first-version climb log records one terrain and one movement category. A route with mixed movement can be described through separate observations; avoid interpreting tags as mutually exclusive physical abilities.
+Post to `/v1/me/climbs`. A climb log records one terrain and one or both movement styles. Send `movements` (one or two of `controlled` and `dynamic`, no repeats), the older single `movement`, or both; when both are sent, `movement` must be one of `movements`. The server stores both fields with `movement` as the first of `movements`, so older clients that read `movement` keep working. Records saved before `movements` existed have only `movement`; the profile reads them as `[movement]`, and clients should do the same. `holds` optionally lists hold types (`jug`, `crimp`, `sloper`, `pinch`, `pocket`, `volume`, no repeats; default empty). `attempts` is optional (1 to 1000); it is null when not recorded. Avoid interpreting style or hold tags as mutually exclusive physical abilities.
 
 ```json
 {"metric":"leg_spread","value":90,"unit":"degrees","method":"manual","protocol":"front-facing-leg-spread-v1"}
@@ -63,10 +63,10 @@ Post to `/v1/me/climbs`. Each first-version climb log records one terrain and on
 Post to `/v1/me/assessments`. Supported metrics: `leg_spread/degrees`, `height/cm`, `arm_span/cm`, `pullups/repetitions`, `hang_duration/seconds`. Camera assessments currently support only leg spread and require explicit confidence ≥0.7. A persisted camera result is a **user-confirmed report**, not proof the server measured it; never treat client-supplied confidence as independent verification. Optional `model_version` records provenance.
 
 ```json
-{"side":"right","region":"ring_finger","pain":4,"note":"Observed after my session"}
+{"side":"right","region":"ring_finger","pain":4,"spots":["a2","pip"],"note":"Observed after my session"}
 ```
 
-Post to `/v1/me/hands`; add `photo_id` to link an owned photo of the same hand. `GET /v1/me/hands/heatmap` returns the latest rating per side/region, with null for unknown and zero for explicitly reported no discomfort. `?at=2026-10-03T10:00:00Z` requests a historical snapshot.
+Post to `/v1/me/hands`; add `photo_id` to link an owned photo of the same hand. `pain` is optional: null (or left out) means sore with no intensity rating, which still counts as an active flag; 0 means no discomfort and clears the location. `spots` optionally lists where it hurts as spot ids from the app's `packages/core/src/spots.ts`, such as `a2` or `pip` (lowercase letters, digits and hyphens, up to 32 characters each, at most 24, no repeats; default empty). `GET /v1/me/hands/heatmap` returns the latest report per side/region. A location nobody reported has `pain`, `occurred_at` and `evidence_id` all null; a report without a rating has null `pain` but keeps its `occurred_at` and `evidence_id`; zero is an explicit report of no discomfort. `?at=2026-10-03T10:00:00Z` requests a historical snapshot.
 
 ```json
 {"kind":"bouldering","duration_minutes":45,"source":"manual"}
@@ -80,10 +80,10 @@ Each evidence collection supports `GET` and `DELETE /v1/me/{collection}/{id}`. `
 
 `GET /v1/me/profile` returns:
 
-- Independent `terrain`, `movement` and `grid` summaries: counts, observed completion rate and evidence IDs. `ability_score` remains null.
+- Independent `terrain`, `movement` and `grid` summaries: counts, observed completion rate and evidence IDs. `ability_score` remains null. A climb with both styles counts under each of its movements in the `movement` and `grid` summaries, and once in `terrain`.
 - `radar` axes with null values until there are validated technique observations. Do not render null as zero.
 - `assessment_trends` with latest result, comparable previous result and delta; comparisons require matching metric, unit, method and protocol.
-- `active_hand_flags` from the latest report per side/region, `activity_context`, and an evidence-linked `focus`.
+- `active_hand_flags` from the latest report per side/region (active when `pain` is null or above 0), `activity_context`, and an evidence-linked `focus`.
 
 Completion rates are descriptive observations, not grade forecasts or proven technique scores. Grade systems/locations remain attached to records. The initial focus rule needs at least three observations with an incomplete outcome for a terrain reflection, and otherwise gathers evidence; it does not prove an underlying physical weakness.
 

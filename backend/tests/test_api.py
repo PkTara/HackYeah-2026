@@ -386,3 +386,120 @@ def test_pullup_count_cannot_be_fractional(client, auth):
         },
     )
     assert response.status_code == 422
+
+
+def test_climb_can_record_both_movement_styles(client, auth):
+    response = client.post(
+        "/v1/me/climbs",
+        headers=auth,
+        json={
+            "terrain": "overhang",
+            "movements": ["dynamic", "controlled"],
+            "completed": True,
+            "attempts": 1,
+        },
+    )
+    assert response.status_code == 201, response.json()
+    saved = response.json()
+    assert saved["movements"] == ["dynamic", "controlled"]
+    assert saved["movement"] == "dynamic"
+    assert client.get("/v1/me/climbs", headers=auth).json() == [saved]
+
+
+def test_climb_with_one_movement_also_stores_it_as_a_list(client, auth):
+    saved = client.post(
+        "/v1/me/climbs",
+        headers=auth,
+        json={"terrain": "slab", "movement": "controlled", "completed": True, "attempts": 1},
+    ).json()
+    assert saved["movement"] == "controlled"
+    assert saved["movements"] == ["controlled"]
+
+
+def test_climb_treats_null_movements_as_not_sent(client, auth):
+    response = client.post(
+        "/v1/me/climbs",
+        headers=auth,
+        json={
+            "terrain": "slab",
+            "movement": "dynamic",
+            "movements": None,
+            "completed": False,
+            "attempts": 1,
+        },
+    )
+    assert response.status_code == 201
+    assert response.json()["movements"] == ["dynamic"]
+
+
+def test_climb_sending_both_fields_lists_the_movement_first(client, auth):
+    saved = client.post(
+        "/v1/me/climbs",
+        headers=auth,
+        json={
+            "terrain": "vertical",
+            "movement": "controlled",
+            "movements": ["dynamic", "controlled"],
+            "completed": True,
+            "attempts": 2,
+        },
+    ).json()
+    assert saved["movement"] == "controlled"
+    assert saved["movements"] == ["controlled", "dynamic"]
+
+
+def test_climb_records_hold_types_and_defaults_to_none(client, auth):
+    payload = {"terrain": "vertical", "movement": "controlled", "completed": True, "attempts": 1}
+    with_holds = client.post(
+        "/v1/me/climbs", headers=auth, json={**payload, "holds": ["crimp", "sloper"]}
+    )
+    assert with_holds.status_code == 201, with_holds.json()
+    assert with_holds.json()["holds"] == ["crimp", "sloper"]
+    assert client.post("/v1/me/climbs", headers=auth, json=payload).json()["holds"] == []
+
+
+def test_climb_attempts_are_optional_and_null_when_not_recorded(client, auth):
+    response = client.post(
+        "/v1/me/climbs",
+        headers=auth,
+        json={"terrain": "slab", "movement": "controlled", "completed": False},
+    )
+    assert response.status_code == 201, response.json()
+    assert response.json()["attempts"] is None
+
+
+def test_hand_report_records_marked_spots_and_defaults_to_none(client, auth):
+    payload = {"side": "right", "region": "ring_finger", "pain": 3}
+    marked = client.post("/v1/me/hands", headers=auth, json={**payload, "spots": ["a2", "pip"]})
+    assert marked.status_code == 201, marked.json()
+    assert marked.json()["spots"] == ["a2", "pip"]
+    assert client.post("/v1/me/hands", headers=auth, json=payload).json()["spots"] == []
+
+
+def test_hand_report_without_a_rating_stores_null_pain(client, auth):
+    response = client.post(
+        "/v1/me/hands", headers=auth, json={"side": "left", "region": "index_finger"}
+    )
+    assert response.status_code == 201, response.json()
+    assert response.json()["pain"] is None
+    assert client.get("/v1/me/hands", headers=auth).json() == [response.json()]
+
+
+def test_unrated_soreness_shows_on_heatmap_and_prioritizes_a_checkin(client, auth):
+    sore = client.post(
+        "/v1/me/hands",
+        headers=auth,
+        json={"side": "left", "region": "index_finger", "spots": ["a2"]},
+    ).json()
+    heatmap = client.get("/v1/me/hands/heatmap", headers=auth).json()
+    assert heatmap["left"]["index_finger"] == {
+        "pain": None,
+        "occurred_at": sore["occurred_at"],
+        "evidence_id": sore["id"],
+    }
+    assert heatmap["right"]["index_finger"]["evidence_id"] is None
+    flags = client.get("/v1/me/profile", headers=auth).json()["active_hand_flags"]
+    assert [flag["id"] for flag in flags] == [sore["id"]]
+    quest = client.post("/v1/me/quests", headers=auth).json()
+    assert quest["kind"] == "recovery_checkin"
+    assert quest["evidence_ids"] == [sore["id"]]
