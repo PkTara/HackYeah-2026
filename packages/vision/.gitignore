@@ -2,3 +2,5 @@
 harness/dist/
 # Local copies of the MediaPipe model for offline runs of the harness.
 harness/models/
+# Vite's dependency cache for the harness.
+harness/.vite-cache/

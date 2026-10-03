@@ -24,4 +24,6 @@ export default {
   },
   server: { fs: { allow: [repoRoot] } },
   build: { outDir: path.join(here, 'dist'), emptyOutDir: true },
+  // Keep Vite's cache next to the page, not in packages/vision/node_modules.
+  cacheDir: path.join(here, '.vite-cache'),
 };
