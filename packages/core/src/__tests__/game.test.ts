@@ -1,6 +1,6 @@
 import { pickFocus } from '../climbing';
 import { ageLabel, shortDate } from '../dates';
-import { emptyGame, gameReducer, parseGameState } from '../game';
+import { emptyGame, gameReducer, parseGameState, type HandFlag } from '../game';
 import { petStatus } from '../progress';
 import { pickQuest } from '../quests';
 import { sampleGame } from '../sample';
@@ -63,7 +63,7 @@ describe('gameReducer', () => {
   });
 
   it('sets and clears a finger flag, and repeating it changes nothing', () => {
-    const flag = { side: 'right', finger: 'ring', date: '2026-10-02' } as const;
+    const flag: HandFlag = { side: 'right', finger: 'ring', date: '2026-10-02', spots: [] };
     const on = gameReducer(emptyGame, { type: 'setFlag', flag, flagged: true });
     expect(on.flags).toEqual([flag]);
     expect(gameReducer(on, { type: 'setFlag', flag, flagged: true }).flags).toEqual([flag]);
@@ -71,6 +71,24 @@ describe('gameReducer', () => {
     const off = gameReducer(on, { type: 'setFlag', flag, flagged: false });
     expect(off.flags).toEqual([]);
     expect(gameReducer(off, { type: 'setFlag', flag, flagged: false }).flags).toEqual([]);
+  });
+
+  it('edits a flag in place: new spots replace the old ones', () => {
+    const ring: HandFlag = { side: 'right', finger: 'ring', date: '2026-10-02', spots: ['a2'] };
+    const index: HandFlag = { side: 'left', finger: 'index', date: '2026-10-03', spots: [] };
+    let state = gameReducer(emptyGame, { type: 'setFlag', flag: ring, flagged: true });
+    state = gameReducer(state, { type: 'setFlag', flag: index, flagged: true });
+
+    const edited = { ...ring, spots: ['a2', 'pip'] };
+    state = gameReducer(state, { type: 'setFlag', flag: edited, flagged: true });
+
+    expect(state.flags).toEqual([edited, index]);
+  });
+
+  it('loads flags saved before spots existed as "not sure where"', () => {
+    const old = { side: 'right', finger: 'ring', date: '2026-10-02' };
+    const saved = JSON.stringify({ ...emptyGame, flags: [old] });
+    expect(parseGameState(saved)?.flags).toEqual([{ ...old, spots: [] }]);
   });
 
   it('only loads saved state that looks valid', () => {

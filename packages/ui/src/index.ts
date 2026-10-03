@@ -4,6 +4,13 @@ export { useReducedMotion, useTicker } from './hooks';
 export { AppText } from './components/AppText';
 export { Button } from './components/Button';
 export { Chip } from './components/Chip';
+export {
+  CheckRow,
+  FingerMap,
+  type FingerLayer,
+  type FingerMapSpot,
+  type FingerPart,
+} from './components/FingerMap';
 export { Gazelle } from './components/Gazelle';
 export { Icon } from './components/Icon';
 export { JungleHero } from './components/JungleHero';

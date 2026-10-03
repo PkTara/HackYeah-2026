@@ -27,7 +27,7 @@ const profile: ProfileDto = {
   climbs: [
     { id: 'c1', date: '2026-10-01', terrain: 'slab', movement: 'controlled', grade: 'V2', sent: true },
   ],
-  hand_flags: [{ side: 'right', finger: 'ring', date: '2026-10-02' }],
+  hand_flags: [{ side: 'right', finger: 'ring', date: '2026-10-02', spots: ['a2', 'pip'] }],
   completed_quest_ids: ['q1'],
   skipped_quest_ids: [],
   reach: { arm_span_cm: 181, height_cm: 178, date: '2026-09-30' },
@@ -54,7 +54,7 @@ describe('http backend', () => {
       fetch,
       getAuthToken: () => 'token-123',
     });
-    const flag = { side: 'left', finger: 'index', date: '2026-10-03' } as const;
+    const flag = { side: 'left', finger: 'index', date: '2026-10-03', spots: ['a2'] } as const;
 
     await backend.addClimb({ ...profile.climbs[0], sample: true });
     await backend.completeQuest('vertical-read');
@@ -77,6 +77,23 @@ describe('http backend', () => {
     expect(calls[3].body).toBeUndefined();
     expect(calls[4].body).toEqual({ arm_span_cm: 180, height_cm: 176, date: '2026-10-03' });
     expect(calls.every(c => c.headers.Authorization === 'Bearer token-123')).toBe(true);
+  });
+
+  it('reads flags from a server that does not send spots yet as "not sure where"', async () => {
+    const older = {
+      ...profile,
+      hand_flags: [{ side: 'right', finger: 'ring', date: '2026-10-02' }],
+    };
+    const backend = createHttpBackend({
+      baseUrl: 'https://api.test',
+      fetch: fakeFetch(200, older).fetch,
+    });
+
+    const state = await backend.load();
+
+    expect(state.flags).toEqual([
+      { side: 'right', finger: 'ring', date: '2026-10-02', spots: [] },
+    ]);
   });
 
   it('turns HTTP errors and network failures into BackendError', async () => {

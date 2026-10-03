@@ -4,6 +4,8 @@ import {
   AppText,
   Button,
   Chip,
+  Column,
+  Columns,
   HAND_HEIGHT,
   HAND_WIDTH,
   LEFT_HAND_FINGERS,
@@ -12,13 +14,16 @@ import {
   PixelText,
   SPRITE_COLORS,
   Tag,
+  WarningSign,
   handRows,
   spacing,
   useContentWidth,
 } from '@hackyeah/ui';
 import { PageHeader } from '../components/PageHeader';
 import { TabScreen } from '../components/TabScreen';
-import { FINGER_NAME, SIDE_NAME, fingerLabel } from '../labels';
+import { FINGER_NAME, SIDE_NAME, fingerLabel, spotsText } from '../labels';
+import { useNavigation } from '../navigation/Navigator';
+import type { RouteName } from '../navigation/routes';
 import { useGame } from '../state/GameProvider';
 
 // Symptom screen: quiet panels and plain words. No monkey, no rewards.
@@ -48,99 +53,124 @@ function fingerArea(side: Side, finger: Finger, scale: number) {
 }
 
 export function HandsScreen() {
-  const { state, today, quest, toggleFlag } = useGame();
+  const { state, today, quest, clearFinger } = useGame();
+  const { navigate } = useNavigation<RouteName>();
   // Two hands at scale 6 take 256px of a 296px panel on a 360px screen.
   // Smaller screens get scale 5 so the hands keep some room.
   const scale = useContentWidth() < 360 ? 5 : 6;
   const flags = state.flags;
   const soreOn = (side: Side) =>
     flags.filter(f => f.side === side).map(f => f.finger);
+  const open = (side: Side, finger: Finger) =>
+    navigate('Finger', { side, finger });
 
   return (
     <TabScreen>
       <PageHeader
         title="Hands"
-        subtitle="Mark a finger that feels sore. Quests that load your fingers wait until you clear it."
+        subtitle="Mark where a finger hurts. Quests that load your fingers wait until you clear it."
       />
 
-      <Panel variant="quiet">
-        <View style={styles.hands}>
-          {SIDES.map(side => (
-            <Hand
-              key={side}
-              side={side}
-              sore={soreOn(side)}
-              scale={scale}
-              onToggle={finger => toggleFlag(side, finger)}
-            />
-          ))}
-        </View>
-        <AppText variant="caption" muted>
-          Palms up. Tap a finger or its name. Tap again to clear it.
-        </AppText>
-      </Panel>
-
-      <Panel variant={flags.length > 0 ? 'alert' : 'quiet'} title="Flagged">
-        {flags.length === 0 ? (
-          <AppText>Nothing flagged. Quests run as normal.</AppText>
-        ) : (
-          flags.map(f => {
-            const label = fingerLabel(f.side, f.finger);
-            return (
-              <View key={`${f.side}-${f.finger}`} style={styles.row}>
-                <AppText style={styles.grow}>
-                  {label}, flagged {ageLabel(f.date, today)}
-                </AppText>
-                <Button
-                  title="Clear"
-                  variant="secondary"
-                  small
-                  accessibilityLabel={`Clear ${label.toLowerCase()}`}
-                  onPress={() => toggleFlag(f.side, f.finger)}
+      <Columns>
+        <Column>
+          <Panel variant="quiet">
+            <View style={styles.hands}>
+              {SIDES.map(side => (
+                <Hand
+                  key={side}
+                  side={side}
+                  sore={soreOn(side)}
+                  scale={scale}
+                  onOpen={finger => open(side, finger)}
                 />
-              </View>
-            );
-          })
-        )}
-      </Panel>
-
-      {quest.paused.length > 0 ? (
-        <Panel variant="quiet" title="Quests">
-          <View style={styles.row}>
-            <Tag text="Paused" tone="paused" />
-            <AppText style={styles.grow}>
-              {quest.paused.map(q => q.title).join(', ')}
+              ))}
+            </View>
+            <AppText variant="caption" muted>
+              Palms up. Tap a finger or its name to mark where it hurts.
             </AppText>
-          </View>
-          <AppText variant="caption" muted>
-            {quest.paused.length === 1
-              ? 'It loads your fingers, so it waits until nothing is flagged.'
-              : 'They load your fingers, so they wait until nothing is flagged.'}
-          </AppText>
-          {quest.quest ? (
-            <View style={styles.offer}>
-              <AppText>
-                Offered instead:{' '}
-                <AppText style={styles.strong}>{quest.quest.title}</AppText>
-              </AppText>
+          </Panel>
+        </Column>
+
+        <Column>
+          <Panel variant={flags.length > 0 ? 'alert' : 'quiet'} title="Flagged">
+            {flags.length === 0 ? (
+              <AppText>Nothing flagged. Quests run as normal.</AppText>
+            ) : (
+              flags.map(f => {
+                const label = fingerLabel(f.side, f.finger);
+                return (
+                  <View key={`${f.side}-${f.finger}`} style={styles.flag}>
+                    <AppText>
+                      <AppText style={styles.strong}>{label}:</AppText>{' '}
+                      {spotsText(f.finger, f.spots)}.
+                    </AppText>
+                    <AppText variant="caption" muted>
+                      Flagged {ageLabel(f.date, today)}.
+                    </AppText>
+                    <View style={styles.actions}>
+                      <Button
+                        title="Edit"
+                        variant="secondary"
+                        small
+                        accessibilityLabel={`Edit ${label.toLowerCase()}`}
+                        onPress={() => open(f.side, f.finger)}
+                      />
+                      <Button
+                        title="Clear"
+                        variant="secondary"
+                        small
+                        accessibilityLabel={`Clear ${label.toLowerCase()}`}
+                        onPress={() => clearFinger(f.side, f.finger)}
+                      />
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </Panel>
+
+          {quest.paused.length > 0 ? (
+            <Panel variant="quiet" title="Quests">
+              <View style={styles.row}>
+                <Tag text="Paused" tone="paused" />
+                <AppText style={styles.grow}>
+                  {quest.paused.map(q => q.title).join(', ')}
+                </AppText>
+              </View>
               <AppText variant="caption" muted>
-                {quest.quest.task}
+                {quest.paused.length === 1
+                  ? 'It loads your fingers, so it waits until nothing is flagged.'
+                  : 'They load your fingers, so they wait until nothing is flagged.'}
+              </AppText>
+              {quest.quest ? (
+                <View style={styles.offer}>
+                  <AppText>
+                    Offered instead:{' '}
+                    <AppText style={styles.strong}>{quest.quest.title}</AppText>
+                  </AppText>
+                  <AppText variant="caption" muted>
+                    {quest.quest.task}
+                  </AppText>
+                </View>
+              ) : (
+                <AppText>Nothing else is on offer right now.</AppText>
+              )}
+            </Panel>
+          ) : null}
+
+          <Panel variant="quiet">
+            <View style={styles.note}>
+              <WarningSign />
+              <AppText variant="caption" style={styles.grow}>
+                This is your own note, not a diagnosis. The app cannot tell
+                when a finger is ready for climbing. If the pain is sharp, you
+                felt a pop, there is swelling, or it keeps hurting, stop
+                climbing and see a physio or doctor.
               </AppText>
             </View>
-          ) : (
-            <AppText>Nothing else is on offer right now.</AppText>
-          )}
-        </Panel>
-      ) : null}
-
-      <Panel variant="quiet">
-        <AppText variant="caption">
-          This is your own note, not a diagnosis. The app cannot tell when a
-          finger is ready for climbing. If the pain is sharp, you felt a pop,
-          there is swelling, or it keeps hurting, stop climbing and see a physio
-          or doctor.
-        </AppText>
-      </Panel>
+          </Panel>
+        </Column>
+      </Columns>
     </TabScreen>
   );
 }
@@ -149,16 +179,16 @@ type HandProps = Readonly<{
   side: Side;
   sore: readonly Finger[];
   scale: number;
-  onToggle: (finger: Finger) => void;
+  onOpen: (finger: Finger) => void;
 }>;
 
 /**
  * One hand: its name, the picture with tappable fingers, then one chip per
- * finger. The chips are the main control; finger areas on the picture are
- * small, so they are a touch shortcut and hidden from screen readers (the
- * chips already announce every finger).
+ * finger. Both open the finger close-up. The chips are the main control;
+ * finger areas on the picture are small, so they are a touch shortcut and
+ * hidden from screen readers (the chips already announce every finger).
  */
-function Hand({ side, sore, scale, onToggle }: HandProps) {
+function Hand({ side, sore, scale, onOpen }: HandProps) {
   return (
     <View style={styles.hand}>
       <PixelText text={SIDE_NAME[side]} heading />
@@ -172,7 +202,7 @@ function Hand({ side, sore, scale, onToggle }: HandProps) {
           <Pressable
             key={finger}
             accessible={false}
-            onPress={() => onToggle(finger)}
+            onPress={() => onOpen(finger)}
             style={[styles.area, fingerArea(side, finger, scale)]}
           />
         ))}
@@ -184,7 +214,7 @@ function Hand({ side, sore, scale, onToggle }: HandProps) {
             label={FINGER_NAME[finger]}
             selected={sore.includes(finger)}
             warn
-            onPress={() => onToggle(finger)}
+            onPress={() => onOpen(finger)}
             accessibilityLabel={fingerLabel(side, finger)}
           />
         ))}
@@ -198,7 +228,10 @@ const styles = StyleSheet.create({
   hand: { flex: 1, alignItems: 'center', gap: spacing.sm },
   area: { position: 'absolute' },
   chips: { alignSelf: 'stretch', gap: spacing.sm },
+  flag: { gap: spacing.xs },
+  actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  note: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   grow: { flex: 1 },
   offer: { gap: spacing.xs },
   strong: { fontWeight: '800' },
