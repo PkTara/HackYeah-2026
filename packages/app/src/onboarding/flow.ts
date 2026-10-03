@@ -9,6 +9,9 @@ import {
   type ConnectionId,
 } from '@hackyeah/core';
 
+/** One app's permission screen, opened from the apps step. */
+export type ConsentStepId = `consent:${ConnectionId}`;
+
 export type StepId =
   | 'welcome'
   | 'places'
@@ -17,11 +20,12 @@ export type StepId =
   | 'goal'
   | 'body'
   | 'apps'
+  | ConsentStepId
   | 'tests'
   | BaselineTestId
   | 'done';
 
-/** One question or one test per step. */
+/** The main path, one question or one test per step. */
 export const STEP_ORDER: readonly StepId[] = [
   'welcome',
   'places',
@@ -39,8 +43,22 @@ export function isTestStep(step: StepId): step is BaselineTestId {
   return BASELINE_TESTS.some(test => test.id === step);
 }
 
+export function consentStep(id: ConnectionId): ConsentStepId {
+  return `consent:${id}`;
+}
+
+/** The app a consent step asks about, or null for other steps. */
+export function consentApp(step: StepId): ConnectionId | null {
+  return step.startsWith('consent:')
+    ? (step.slice('consent:'.length) as ConnectionId)
+    : null;
+}
+
 /** The step after this one. The last test leads to done. */
 export function nextStep(step: StepId): StepId {
+  if (consentApp(step)) {
+    return 'apps';
+  }
   const i = STEP_ORDER.indexOf(step);
   return STEP_ORDER[Math.min(i + 1, STEP_ORDER.length - 1)];
 }
@@ -56,6 +74,9 @@ export function chapterOf(step: StepId): number {
   if (step === 'welcome') {
     return 0;
   }
+  if (consentApp(step)) {
+    return chapterOf('apps');
+  }
   if (step === 'done' || step === 'tests' || isTestStep(step)) {
     return CHAPTERS;
   }
@@ -69,7 +90,7 @@ export const PERCHES = 7;
  * Where the monkey hangs on each step. It zig-zags across the strip, so
  * every step change is a real hop.
  */
-const PERCH: Readonly<Record<StepId, number>> = {
+const PERCH: Readonly<Record<Exclude<StepId, ConsentStepId>, number>> = {
   welcome: 3,
   places: 0,
   experience: 4,
@@ -86,9 +107,11 @@ const PERCH: Readonly<Record<StepId, number>> = {
   'push-ups': 6,
   done: 3,
 };
+/** Consent screens: a short hop away from the apps list and back. */
+const CONSENT_PERCH = 4;
 
 export function perchOf(step: StepId): number {
-  return PERCH[step];
+  return consentApp(step) ? CONSENT_PERCH : PERCH[step as keyof typeof PERCH];
 }
 
 /** Where you are and where you came from (for the monkey's hop). */
@@ -115,7 +138,7 @@ export function goBack(nav: Nav): Nav {
   return { history: nav.history.slice(0, -1), from: currentStep(nav) };
 }
 
-const LINES: Readonly<Record<StepId, string>> = {
+const LINES: Readonly<Record<Exclude<StepId, ConsentStepId>, string>> = {
   welcome:
     "Hi, I'm your climbing monkey. I help you see how you climb and pick one thing to work on next.",
   places: 'First up: where do you climb? Pick all that fit.',
@@ -134,10 +157,10 @@ const LINES: Readonly<Record<StepId, string>> = {
   done: 'All set. I saved your answers and your profile is ready!',
 };
 
-/** What the monkey says. While an app asks for consent, it talks about that app. */
-export function lineFor(step: StepId, asking: ConnectionId | null = null): string {
-  if (step === 'apps' && asking) {
-    return `Here is what ${CONNECTIONS[asking].name} would read. Your call.`;
-  }
-  return LINES[step];
+/** What the monkey says on a step. */
+export function lineFor(step: StepId): string {
+  const app = consentApp(step);
+  return app
+    ? `Here is what ${CONNECTIONS[app].name} would read. Your call.`
+    : LINES[step as keyof typeof LINES];
 }

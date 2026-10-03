@@ -16,13 +16,13 @@ screens -> useGame() -> ClimbingBackend -> local storage (today)
 | `load()` | On start, and after a failed save to get back in step |
 | `addClimb(log)` / `removeClimb(id)` | Log screen |
 | `completeQuest(id)` / `skipQuest(id)` | Quest card on the profile |
-| `setHandFlag(flag, flagged)` | Hands screen |
+| `setHandFlag(flag, flagged)` | Hands screen and the finger close-up |
 | `saveReach(reach)` | Tests screen |
 | `resetDemo()` (optional) | Tests screen, local demo only |
 
 Rules the backend can rely on, and should keep:
 - **Ids and dates are made on the device.** A retried `addClimb` sends the same id, so the server can treat repeats as no-ops.
-- **Commands are safe to repeat.** `setHandFlag` is on or off, not a toggle. Completing a quest twice must not count twice.
+- **Commands are safe to repeat.** `setHandFlag` is on or off, not a toggle, and a PUT replaces the whole flag. Completing a quest twice must not count twice.
 - **XP and the profile are derived, not stored.** The app computes the focus, the quest and the monkey's level from the climbs and completed quest ids (`packages/core`). The server only needs to store records.
 
 ## Connecting the real API
@@ -43,6 +43,8 @@ Current placeholder API:
 | Complete / skip a quest | `POST /me/quests/:id/complete`, `POST /me/quests/:id/skip` | |
 | Flag / clear a finger | `PUT` / `DELETE /me/hand-flags/:side/:finger` | `HandFlagDto` on PUT |
 | Save reach | `PUT /me/reach` | `ReachDto` |
+
+`HandFlagDto` is `{ side, finger, date, spots }`. `spots` lists where it hurts as spot ids from `packages/core/src/spots.ts` (for example `["pip", "a2"]`); an empty list means sore, not sure where. Every tap on the finger close-up sends a PUT with the full list. A server that leaves `spots` out of `hand_flags` is read as an empty list, so it keeps working before it stores spots.
 
 ## What happens when the server says no
 
