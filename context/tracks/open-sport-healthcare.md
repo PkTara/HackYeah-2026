@@ -72,6 +72,6 @@ The description names **Challenge Rocket**; the rules name **HackTribe**. The ru
 
 Use this as the primary product brief: connect climbing assessments and records with wellbeing context, show an understandable profile and support one achievable action. Motivation, accessibility and low routine effort matter as much as collecting information.
 
-The brief does not mandate diagnosis, AI inference, health integrations, HarmonyOS, API 20, a `.hap`, a public repository, a recorded demo or a file named `AI_WORKFLOW.md`. Huawei has separate requirements. A focused activity-support prototype can fit this open task without implementing every example direction.
+The brief does not mandate diagnosis, AI inference, health integrations, a particular platform, a public repository, a recorded demo or a file named `AI_WORKFLOW.md`. A focused activity-support prototype can fit this open task without implementing every example direction.
 
 See the [alignment analysis](../../docs/climbing-monkey-alignment.md) for proposed priorities and gaps.
