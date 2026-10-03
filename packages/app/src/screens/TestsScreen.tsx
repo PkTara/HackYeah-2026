@@ -4,6 +4,8 @@ import { ageLabel, shortDate, type Reach } from '@hackyeah/core';
 import {
   AppText,
   Button,
+  Column,
+  Columns,
   Icon,
   PX,
   Panel,
@@ -81,29 +83,36 @@ export function TestsScreen() {
         subtitle="Optional checks that add to your profile. Only reach works in this build."
       />
 
-      <ReachPanel />
+      {/* Wide screens: the working test on the left, the rest next to it. */}
+      <Columns>
+        <Column>
+          <ReachPanel />
+        </Column>
 
-      {NOT_BUILT.map(test => (
-        <Panel
-          key={test.title}
-          variant="quiet"
-          title={test.title}
-          badge={<Tag text="Soon" tone="muted" />}
-        >
-          <AppText>{test.text}</AppText>
-        </Panel>
-      ))}
+        <Column>
+          {NOT_BUILT.map(test => (
+            <Panel
+              key={test.title}
+              variant="quiet"
+              title={test.title}
+              badge={<Tag text="Soon" tone="muted" />}
+            >
+              <AppText>{test.text}</AppText>
+            </Panel>
+          ))}
 
-      <Panel variant="quiet">
-        <Button
-          title="About this build"
-          variant="secondary"
-          small
-          onPress={() => navigate('About')}
-        />
-        {/* Only the on-device demo store can be reset. */}
-        {backendKind === 'local' ? <ResetDemo /> : null}
-      </Panel>
+          <Panel variant="quiet">
+            <Button
+              title="About this build"
+              variant="secondary"
+              small
+              onPress={() => navigate('About')}
+            />
+            {/* Only the on-device demo store can be reset. */}
+            {backendKind === 'local' ? <ResetDemo /> : null}
+          </Panel>
+        </Column>
+      </Columns>
     </TabScreen>
   );
 }
