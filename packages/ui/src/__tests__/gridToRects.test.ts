@@ -96,8 +96,10 @@ add(
 );
 
 const HOLDS = [31, 25, 18, 12, 6];
-add('day jungle, 60 cols', jungleScene(60, 62, { night: false, holdRows: HOLDS })
-  .rows);
+add(
+  'day jungle, 60 cols',
+  jungleScene(60, 62, { night: false, holdRows: HOLDS }).rows,
+);
 add(
   'night jungle, 120 cols',
   jungleScene(120, 62, { night: true, holdRows: HOLDS }).rows,

@@ -32,7 +32,11 @@ const RADAR: Geometry = {
 
 const CHARTS = [
   { name: 'terrain triangle', geometry: TRIANGLE, values: [0.8, 0.5, 0.6] },
-  { name: 'movement radar', geometry: RADAR, values: [0.6, 0.7, 0.4, 0.8, 0.5] },
+  {
+    name: 'movement radar',
+    geometry: RADAR,
+    values: [0.6, 0.7, 0.4, 0.8, 0.5],
+  },
 ];
 
 /** Coordinates of every pixel with the given key. */
@@ -60,8 +64,11 @@ const along = (g: Geometry, i: number, value: number): Point => [
   g.cy + Math.sin(g.angles[i]) * g.radius * value,
 ];
 
-const withValue = (values: readonly (number | null)[], i: number, v: number | null) =>
-  values.map((old, j) => (j === i ? v : old));
+const withValue = (
+  values: readonly (number | null)[],
+  i: number,
+  v: number | null,
+) => values.map((old, j) => (j === i ? v : old));
 
 /**
  * Marks the pixels that can be reached from the border without stepping on a
@@ -94,7 +101,10 @@ function distanceToSegment(p: Point, a: Point, b: Point): number {
   const [dx, dy] = [b[0] - a[0], b[1] - a[1]];
   const t = Math.max(
     0,
-    Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / (dx * dx + dy * dy)),
+    Math.min(
+      1,
+      ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / (dx * dx + dy * dy),
+    ),
   );
   return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
 }
@@ -154,7 +164,10 @@ describe('radialChart', () => {
         const filled: string[] = [];
         for (const i of axes) {
           for (const striped of [false, true]) {
-            const { rows } = chart({ values: withValue(values, i, null), striped });
+            const { rows } = chart({
+              values: withValue(values, i, null),
+              striped,
+            });
             if (count(rows, 'F') + count(rows, 'S') > 0) {
               filled.push(`axis ${i}${striped ? ', striped' : ''}`);
             }
@@ -171,8 +184,12 @@ describe('radialChart', () => {
               Math.abs(x - geometry.cx) <= 2 && Math.abs(y - geometry.cy) <= 2,
           ).length;
         for (const i of axes) {
-          expect(nearCentre(chart({ values: withValue(values, i, 0) }).rows)).toBeGreaterThan(0);
-          expect(nearCentre(chart({ values: withValue(values, i, null) }).rows)).toBe(0);
+          expect(
+            nearCentre(chart({ values: withValue(values, i, 0) }).rows),
+          ).toBeGreaterThan(0);
+          expect(
+            nearCentre(chart({ values: withValue(values, i, null) }).rows),
+          ).toBe(0);
         }
       });
 
@@ -188,9 +205,9 @@ describe('radialChart', () => {
         for (const i of axes) {
           const { rows } = chart({ values: withValue(values, i, null) });
           const known = axes.filter(j => j !== i);
-          expect(known.map(j => at(rows, along(geometry, j, values[j])))).toEqual(
-            known.map(() => 'E'),
-          );
+          expect(
+            known.map(j => at(rows, along(geometry, j, values[j]))),
+          ).toEqual(known.map(() => 'E'));
         }
       });
 
@@ -199,14 +216,21 @@ describe('radialChart', () => {
           const { rows, tips } = chart({ values: withValue(values, i, null) });
           const dashes = find(rows, 'h');
           expect(dashes.length).toBeGreaterThan(0);
-          const offSpoke = dashes.filter(p => distanceToSegment(p, centre, tips[i]) > 1);
+          const offSpoke = dashes.filter(
+            p => distanceToSegment(p, centre, tips[i]) > 1,
+          );
           expect(offSpoke).toEqual([]);
         }
       });
 
       it('draws only guides when nothing is known', () => {
         const { rows } = chart({ values: axes.map(() => null), striped: true });
-        expect([...new Set(rows.join(''))].sort()).toEqual(['.', 'd', 'g', 'h']);
+        expect([...new Set(rows.join(''))].sort()).toEqual([
+          '.',
+          'd',
+          'g',
+          'h',
+        ]);
       });
     });
 
@@ -232,7 +256,10 @@ describe('radialChart', () => {
 
       it('sits on the tip of an unknown focus axis', () => {
         for (const i of axes) {
-          const { rows, tips } = chart({ values: withValue(values, i, null), focus: i });
+          const { rows, tips } = chart({
+            values: withValue(values, i, null),
+            focus: i,
+          });
           expectMarkerAt(rows, tips[i]);
         }
       });
@@ -272,17 +299,20 @@ describe('radialChart', () => {
     // x + 0.5 while line() rounds), so fill pixels poke out past the edge and
     // empty pixels are left just inside it. See raster.test.ts.
     // Change `it.failing` to `it` once polygon() samples at (x, y).
-    it.failing('keeps the fill inside the edge (known bug, expected to fail)', () => {
-      const { rows } = chart({ striped: true });
-      const out = outside(rows, 'E');
-      const fill = [...find(rows, 'F'), ...find(rows, 'S')];
-      expect(fill.filter(([x, y]) => out[y][x])).toEqual([]);
-      const enclosed = rows.flatMap((row, y) =>
-        [...row].flatMap((k, x) =>
-          !out[y][x] && !'EFS'.includes(k) ? [`${x},${y}`] : [],
-        ),
-      );
-      expect(enclosed).toEqual([]);
-    });
+    it.failing(
+      'keeps the fill inside the edge (known bug, expected to fail)',
+      () => {
+        const { rows } = chart({ striped: true });
+        const out = outside(rows, 'E');
+        const fill = [...find(rows, 'F'), ...find(rows, 'S')];
+        expect(fill.filter(([x, y]) => out[y][x])).toEqual([]);
+        const enclosed = rows.flatMap((row, y) =>
+          [...row].flatMap((k, x) =>
+            !out[y][x] && !'EFS'.includes(k) ? [`${x},${y}`] : [],
+          ),
+        );
+        expect(enclosed).toEqual([]);
+      },
+    );
   });
 });

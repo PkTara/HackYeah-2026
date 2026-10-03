@@ -1,10 +1,9 @@
 import { StyleSheet, View } from 'react-native';
-import { AppText, Button, Icon, Monkey, Panel, PixelText } from '@hackyeah/ui';
+import { AppText, Icon, Monkey, Panel, PixelText } from '@hackyeah/ui';
 import { useCapabilities } from '../capabilities';
+import { BackButton } from '../components/BackButton';
 import { PageHeader } from '../components/PageHeader';
 import { TabScreen } from '../components/TabScreen';
-import { useNavigation } from '../navigation/Navigator';
-import type { RouteName } from '../navigation/routes';
 import { useGame } from '../state/GameProvider';
 
 const PACKAGES = [
@@ -39,19 +38,10 @@ const HONEST_BITS = [
 export function AboutScreen() {
   const { platform, platformLabel, haptics } = useCapabilities();
   const { backendKind } = useGame();
-  const { canGoBack, goBack } = useNavigation<RouteName>();
 
   return (
     <TabScreen>
-      {canGoBack ? (
-        <Button
-          title="Back"
-          variant="secondary"
-          small
-          onPress={goBack}
-          style={styles.back}
-        />
-      ) : null}
+      <BackButton />
       <PageHeader
         title="About"
         subtitle="Climbing Monkey, a HackYeah 2026 prototype."
@@ -123,7 +113,6 @@ function Fact({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  back: { alignSelf: 'flex-start' },
   grow: { flex: 1 },
   fact: {
     flexDirection: 'row',

@@ -22,6 +22,7 @@ import {
   Tag,
   useTheme,
 } from '@hackyeah/ui';
+import { BackButton } from '../components/BackButton';
 import { PageHeader } from '../components/PageHeader';
 import { TabScreen } from '../components/TabScreen';
 import { MOVEMENT_NAME, TERRAIN_ICON, TERRAIN_NAME } from '../labels';
@@ -34,7 +35,7 @@ import { useGame } from '../state/GameProvider';
  * on the profile can be checked against what was actually logged.
  */
 export function EvidenceScreen() {
-  const { params, canGoBack, goBack, reset } = useNavigation<RouteName>();
+  const { params, reset } = useNavigation<RouteName>();
   const { state, today, focus } = useGame();
   const [terrain, setTerrain] = useState<Terrain>(
     () => TERRAINS.find(t => t === params.terrain) ?? focus.terrain,
@@ -53,15 +54,7 @@ export function EvidenceScreen() {
 
   return (
     <TabScreen>
-      {canGoBack ? (
-        <Button
-          title="Back"
-          variant="secondary"
-          small
-          onPress={goBack}
-          style={styles.back}
-        />
-      ) : null}
+      <BackButton />
       <PageHeader
         title="Evidence"
         subtitle="The climbs behind each wall on your profile."
@@ -84,7 +77,7 @@ export function EvidenceScreen() {
       <Panel
         title={name}
         icon={TERRAIN_ICON[terrain]}
-        badge={isFocus ? <Tag text="Your focus" tone="new" /> : undefined}
+        badge={isFocus ? <Tag text="Your focus" tone="focus" /> : undefined}
       >
         <PixelText
           text={
@@ -323,7 +316,6 @@ function ClimbRow({ log }: { log: ClimbLog }) {
 }
 
 const styles = StyleSheet.create({
-  back: { alignSelf: 'flex-start' },
   switcher: { flexDirection: 'row', gap: 8 },
   grow: { flex: 1 },
   grid: { padding: PX, gap: PX },

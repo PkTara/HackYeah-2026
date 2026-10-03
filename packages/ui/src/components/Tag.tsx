@@ -4,10 +4,10 @@ import { PixelText } from './PixelText';
 
 type Props = {
   text: string;
-  tone?: 'example' | 'paused' | 'new' | 'muted';
+  tone?: 'example' | 'paused' | 'new' | 'focus' | 'muted';
 };
 
-/** Small stamp for states: EXAMPLE data, PAUSED quests, NEW unlocks. */
+/** Small stamp for states: EXAMPLE data, PAUSED quests, the current focus. */
 export function Tag({ text, tone = 'example' }: Props) {
   const theme = useTheme();
   const c = theme.colors;
@@ -15,6 +15,7 @@ export function Tag({ text, tone = 'example' }: Props) {
     example: { bg: c.info, fg: '#FFFFFF' },
     paused: { bg: c.danger, fg: c.onDanger },
     new: { bg: c.leaf, fg: '#FFFFFF' },
+    focus: { bg: c.primary, fg: c.onPrimary },
     muted: { bg: c.surfaceShade, fg: c.text },
   }[tone];
   return (
