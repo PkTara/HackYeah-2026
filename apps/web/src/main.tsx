@@ -3,9 +3,15 @@
  * ("react-native" is aliased to it in vite.config.js).
  */
 import { AppRegistry } from 'react-native';
-import { App } from '@hackyeah/app';
+import { App, isRouteName } from '@hackyeah/app';
 
-AppRegistry.registerComponent('HackYeahApp', () => App);
+// Deep link for development and demos: /#Hands opens the Hands screen.
+const hash = window.location.hash.slice(1);
+const initialRoute = isRouteName(hash) ? hash : undefined;
+
+AppRegistry.registerComponent('HackYeahApp', () => () => (
+  <App initialRoute={initialRoute} />
+));
 AppRegistry.runApplication('HackYeahApp', {
   rootTag: document.getElementById('root'),
 });
