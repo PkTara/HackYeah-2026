@@ -1,16 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, StyleSheet, View } from 'react-native';
 import {
-  MOVEMENTS,
   explainFocus,
   explainQuest,
   explainPause,
   explainTerrain,
-  explainMovement,
   TERRAINS,
   XP_PER_LEVEL,
   XP_PER_QUEST,
-  movementTallies,
   shortDate,
   terrainTallies,
 } from '@hackyeah/core';
@@ -25,7 +22,6 @@ import {
   Meter,
   PX,
   Panel,
-  Pips,
   PixelText,
   SampleMark,
   Tag,
@@ -37,12 +33,12 @@ import {
   useTheme,
 } from '@hackyeah/ui';
 import { explainXP } from '../components/resultExplanations';
-import { MovementRadarPanel } from '../components/MovementRadarPanel';
+import { MovementRadarSection } from '../components/MovementRadarSection';
+import { StyleTallies } from '../components/StyleTallies';
 import { DecisionHelp } from '../components/DecisionHelp';
 import { DataRow } from '../components/DataRow';
 import { TabScreen } from '../components/TabScreen';
 import {
-  MOVEMENT_NAME,
   TERRAIN_ICON,
   TERRAIN_NAME,
   fingerLabel,
@@ -66,7 +62,6 @@ export function ProfileScreen() {
   const wide = useLayout().columns === 2;
 
   const terrain = terrainTallies(state.logs);
-  const moves = movementTallies(state.logs);
   const questsToGo = STEPS - pet.xpInLevel / XP_PER_QUEST;
   const recent = [...state.logs].reverse().slice(0, 4);
   const measured = [
@@ -411,42 +406,11 @@ export function ProfileScreen() {
             </Disclosure>
           </Panel>
 
-          {/* Each style is counted separately, including multi-style climbs. */}
+          {/* Styles you logged, then the movement radar built on them. */}
           <Panel title="Style">
-            {MOVEMENTS.map(m => (
-              <View key={m} style={{ gap: 6 }}>
-                <DecisionHelp
-                  label={`${MOVEMENT_NAME[m]} tally`}
-                  explanation={explainMovement(m, state.logs)}
-                >
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 10,
-                    }}
-                  >
-                    <PixelText text={MOVEMENT_NAME[m]} />
-                    <AppText variant="caption" muted>
-                      {moves[m].sent} of {moves[m].logged} sent
-                    </AppText>
-                  </View>
-                </DecisionHelp>
-                <Pips
-                  results={state.logs
-                    .filter(l => l.movements.includes(m))
-                    .map(l => l.sent)}
-                  accessibilityLabel={`${MOVEMENT_NAME[m]}: ${moves[m].sent} of ${moves[m].logged} sent`}
-                />
-              </View>
-            ))}
-            <AppText variant="caption" muted>
-              A climb can use several styles. Each selected style counts here.
-            </AppText>
+            <StyleTallies logs={state.logs} />
+            <MovementRadarSection />
           </Panel>
-
-          {/* Five axes from the climbs above plus three home tests. */}
-          <MovementRadarPanel />
 
           {wide ? null : recentPanel}
 

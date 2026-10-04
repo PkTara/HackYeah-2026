@@ -34,7 +34,7 @@ export { Gazelle } from './components/Gazelle';
 export { Icon, isIconName } from './components/Icon';
 export { IconButton, ICON_BUTTON_SIZE } from './components/IconButton';
 export { JungleHero } from './components/JungleHero';
-export { Meter, Pips } from './components/Meter';
+export { Meter, Pips, ShareBar } from './components/Meter';
 export { Monkey } from './components/Monkey';
 export { MonkeyGuide } from './components/MonkeyGuide';
 export { SpeechBubble } from './components/SpeechBubble';

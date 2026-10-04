@@ -11,8 +11,8 @@ import {
   AppText,
   Button,
   Disclosure,
+  Divider,
   MovementRadar,
-  Panel,
   PixelText,
   SampleMark,
   useLayout,
@@ -24,11 +24,12 @@ import { useGame } from '../state/GameProvider';
 import { DecisionHelp, ExplanationSheet } from './DecisionHelp';
 
 /**
- * The movement radar on Profile: five axes scored from the climber's own
- * climbs and home tests by the rule in packages/core/src/movement.ts. Each
- * axis name opens the same WHY? sheet as the ? beside its row below.
+ * The movement radar on Profile, under the style list in the same panel:
+ * five axes scored from the climber's own climbs and home tests by the rule
+ * in packages/core/src/movement.ts. Each axis name opens the same WHY?
+ * sheet as the ? beside its row below.
  */
-export function MovementRadarPanel() {
+export function MovementRadarSection() {
   const { state } = useGame();
   const { reset } = useNavigation<RouteName>();
   const { colors: c } = useTheme();
@@ -61,16 +62,18 @@ export function MovementRadarPanel() {
   const selected = open === null ? null : scores[open];
 
   return (
-    <Panel title="Movement radar">
+    <View style={styles.section}>
+      <Divider />
       <DecisionHelp
         label="Movement radar"
         explanation={explainMovementRadar(scores)}
       >
-        <AppText variant="caption" muted>
-          Each axis counts your own climbs and home tests. Tap a name to see
-          why.
-        </AppText>
+        <PixelText text="Movement radar" scale={3} heading />
       </DecisionHelp>
+      <AppText variant="caption" muted>
+        Five axes from the styles above, your walls and three home tests. Tap
+        a name to see why.
+      </AppText>
 
       <MovementRadar
         axes={axes}
@@ -146,11 +149,12 @@ export function MovementRadarPanel() {
           explanation={explainMovementAxis(selected, state.logs)}
         />
       ) : null}
-    </Panel>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  section: { gap: 10 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
   next: { borderWidth: 3, padding: 10, gap: 6 },
   buttons: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

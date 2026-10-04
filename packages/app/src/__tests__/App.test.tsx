@@ -157,9 +157,14 @@ describe('App', () => {
       'Compression',
       'Endurance',
     ]) {
-      expect(screenText(again)).toContain(`${style}: 1 of 1 sent`);
+      // One compact row per logged style; the whole row opens its sheet.
+      expect(screenText(again)).toContain(`Why: ${style} tally`);
     }
-    expect(screenText(again)).toContain('Powerful: 0 of 0 sent');
+    // Styles with no climbs fold into one line instead of a row each.
+    expect(screenText(again)).not.toContain('Why: Powerful tally');
+    expect(screenText(again)).toMatch(
+      /Not logged yet: ?controlled, dynamic, powerful\./,
+    );
     act(() => again.unmount());
   });
 

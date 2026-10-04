@@ -11,7 +11,7 @@
 
 ## What works
 
-- **Profile loop.** Log climbs (wall angle, controlled or dynamic movement, holds, grade, sent or not). The profile shows a terrain triangle and a style chart, one focus with the evidence behind it, one quest, and the monkey's XP, level and unlocks. Sample data is labelled Example.
+- **Profile loop.** Log climbs (wall angle, controlled or dynamic movement, holds, grade, sent or not). The profile shows a terrain triangle, a compact style list (one bar per style you logged, most logged first, the rest folded into one line), one focus with the evidence behind it, one quest, and the monkey's XP, level and unlocks. Sample data is labelled Example.
 - **Movement radar.** Five axes (footwork, balance, tension, stamina, dynos) scored from your own climbs and three home tests (one-leg balance, plank, dead hang): 1 point per sent matching climb, up to 3 for the home test, levels Started, Building and Established. An axis needs 3 matching climbs or its test, otherwise it shows Not enough data with a dashed spoke and the next step to score it. Tap an axis for the records, the rule as a vine, the research behind each signal and its limits. A summary of your records, not a skill test. The rule is in `packages/core/src/movement.ts` and the server's profile (`radar`).
 - **Setup.** First-run questions (places, experience, grade, goal, body, connected apps) and six home tests with a stopwatch or rep counter. The guide monkey holds a different prop for each question, and the timer and counter numbers can be tapped to type a result.
 - **Hands.** Flag a finger and mark the sore spots; quests that load the fingers pause until it is cleared. A layered hand anatomy viewer and a private hand photo journal (photos need the server).

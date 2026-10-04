@@ -3,6 +3,7 @@ import {
   movementTallies,
   normalizeClimbLog,
   pickFocus,
+  styleSummary,
   terrainTallies,
   type ClimbLog,
   type Movement,
@@ -23,6 +24,40 @@ function climb(terrain: Terrain, sent: boolean, movement: Movement = 'controlled
     sent,
   };
 }
+
+describe('style summary', () => {
+  it('lists logged styles, most logged first, and folds the rest', () => {
+    const summary = styleSummary(sampleLogs);
+    expect(
+      summary.logged.map(row => [row.movement, row.tally.sent, row.tally.logged]),
+    ).toEqual([
+      ['controlled', 7, 12],
+      ['dynamic', 3, 8],
+    ]);
+    expect(summary.empty).toEqual([
+      'technical',
+      'powerful',
+      'balance',
+      'coordination',
+      'compression',
+      'endurance',
+    ]);
+  });
+
+  it('keeps the fixed style order on a tie and folds every style with no climbs', () => {
+    const summary = styleSummary([
+      climb('slab', true, 'endurance'),
+      climb('slab', false, 'balance'),
+    ]);
+    expect(summary.logged.map(row => row.movement)).toEqual([
+      'balance',
+      'endurance',
+    ]);
+    expect(summary.empty).toHaveLength(6);
+    expect(styleSummary([]).logged).toEqual([]);
+    expect(styleSummary([]).empty).toHaveLength(8);
+  });
+});
 
 describe('profile tallies', () => {
   it('counts sends per terrain in the sample data', () => {
