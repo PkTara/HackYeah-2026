@@ -101,6 +101,10 @@ describe('overlay', () => {
     expect(overlay(['ABCD'], ['x.y.'])).toEqual(['xByD']);
   });
 
+  it("erases the pixel underneath where the patch has '_'", () => {
+    expect(overlay(['ABCD'], ['_x._'])).toEqual(['.xC.']);
+  });
+
   it('clips a patch that hangs over any edge without growing the picture', () => {
     expect(overlay(base, ['AB', 'CD'], 3, 2)).toEqual(['....', '....', '...A']);
     expect(overlay(base, ['AB', 'CD'], -1, -1)).toEqual([

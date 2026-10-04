@@ -8,6 +8,7 @@ import {
   perchLayout,
 } from '../components/MonkeyGuide';
 import { SCENE_COLORS } from '../pixel/scene';
+import { MONKEY_PROPS, type MonkeyProp } from '../pixel/sprites';
 
 const SPRITE_W = 32;
 const SPRITE_H = 25;
@@ -32,6 +33,32 @@ describe('guideMonkeyRows', () => {
       expect(rows[1][GRIP_X]).not.toBe('.');
     },
   );
+
+  it.each(['idle', 'blink', 'cheer'] as const)(
+    'keeps the same frame and fist with every prop (%s)',
+    pose => {
+      (Object.keys(MONKEY_PROPS) as MonkeyProp[]).forEach(prop => {
+        const rows = guideMonkeyRows(pose, prop);
+        expect({ prop, size: [rows[0].length, rows.length] }).toEqual({
+          prop,
+          size: [SPRITE_W, SPRITE_H],
+        });
+        expect(rows.every(row => row.length === SPRITE_W)).toBe(true);
+        // The vine still runs through the same fist, and the hold is gone.
+        const fist = (picture: readonly string[]) =>
+          picture.slice(0, 4).map(row => row.slice(GRIP_X - 2, GRIP_X + 4));
+        expect(fist(rows)).toEqual(fist(guideMonkeyRows(pose)));
+        expect(pixelsWith(rows.slice(0, 4), 'GgHC')).toBe(0);
+      });
+    },
+  );
+
+  it('keeps a hat that sticks up above the head, where the hold used to be', () => {
+    const plain = guideMonkeyRows('cheer');
+    const party = guideMonkeyRows('cheer', 'party-hat');
+    const top = (rows: readonly string[]) => rows.slice(0, 4).join('');
+    expect(top(party)).not.toBe(top(plain));
+  });
 
   it('keeps every pixel between the waving hand and the fist', () => {
     const rows = guideMonkeyRows('idle');

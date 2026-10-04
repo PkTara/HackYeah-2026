@@ -3,7 +3,12 @@ import { StyleSheet, View } from 'react-native';
 import { useReducedMotion, useTicker } from '../hooks';
 import { PixelCanvas } from '../pixel/raster';
 import { SCENE_COLORS } from '../pixel/scene';
-import { monkeyRows, SPRITE_COLORS, type MonkeyPose } from '../pixel/sprites';
+import {
+  monkeyRows,
+  SPRITE_COLORS,
+  type MonkeyPose,
+  type MonkeyProp,
+} from '../pixel/sprites';
 import { useTheme } from '../theme';
 import { PixelArt } from './PixelArt';
 import { SpeechBubble } from './SpeechBubble';
@@ -45,16 +50,23 @@ const BOUNCE = [0, -3, -5, -3, 0, -2, 0, 0];
 /** Where the monkey holds a vine: x is the vine's left column, y the fist's top row. */
 export type Perch = Readonly<{ x: number; y: number }>;
 
-/** The companion sprite without its hold, cropped to start at the fist. */
-export function guideMonkeyRows(pose: MonkeyPose): string[] {
-  return monkeyRows(pose)
+/**
+ * The companion sprite without its hold, cropped to start at the fist. A
+ * prop (say a party hat) may poke up into the rows the hold used: pixels
+ * that differ from the plain monkey are the prop's, so they stay.
+ */
+export function guideMonkeyRows(pose: MonkeyPose, prop?: MonkeyProp): string[] {
+  const plain = monkeyRows(pose);
+  return monkeyRows(pose, [], prop)
     .slice(HOLD_ROWS)
     .map((row, y) =>
       y > 3
         ? row
         : [...row]
             .map((key, x) =>
-              (x >= FIST.from && x <= FIST.to) || (y === 3 && x <= HEAD_TO)
+              (x >= FIST.from && x <= FIST.to) ||
+              (y === 3 && x <= HEAD_TO) ||
+              key !== plain[y + HOLD_ROWS][x]
                 ? key
                 : '.',
             )
@@ -214,6 +226,11 @@ type Props = {
   from?: number;
   /** Cheer and bounce, e.g. when the last step is reached. */
   celebrate?: boolean;
+  /**
+   * Something the monkey holds or wears, e.g. a tape measure while it asks
+   * for your reach. It stays in its hand through blinks and hops.
+   */
+  prop?: MonkeyProp;
   /** Width of the strip in px (full bleed). */
   width: number;
   /**
@@ -235,6 +252,7 @@ export function MonkeyGuide({
   spots,
   from,
   celebrate = false,
+  prop,
   width,
   columnWidth,
 }: Props) {
@@ -304,7 +322,7 @@ export function MonkeyGuide({
       : celebrate
         ? BOUNCE[idleTick % BOUNCE.length]
         : Math.floor(idleTick / 4) % 2;
-  const sprite = useMemo(() => guideMonkeyRows(pose), [pose]);
+  const sprite = useMemo(() => guideMonkeyRows(pose, prop), [pose, prop]);
 
   // The bubble's tail follows the monkey, hop by hop.
   const faceX = (pos.x - GRIP_X + FACE_X) * scale - (width - column) / 2;
@@ -330,7 +348,10 @@ export function MonkeyGuide({
           scale={scale}
         />
         {/* Only this wrapper moves; the sprite itself is memoised. */}
-        <View style={[styles.sprite, spritePlace]}>
+        <View
+          testID={prop ? `monkey-prop-${prop}` : undefined}
+          style={[styles.sprite, spritePlace]}
+        >
           <PixelArt rows={sprite} colors={SPRITE_COLORS} scale={scale} />
         </View>
       </View>

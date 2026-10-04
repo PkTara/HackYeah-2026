@@ -11,7 +11,14 @@ import {
   useLayout,
   useTheme,
 } from '@hackyeah/ui';
-import { CHAPTERS, PERCHES, chapterOf, perchOf, type StepId } from './flow';
+import {
+  CHAPTERS,
+  PERCHES,
+  chapterOf,
+  perchOf,
+  propFor,
+  type StepId,
+} from './flow';
 
 /** Width of the onboarding column on wide screens. */
 const COLUMN_MAX = 600;
@@ -73,6 +80,7 @@ export function StepFrame({ step, from, line, back, skip, next, children }: Prop
             from={from ? perchOf(from) : undefined}
             spots={PERCHES}
             celebrate={step === 'done'}
+            prop={propFor(step)}
             width={width}
             columnWidth={column}
           />

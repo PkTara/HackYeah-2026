@@ -70,7 +70,9 @@ export {
   HAND_HEIGHT,
   HAND_WIDTH,
   LEFT_HAND_FINGERS,
+  MONKEY_PROPS,
   SPRITE_COLORS,
   handRows,
   type IconName,
+  type MonkeyProp,
 } from './pixel/sprites';

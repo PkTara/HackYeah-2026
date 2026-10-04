@@ -8,6 +8,7 @@ import {
   type BaselineTestId,
   type ConnectionId,
 } from '@hackyeah/core';
+import type { MonkeyProp } from '@hackyeah/ui';
 
 /** One app's permission screen, opened from the apps step. */
 export type ConsentStepId = `consent:${ConnectionId}`;
@@ -163,4 +164,32 @@ export function lineFor(step: StepId): string {
   return app
     ? `Here is what ${CONNECTIONS[app].name} would read. Your call.`
     : LINES[step as keyof typeof LINES];
+}
+
+/**
+ * What the monkey holds or wears on each step, so every question looks a
+ * little different: a tape measure for your reach, a stopwatch for the dead
+ * hang, a party hat at the end.
+ */
+const PROPS: Readonly<Record<Exclude<StepId, ConsentStepId>, MonkeyProp>> = {
+  welcome: 'wave',
+  places: 'map',
+  experience: 'alarm-clock',
+  grade: 'grade-sign',
+  goal: 'trophy',
+  body: 'tape-measure',
+  apps: 'phone',
+  tests: 'clipboard',
+  'dead-hang': 'stopwatch',
+  'pull-ups': 'tally-counter',
+  'sit-and-reach': 'ruler',
+  plank: 'hourglass',
+  'one-leg-balance': 'one-foot-up',
+  'push-ups': 'sweatband',
+  done: 'party-hat',
+};
+
+/** The monkey's prop on a step. Consent screens keep the apps step's phone. */
+export function propFor(step: StepId): MonkeyProp {
+  return consentApp(step) ? PROPS.apps : PROPS[step as keyof typeof PROPS];
 }
