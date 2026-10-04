@@ -13,6 +13,7 @@ import {
   type Body,
   type ClimbingGoal,
   type ClimbLog,
+  type DecisionExplanation,
   type Finger,
   type GameState,
   type HandFlag,
@@ -287,6 +288,24 @@ export function reachFromAssessments(
     heightCm: height.value,
     armSpanCm: armSpan.value,
     date: localDate(newer.occurred_at),
+    decision: {
+      summary: `Ape index: ${armSpan.value - height.value} cm.`,
+      status: 'app_rule',
+      rule: 'reach-difference-v1: choose the latest recorded height and arm span in cm independently; arm span minus height gives the displayed difference in centimetres.',
+      evidence: [height, armSpan].map(record => ({
+        id: record.id,
+        label: `${record.metric === 'height' ? 'Height' : 'Arm span'} · ${
+          record.occurred_at
+        }`,
+        detail: `value=${record.value} ${record.unit}; method=${record.method}; protocol=${record.protocol}`,
+      })),
+      sourceIds: [],
+      limitations: [
+        'These measurements can come from different dates, methods and protocols; the stored reach date is the newer date, not a shared measurement timestamp.',
+        'Measurement technique and camera calibration can affect the inputs; subtraction does not validate those measurements.',
+        'This descriptive body measurement is not strength, weakness or a grade prediction and does not influence local terrain focus.',
+      ],
+    },
   };
 }
 
@@ -331,7 +350,12 @@ export function onboardingAssessments(
 
 // Quests
 
+export type QuestDecisionDto = Omit<DecisionExplanation, 'sourceIds'> & {
+  source_ids: readonly string[];
+};
+
 export type QuestDto = {
+  decision?: QuestDecisionDto;
   id: string;
   /** "paused" means it no longer fits what was logged since. */
   status: 'assigned' | 'paused' | 'completed' | 'skipped';
@@ -351,8 +375,69 @@ const QUEST_KIND: Readonly<Partial<Record<string, QuestKind>>> = {
   record_assessment: 'assess',
 };
 
-export function fromQuestDto(dto: QuestDto): Quest {
+function isQuestDecision(value: unknown): value is QuestDecisionDto {
+  const decision = value as Partial<QuestDecisionDto> | null;
+  const strings = (items: unknown): items is string[] =>
+    Array.isArray(items) && items.every(item => typeof item === 'string');
+  return (
+    !!decision &&
+    typeof decision.summary === 'string' &&
+    typeof decision.rule === 'string' &&
+    ['app_rule', 'draft', 'estimate', 'example'].includes(
+      decision.status ?? '',
+    ) &&
+    strings(decision.source_ids) &&
+    strings(decision.limitations) &&
+    Array.isArray(decision.evidence) &&
+    decision.evidence.every(
+      entry =>
+        entry &&
+        typeof entry.id === 'string' &&
+        typeof entry.label === 'string' &&
+        typeof entry.detail === 'string',
+    )
+  );
+}
+
+/** Convert validated decision snapshots from quests or camera results. */
+export function fromDecisionDto(
+  dto: QuestDecisionDto | undefined,
+): DecisionExplanation | undefined {
+  if (!isQuestDecision(dto)) {
+    return undefined;
+  }
   return {
+    summary: dto.summary,
+    status: dto.status,
+    rule: dto.rule,
+    evidence: dto.evidence,
+    sourceIds: dto.source_ids,
+    limitations: dto.limitations,
+  };
+}
+
+export function fromQuestDto(dto: QuestDto): Quest {
+  const decision = fromDecisionDto(dto.decision);
+  return {
+    ...(decision
+      ? { decision }
+      : {
+          decision: {
+            summary: 'Server-selected quest; decision provenance unavailable.',
+            status: 'app_rule' as const,
+            rule: 'Unavailable: this server quest did not include its selection rule or input snapshots.',
+            evidence: (dto.evidence_ids ?? []).map(id => ({
+              id,
+              label: 'Linked server record',
+              detail:
+                'Snapshot unavailable; this record ID was supplied by the server.',
+            })),
+            sourceIds: [],
+            limitations: [
+              'Current local records cannot reconstruct the server decision at assignment.',
+            ],
+          },
+        }),
     id: dto.id,
     kind: QUEST_KIND[dto.kind] ?? 'plan',
     title: dto.title,
@@ -430,6 +515,7 @@ export function toGameState(
  * invalid_capture comes with a reason and no value.
  */
 export type PoseResultDto = {
+  decision?: QuestDecisionDto;
   status: 'ok' | 'invalid_capture';
   metric: 'leg_spread';
   value: number | null;

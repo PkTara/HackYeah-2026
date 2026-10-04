@@ -214,3 +214,185 @@ def test_assignment_uses_evidence_committed_before_transaction(client, auth, mon
     assert response.json()["kind"] == "recovery_checkin"
     assert response.json()["evidence_ids"] == ["race-hand"]
     assert client.get("/v1/me/quests", headers=auth).json()[0]["status"] == "assigned"
+
+
+def test_reflection_decision_snapshots_dated_climbs_and_product_threshold(client, auth):
+    records = []
+    for day, completed in ((1, False), (2, True), (3, False)):
+        records.append(
+            client.post(
+                "/v1/me/climbs",
+                headers=auth,
+                json={
+                    "terrain": "vertical",
+                    "movement": "dynamic",
+                    "completed": completed,
+                    "grade": "V3",
+                    "occurred_at": f"2026-10-0{day}T10:00:00Z",
+                },
+            ).json()
+        )
+    quest = client.post("/v1/me/quests", headers=auth).json()
+    decision = quest["decision"]
+    assert decision["status"] == "app_rule"
+    assert ">=3" in decision["rule"]
+    assert "product" in " ".join(decision["limitations"]).lower()
+    climbs = [entry for entry in decision["evidence"] if entry["label"].startswith("Climb ·")]
+    assert [entry["id"] for entry in climbs] == quest["evidence_ids"]
+    for record, entry in zip(records, climbs, strict=True):
+        assert record["occurred_at"] in entry["label"]
+        assert "vertical" in entry["detail"]
+        assert f"completed={str(record['completed']).lower()}" in entry["detail"]
+        assert "V3" in entry["detail"]
+
+
+def test_discomfort_decision_keeps_latest_dated_pain_report(client, auth):
+    client.post(
+        "/v1/me/hands",
+        headers=auth,
+        json={
+            "side": "left",
+            "region": "ring_finger",
+            "pain": 5,
+            "occurred_at": "2026-10-01T10:00:00Z",
+        },
+    )
+    hand = client.post(
+        "/v1/me/hands",
+        headers=auth,
+        json={
+            "side": "left",
+            "region": "ring_finger",
+            "pain": None,
+            "occurred_at": "2026-10-03T10:00:00Z",
+        },
+    ).json()
+    decision = client.post("/v1/me/quests", headers=auth).json()["decision"]
+    assert [entry["id"] for entry in decision["evidence"]] == [hand["id"]]
+    assert hand["occurred_at"] in decision["evidence"][0]["label"]
+    assert "left" in decision["evidence"][0]["detail"]
+    assert "ring_finger" in decision["evidence"][0]["detail"]
+    assert "pain=unrated" in decision["evidence"][0]["detail"]
+    assert "pain null or >0" in decision["rule"]
+    assert "diagnosis" in " ".join(decision["limitations"])
+
+
+def test_mobility_decision_preserves_goal_input_instead_of_inventing_measurements(client, auth):
+    client.patch("/v1/me", headers=auth, json={"goal": "mobility"})
+    decision = client.post("/v1/me/quests", headers=auth).json()["decision"]
+    assert any(entry["detail"] == "goal=mobility" for entry in decision["evidence"])
+    assert "mobility" in decision["rule"]
+    assert "no active" in decision["rule"]
+    assert "2-minute" in " ".join(decision["limitations"])
+    assert not any("measurement" in entry["label"].lower() for entry in decision["evidence"])
+
+
+def test_reflection_snapshot_includes_comparator_records_and_assignment_gates(client, auth):
+    records = []
+    for terrain in ("slab", "vertical"):
+        for _ in range(3):
+            records.append(
+                client.post(
+                    "/v1/me/climbs",
+                    headers=auth,
+                    json={
+                        "terrain": terrain,
+                        "movement": "controlled",
+                        "completed": terrain == "slab",
+                    },
+                ).json()
+            )
+    decision = client.post("/v1/me/quests", headers=auth).json()["decision"]
+    assert {record["id"] for record in records} <= {entry["id"] for entry in decision["evidence"]}
+    assert "no active" in decision["rule"]
+    assert "mobility" in decision["rule"]
+    assert "assignment" in " ".join(decision["limitations"])
+
+
+def test_gathering_decision_keeps_existing_logs_goal_and_counts(client, auth):
+    client.patch("/v1/me", headers=auth, json={"goal": "general"})
+    record = client.post(
+        "/v1/me/climbs",
+        headers=auth,
+        json={
+            "terrain": "slab",
+            "movement": "dynamic",
+            "completed": False,
+            "occurred_at": "2026-10-02T10:00:00Z",
+        },
+    ).json()
+    decision = client.post("/v1/me/quests", headers=auth).json()["decision"]
+    assert record["id"] in [entry["id"] for entry in decision["evidence"]]
+    assert any(entry["detail"] == "goal=general" for entry in decision["evidence"])
+    assert "slab: 0/1" in decision["rule"]
+    assert "no active" in decision["rule"]
+
+
+def test_deleting_record_redacts_snapshot_from_completed_quests(client, auth):
+    hand = client.post(
+        "/v1/me/hands",
+        headers=auth,
+        json={
+            "side": "left",
+            "region": "ring_finger",
+            "pain": 7,
+            "occurred_at": "2026-10-03T10:00:00Z",
+        },
+    ).json()
+    quest = client.post("/v1/me/quests", headers=auth).json()
+    client.post(f"/v1/me/quests/{quest['id']}/complete", headers=auth)
+    assert client.delete(f"/v1/me/hands/{hand['id']}", headers=auth).status_code == 204
+    saved = client.get("/v1/me/quests", headers=auth).json()[0]
+    entry = next(entry for entry in saved["decision"]["evidence"] if entry["id"] == hand["id"])
+    assert entry == {
+        "id": hand["id"],
+        "label": "Record removed",
+        "detail": "Provenance unavailable after deletion.",
+    }
+    assert client.get("/v1/me/pet", headers=auth).json()["xp"] == 10
+
+
+def test_reflection_snapshots_exact_goal_and_cleared_hand_gate(client, auth):
+    hand = client.post(
+        "/v1/me/hands",
+        headers=auth,
+        json={
+            "side": "right",
+            "region": "index_finger",
+            "pain": 0,
+            "occurred_at": "2026-10-03T10:00:00Z",
+        },
+    ).json()
+    for _ in range(3):
+        client.post(
+            "/v1/me/climbs",
+            headers=auth,
+            json={
+                "terrain": "vertical",
+                "movement": "controlled",
+                "completed": False,
+            },
+        )
+    decision = client.post("/v1/me/quests", headers=auth).json()["decision"]
+    assert any(entry["detail"] == "goal=technique" for entry in decision["evidence"])
+    assert any(
+        entry["id"] == hand["id"] and "pain=0" in entry["detail"] for entry in decision["evidence"]
+    )
+
+
+def test_mobility_decision_keeps_cleared_hand_report_used_by_eligibility(client, auth):
+    hand = client.post(
+        "/v1/me/hands",
+        headers=auth,
+        json={
+            "side": "left",
+            "region": "middle_finger",
+            "pain": 0,
+            "occurred_at": "2026-10-03T10:00:00Z",
+        },
+    ).json()
+    client.patch("/v1/me", headers=auth, json={"goal": "mobility"})
+    decision = client.post("/v1/me/quests", headers=auth).json()["decision"]
+    assert any(
+        entry["id"] == hand["id"] and "pain=0" in entry["detail"] for entry in decision["evidence"]
+    )

@@ -94,13 +94,38 @@ class Store:
 
     def delete_record(self, owner, kind, record_id):
         with self.connect() as db:
-            return (
+            db.execute("BEGIN IMMEDIATE")
+            deleted = (
                 db.execute(
                     "DELETE FROM records WHERE id = ? AND owner = ? AND kind = ?",
                     (record_id, owner, kind),
                 ).rowcount
                 > 0
             )
+            if deleted:
+                rows = db.execute("SELECT data FROM quests WHERE owner = ?", (owner,)).fetchall()
+                for row in rows:
+                    quest = json.loads(row["data"])
+                    decision = quest.get("decision")
+                    if not decision:
+                        continue
+                    entries = decision.get("evidence", [])
+                    if any(entry["id"] == record_id for entry in entries):
+                        decision["evidence"] = [
+                            {
+                                "id": record_id,
+                                "label": "Record removed",
+                                "detail": "Provenance unavailable after deletion.",
+                            }
+                            if entry["id"] == record_id
+                            else entry
+                            for entry in entries
+                        ]
+                        db.execute(
+                            "UPDATE quests SET data = ? WHERE id = ? AND owner = ?",
+                            (json.dumps(quest), quest["id"], owner),
+                        )
+            return deleted
 
     def quests(self, owner):
         with self.connect() as db:
