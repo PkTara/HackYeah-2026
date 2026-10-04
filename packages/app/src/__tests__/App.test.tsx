@@ -101,6 +101,64 @@ describe('App', () => {
     act(() => renderer.unmount());
   });
 
+  it('logs multiple new styles, reloads them and counts each on the profile', async () => {
+    const capabilities = createFakeCapabilities();
+    const fresh = () =>
+      createLocalBackend(capabilities.storage, {
+        ...emptyGame,
+        onboardingSkipped: true,
+      });
+    const renderer = await renderApp(capabilities, fresh());
+    press(
+      renderer,
+      'Log',
+      'Vertical',
+      'Technical',
+      'Powerful',
+      'Balance',
+      'Coordination',
+      'Compression',
+      'Endurance',
+    );
+    // Styles can be toggled independently before saving.
+    press(renderer, 'Powerful', 'V3', 'Sent', 'Save climb');
+    await act(async () => {});
+
+    const saved = JSON.parse(
+      (await capabilities.storage.getItem('climbing-monkey/game/v1')) ?? '{}',
+    );
+    expect(saved.logs).toHaveLength(1);
+    expect(saved.logs[0]).toMatchObject({
+      movements: [
+        'technical',
+        'balance',
+        'coordination',
+        'compression',
+        'endurance',
+      ],
+      terrain: 'vertical',
+      grade: 'V3',
+      sent: true,
+    });
+    expect(screenText(renderer)).toContain(
+      'V3 vertical, technical, balance, coordination, compression and endurance',
+    );
+    act(() => renderer.unmount());
+
+    const again = await renderApp(capabilities, fresh());
+    for (const style of [
+      'Technical',
+      'Balance',
+      'Coordination',
+      'Compression',
+      'Endurance',
+    ]) {
+      expect(screenText(again)).toContain(`${style}: 1 of 1 sent`);
+    }
+    expect(screenText(again)).toContain('Powerful: 0 of 0 sent');
+    act(() => again.unmount());
+  });
+
   it('puts the saved state back and says so when a save fails', async () => {
     const local = createLocalBackend(createMemoryStore(), SET_UP);
     const backend: ClimbingBackend = {

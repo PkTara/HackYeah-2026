@@ -88,7 +88,7 @@ export type ClimbDto = {
   occurred_at: string;
   terrain: Terrain;
   movement: Movement;
-  /** Missing on climbs saved before the server kept both styles. */
+  /** Missing on climbs saved before the server kept multiple styles. */
   movements?: Movement[];
   /** Missing on climbs saved before the server kept holds. */
   holds?: HoldType[];

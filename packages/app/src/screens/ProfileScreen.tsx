@@ -316,7 +316,7 @@ export function ProfileScreen() {
             </AppText>
           </Panel>
 
-          {/* Style: controlled and dynamic, counted separately */}
+          {/* Each style is counted separately, including multi-style climbs. */}
           <Panel title="Style">
             {MOVEMENTS.map(m => (
               <View key={m} style={{ gap: 6 }}>
@@ -340,7 +340,7 @@ export function ProfileScreen() {
               </View>
             ))}
             <AppText variant="caption" muted>
-              Two separate skills, not one slider. You can be good at both.
+              A climb can use several styles. Each selected style counts here.
             </AppText>
             <View
               style={{

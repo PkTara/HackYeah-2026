@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Annotated, Literal
+from typing import Annotated, Literal, get_args
 
 from pydantic import (
     AfterValidator,
@@ -14,7 +14,17 @@ from pydantic import (
 
 Text = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
 Goal = Literal["general", "technique", "mobility", "endurance"]
-Movement = Literal["controlled", "dynamic"]
+Movement = Literal[
+    "controlled",
+    "dynamic",
+    "technical",
+    "powerful",
+    "balance",
+    "coordination",
+    "compression",
+    "endurance",
+]
+MOVEMENTS = get_args(Movement)
 Hold = Literal["jug", "crimp", "sloper", "pinch", "pocket", "volume"]
 # Where a finger hurts, as a spot id from the app's packages/core/src/spots.ts, e.g. "a2".
 SpotId = Annotated[str, StringConstraints(pattern=r"^[a-z0-9-]{1,32}$")]
@@ -36,8 +46,10 @@ def _distinct(values):
     return values
 
 
-# One climb can be controlled, dynamic or both.
-Movements = Annotated[list[Movement], Field(min_length=1, max_length=2), AfterValidator(_distinct)]
+# One climb can use any combination of distinct movement styles.
+Movements = Annotated[
+    list[Movement], Field(min_length=1, max_length=len(MOVEMENTS)), AfterValidator(_distinct)
+]
 Holds = Annotated[list[Hold], AfterValidator(_distinct)]
 Spots = Annotated[list[SpotId], Field(max_length=24), AfterValidator(_distinct)]
 

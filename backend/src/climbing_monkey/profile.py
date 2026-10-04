@@ -2,8 +2,9 @@
 
 from datetime import datetime
 
+from .schemas import MOVEMENTS
+
 TERRAINS = ("slab", "vertical", "overhang")
-MOVEMENTS = ("controlled", "dynamic")
 
 
 def _movements(climb):
