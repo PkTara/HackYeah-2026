@@ -9,6 +9,42 @@
 
 ![Climbing Monkey on phone and desktop: profile, finger close-up, desktop profile with side rail, desktop climb log](docs/assets/jungle-ui-web.png)
 
+## Run it
+
+Needs Node.js 22.11+ and Python 3.12 (3.13 also works, 3.14 does not). Android needs the Android SDK and a JDK. iOS needs Xcode on macOS.
+
+```sh
+npm run setup                      # install apps/mobile and apps/web
+npm run web                        # web app on http://localhost:5173
+npm start                          # Metro for the phones, then in a second terminal:
+npm run android                    # emulator or USB phone
+npm --prefix apps/mobile run ios   # macOS only, after pod install in apps/mobile/ios
+```
+
+Backend (FastAPI on port 8000, API docs at http://localhost:8000/docs):
+
+```sh
+npm run backend:setup                                            # creates backend/.venv with python3.12
+MONKEY_CORS_ORIGINS=http://localhost:5173 npm run backend:start
+VITE_MONKEY_API_URL=http://127.0.0.1:8000 npm run web            # web app using the backend
+```
+
+- Without `VITE_MONKEY_API_URL` the web app keeps everything on the device. Phone builds read `API_BASE_URL` in `packages/data/src/config.ts`.
+- Camera analysis also needs the `pose` extra and a MediaPipe model at `POSE_MODEL_PATH`. See [backend/README.md](backend/README.md).
+- No backend at all: open **Data → Demo controls** and tick **Demo mode**. See [Demo mode](#demo-mode).
+- More detail: [Setup](#setup), [Run on Android and iOS](#run-on-android-and-ios), [Connecting a backend](#connecting-a-backend).
+
+## AI use
+
+- **Development (not shipped).** Claude Code (Claude Opus 5.5) and Codex (GPT-6, GPT-6.1 Sol, reviewed by GPT-6 Astra) helped convert the brief PDFs, scaffold the project and write code, tests and docs. Codex did most of the backend and the evidence notes. Claude Code did most of the app screens, UI kit and pets.
+- **No image generation.** The pixel-art pets are drawn by `tools/pixel_pets.py` and the screenshots are real app captures.
+- **Runtime.** The optional backend runs Google's MediaPipe Pose Landmarker (Apache-2.0) on our own server for the live leg-spread and shoulder-reach checks. The model is downloaded separately and is not in Git. Frames are analysed in memory and not stored. The app calls no third-party AI service.
+- `packages/vision` uses `@mediapipe/tasks-vision` only in a browser harness, not in the app screens. Hand photos are not analysed by any model.
+- Demo mode can simulate the camera and the analysis, so a demo needs no model.
+- The team reviewed the AI output, checked it with typecheck, lint and tests, and can explain every part of the code.
+
+Full log of prompts, outputs and checks: [AI_WORKFLOW.md](AI_WORKFLOW.md).
+
 ## What works
 
 - **Profile loop.** Log climbs (wall angle, controlled or dynamic movement, holds, grade, sent or not). The profile shows a terrain triangle and a style chart, one focus with the evidence behind it, one quest, and the monkey's XP, level and unlocks. Sample data is labelled Example.
@@ -160,7 +196,3 @@ Not done on the phones yet:
 - **[jeremyipark/vision-demos](https://github.com/jeremyipark/vision-demos)**, Apache-2.0: design ideas for the rep counter in `packages/vision`, rewritten in TypeScript rather than copied.
 
 Every other library is listed in `apps/mobile/package.json`, `apps/web/package.json` and `backend/pyproject.toml`.
-
-## AI usage
-
-AI tools were used during development; see [AI_WORKFLOW.md](AI_WORKFLOW.md).
