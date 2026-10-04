@@ -1,12 +1,14 @@
 import React, { useEffect } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { AppState, View } from 'react-native';
+import { AppState, StyleSheet, View } from 'react-native';
 import { capabilities, type CameraPreviewProps } from '@hackyeah/platform';
 import type { LiveHandlers, MediaClient } from '@hackyeah/data';
 import { LiveAssessment } from '../LiveAssessment';
 import { CapabilitiesContext } from '../../capabilities';
 import type { AssessmentRecord } from '@hackyeah/core';
+import { Panel } from '@hackyeah/ui';
 import { shoulder } from '../../testing/livePoseFixture';
+import { text } from '../../testing/cameraFixture';
 function fixture(cameraReady = true) {
   const camera = { snapshot: jest.fn() };
   const stop = jest.fn();
@@ -48,6 +50,7 @@ function fixture(cameraReady = true) {
     simulated: false,
     onSettings: jest.fn(),
     onSave: save,
+    onCompletionChange: jest.fn(),
   };
   const render = (consent = true) => (
     <CapabilitiesContext.Provider
@@ -100,6 +103,167 @@ function fixture(cameraReady = true) {
 afterEach(() => {
   jest.useRealTimers();
   jest.restoreAllMocks();
+});
+test('the Camera tray keeps the same dedicated box before, during and after recording', async () => {
+  const f = fixture();
+  await f.mount();
+  const box = () =>
+    f.screen.root.findByProps({ testID: 'assessment-camera-box' });
+  expect(StyleSheet.flatten(box().props.style).height).toBe(280);
+  expect(JSON.stringify(f.screen.toJSON())).toContain('Camera off');
+  await f.press('Record');
+  expect(StyleSheet.flatten(box().props.style).height).toBe(280);
+  await f.press('Stop');
+  expect(StyleSheet.flatten(box().props.style).height).toBe(280);
+  expect(JSON.stringify(f.screen.toJSON())).toContain('Camera off');
+  await f.unmount();
+});
+test('recording controls, live status and setup guidance have coherent titled trays', async () => {
+  const f = fixture();
+  await f.mount();
+  const tray = (title: string) =>
+    f.screen.root
+      .findAllByType(Panel)
+      .find(node => node.props.title === title)!;
+  expect(tray('Recording')).toBeDefined();
+  expect(
+    tray('Recording').findAll(
+      node => node.props.accessibilityLabel === 'Record',
+    ).length,
+  ).toBeGreaterThan(0);
+  expect(tray('How to measure')).toBeDefined();
+  await f.press('Record');
+  await act(async () =>
+    f.handlers.onResult({
+      ...shoulder(0),
+      status: 'invalid_capture',
+      reason: 'Keep both elbows straight.',
+      value: null,
+      left_value: null,
+      right_value: null,
+    }),
+  );
+  expect(
+    tray('Recording').findAll(node => node.props.accessibilityLabel === 'Stop')
+      .length,
+  ).toBeGreaterThan(0);
+  expect(
+    tray('Recording').findAll(
+      node => node.props.accessibilityLiveRegion === 'polite',
+    ).length,
+  ).toBeGreaterThan(0);
+  expect(
+    JSON.stringify(
+      tray('Recording').findByProps({ testID: 'assessment-live-status' }).props
+        .children,
+    ),
+  ).toContain('Keep both elbows straight.');
+  await f.unmount();
+});
+test('review separates measurements, capture quality and actions, with a detail breadcrumb that preserves the result', async () => {
+  const f = fixture();
+  await f.mount();
+  await f.press('Record');
+  await act(async () => f.handlers.onResult(shoulder(0, 12)));
+  await f.press('Stop');
+  const titles = () =>
+    f.screen.root.findAllByType(Panel).map(node => node.props.title);
+  expect(titles()).toEqual([
+    'Camera',
+    'Measurement',
+    'Capture quality',
+    'Actions',
+  ]);
+  expect(text(f.screen)).toContain('Left 12°');
+  await f.press('Measurement details');
+  expect(titles()).toEqual(['Camera', 'Measurement details']);
+  expect(text(f.screen)).toContain('projected angle');
+  expect(f.preview.active).toBe(false);
+  expect(f.media.startLive).toHaveBeenCalledTimes(1);
+  await f.press('Back to Review');
+  expect(titles()).toContain('Actions');
+  expect(text(f.screen)).toContain('Left 12°');
+  await f.press('Save result');
+  expect(f.save).toHaveBeenCalledTimes(1);
+  expect(f.save.mock.calls[0][0][0]).toMatchObject({
+    value: 12,
+    metric: 'shoulder_reach_left',
+  });
+  await f.unmount();
+});
+test('capture details retain demo provenance and a pending save across breadcrumb navigation', async () => {
+  const f = fixture();
+  f.props.simulated = true;
+  let complete!: () => void;
+  f.save.mockImplementationOnce(
+    () =>
+      new Promise<void>(resolve => {
+        complete = resolve;
+      }),
+  );
+  await f.mount();
+  await f.press('Record');
+  await act(async () => f.handlers.onResult(shoulder(0, 20)));
+  await f.press('Stop');
+  await f.press('Save result');
+  expect(
+    f.screen.root.findAll(
+      node => node.props.accessibilityLabel === 'Capture details',
+    ).length,
+  ).toBeGreaterThan(0);
+  await f.press('Capture details');
+  expect(text(f.screen)).toContain('Simulated on this device');
+  expect(text(f.screen)).toContain('front-facing-overhead-reach-v1');
+  expect(text(f.screen)).toContain('95%');
+  expect(text(f.screen)).not.toContain('http://server.test');
+  await f.press('Back to Shoulder reach');
+  expect(text(f.screen)).toContain('Simulated on this device');
+  await f.press('Back to Review');
+  expect(text(f.screen)).toContain('Saving reviewed result');
+  await f.press('Retry');
+  expect(f.media.startLive).toHaveBeenCalledTimes(1);
+  await act(async () => complete());
+  expect(text(f.screen)).toContain(
+    'Saved simulated result to your demo profile',
+  );
+  expect(f.save.mock.calls[0][0][0]).toMatchObject({
+    value: 20,
+    simulated: true,
+  });
+  await f.unmount();
+});
+test('the shared completion control follows local review stages and cannot discard a pending save', async () => {
+  const f = fixture();
+  await f.mount();
+  const completion = () => f.props.onCompletionChange.mock.calls.at(-1)?.[0];
+  expect(f.props.onCompletionChange).toHaveBeenLastCalledWith(undefined);
+  await f.press('Record');
+  await act(async () => f.handlers.onResult(shoulder(0, 20)));
+  await f.press('Stop');
+  expect(completion()).toMatchObject({
+    disabled: false,
+    onPress: expect.any(Function),
+  });
+  await f.press('Measurement details');
+  await act(async () => completion().onPress());
+  expect(text(f.screen)).toContain('Review your result');
+  let complete!: () => void;
+  f.save.mockImplementationOnce(
+    () =>
+      new Promise<void>(resolve => {
+        complete = resolve;
+      }),
+  );
+  await f.press('Save result');
+  expect(completion().disabled).toBe(true);
+  await act(async () => completion().onPress());
+  expect(text(f.screen)).toContain('Saving reviewed result');
+  await act(async () => complete());
+  expect(completion().disabled).toBe(false);
+  await act(async () => completion().onPress());
+  expect(f.props.onCompletionChange).toHaveBeenLastCalledWith(undefined);
+  expect(f.preview.active).toBe(false);
+  await f.unmount();
 });
 test('Record starts camera and the selected live analysis once ready', async () => {
   const f = fixture();
@@ -395,7 +559,9 @@ test('missing pose clears previous geometry while its correction remains visible
   expect(JSON.stringify(f.screen.toJSON())).toContain(
     'No pose was detected in the capture.',
   );
-  await act(async () => f.handlers.onResult({ ...invalid, timestamp_ms: 1000 }));
+  await act(async () =>
+    f.handlers.onResult({ ...invalid, timestamp_ms: 1000 }),
+  );
   expect(marks().length).toBeGreaterThan(0);
   await act(async () => jest.advanceTimersByTime(1501));
   expect(marks()).toHaveLength(0);

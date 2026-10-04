@@ -3,7 +3,7 @@ import { AppState, StyleSheet, View } from 'react-native';
 import type { AssessmentRecord } from '@hackyeah/core';
 import type { LiveSession, MediaClient, PoseResultDto } from '@hackyeah/data';
 import type { CameraSession } from '@hackyeah/platform';
-import { AppText, Breadcrumbs, Button, Tag, spacing } from '@hackyeah/ui';
+import { AppText, Button, Panel, Tag, spacing } from '@hackyeah/ui';
 import { useCapabilities } from '../capabilities';
 import {
   initialStability,
@@ -12,6 +12,12 @@ import {
 } from './stability';
 import { overlayPoints, type PreviewGeometry } from './overlay';
 import { Markings } from './Markings';
+import { AssessmentCameraTray } from './AssessmentCameraTray';
+import {
+  AssessmentReview,
+  measurementText,
+  type AssessmentCompletion,
+} from './AssessmentReview';
 export type LiveAssessmentProps = {
   media: MediaClient;
   consent: boolean;
@@ -19,6 +25,7 @@ export type LiveAssessmentProps = {
   simulated: boolean;
   onSettings: () => void;
   onSave: (records: readonly AssessmentRecord[]) => Promise<void>;
+  onCompletionChange?: (completion: AssessmentCompletion | undefined) => void;
   now?: () => number;
 };
 export function LiveAssessment({
@@ -27,6 +34,7 @@ export function LiveAssessment({
   metric,
   onSettings,
   onSave,
+  onCompletionChange,
   simulated,
   now = Date.now,
 }: LiveAssessmentProps) {
@@ -50,6 +58,12 @@ export function LiveAssessment({
   const [reading, setReading] = useState<PoseResultDto | null>(null);
   const [overlayFrame, setOverlayFrame] = useState<PoseResultDto | null>(null);
   const [review, setReview] = useState<PoseResultDto | null>(null);
+  useEffect(() => {
+    if (!review) {
+      onCompletionChange?.(undefined);
+    }
+  }, [review, onCompletionChange]);
+  useEffect(() => () => onCompletionChange?.(undefined), [onCompletionChange]);
   const recordsRef = useRef<readonly AssessmentRecord[] | null>(null);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -208,7 +222,7 @@ export function LiveAssessment({
     onError,
     invalidate,
   ]);
-  const resetReview = () => {
+  const resetReview = useCallback(() => {
     if (saving) {
       return;
     }
@@ -219,7 +233,7 @@ export function LiveAssessment({
     setSaved(false);
     setError('');
     stability.current = initialStability(metric);
-  };
+  }, [metric, saving]);
   const finish = () => {
     setReview(stability.current.latest ?? null);
     stop();
@@ -286,153 +300,133 @@ export function LiveAssessment({
           0,
         )
       : [];
+  const record = () => {
+    if (!saving && consent && capability) {
+      stability.current = initialStability(metric);
+      setReading(null);
+      setOverlayFrame(null);
+      setReview(null);
+      setSaved(false);
+      recordsRef.current = null;
+      setError('');
+      setActive(true);
+    }
+  };
+  const cameraTray = (
+    <AssessmentCameraTray
+      active={active}
+      ready={Boolean(camera)}
+      available={Boolean(capability)}
+      consent={consent}
+      reviewing={Boolean(review)}
+      error={review ? '' : error}
+      onLayout={event => setWidth(event.nativeEvent.layout.width)}
+    >
+      {capability ? (
+        <capability.Preview
+          active={active}
+          mode="assessment"
+          onReady={onReady}
+          onError={onError}
+          onGeometry={onGeometry}
+        />
+      ) : null}
+      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+        <Markings points={points} />
+      </View>
+    </AssessmentCameraTray>
+  );
+  if (review) {
+    return (
+      <AssessmentReview
+        result={review}
+        metric={metric}
+        phase={stability.current.phase}
+        simulated={simulated}
+        server={media.server}
+        saving={saving}
+        saved={saved}
+        error={error}
+        retryDisabled={saving || !consent || !capability}
+        onReset={resetReview}
+        onRetry={record}
+        onSave={save}
+        onCompletionChange={onCompletionChange}
+        camera={cameraTray}
+      />
+    );
+  }
+  const status = !active
+    ? !capability
+      ? 'A camera is needed to record.'
+      : !consent
+      ? 'Allow live camera analysis in Settings before recording.'
+      : 'Ready to record. A steady hold completes automatically.'
+    : !camera
+    ? 'Starting camera…'
+    : overlayFrame?.reason
+    ? overlayFrame.reason
+    : !reading
+    ? metric === 'shoulder_reach'
+      ? 'Keep hips, shoulders, elbows and wrists visible. Start with resting arms.'
+      : 'Keep hips and ankles visible. Spread your feet comfortably.'
+    : stability.current.phase === 'baseline'
+    ? 'Rest both arms below your shoulders to establish your starting position.'
+    : stability.current.phase === 'raise'
+    ? 'Raise either arm overhead, keeping elbows straight.'
+    : 'Hold steady for two seconds. Stop is always available.';
   return (
     <View style={{ gap: spacing.md }}>
-      {simulated ? <Tag text="Simulated analysis" /> : null}
-      <AppText>
-        {metric === 'shoulder_reach'
-          ? 'Face the camera with hips, shoulders, elbows and wrists visible. Begin with arms resting at your sides, then raise overhead with straight elbows.'
-          : 'Face the camera with your full body visible. Keep hips and ankles clear, then spread your feet comfortably and hold steady.'}
-      </AppText>
-      <AppText variant="caption" muted>
-        {simulated
-          ? 'Example analysis runs on this device. Saved results stay in your separate demo profile.'
-          : `Sampled frames go to ${media.server} while recording and are discarded after analysis. Stop or leave the screen to end uploads.`}
-      </AppText>
-      {active ? (
-        <AppText accessibilityLiveRegion="polite">
-          {!camera
-            ? 'Starting camera…'
-            : overlayFrame?.reason
-            ? overlayFrame.reason
-            : !reading
-            ? metric === 'shoulder_reach'
-              ? 'Keep hips, shoulders, elbows and wrists visible. Start with resting arms.'
-              : 'Keep hips and ankles visible. Spread your feet comfortably.'
-            : stability.current.phase === 'baseline'
-            ? 'Rest both arms below your shoulders to establish your starting position.'
-            : stability.current.phase === 'raise'
-            ? 'Raise either arm overhead, keeping elbows straight.'
-            : 'Hold steady for two seconds. Stop is always available.'}
-        </AppText>
-      ) : null}
-      {capability ? (
-        <View
-          style={[
-            styles.preview,
-            active ? styles.previewActive : styles.previewOff,
-          ]}
-          onLayout={event => setWidth(event.nativeEvent.layout.width)}
+      {cameraTray}
+      <Panel
+        title="Recording"
+        badge={simulated ? <Tag text="Simulated analysis" /> : undefined}
+      >
+        <AppText
+          testID="assessment-live-status"
+          accessibilityLiveRegion="polite"
         >
-          <capability.Preview
-            active={active}
-            mode="assessment"
-            onReady={onReady}
-            onError={onError}
-            onGeometry={onGeometry}
-          />
-          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-            <Markings points={points} />
-          </View>
-        </View>
-      ) : (
-        <AppText>There is no camera on this device.</AppText>
-      )}
-      {active ? (
-        <Button title="Stop" onPress={finish} />
-      ) : (
-        <Button
-          title={review ? 'Retry' : 'Record'}
-          disabled={saving || !consent || !capability}
-          onPress={() => {
-            if (!saving && consent && capability) {
-              stability.current = initialStability(metric);
-              setReading(null);
-              setOverlayFrame(null);
-              setReview(null);
-              setSaved(false);
-              recordsRef.current = null;
-              setError('');
-              setActive(true);
-            }
-          }}
-        />
-      )}
-      {reading && active ? (
-        <AppText>
-          {metric === 'shoulder_reach'
-            ? `Left ${Math.round(reading.left_value!)}° · Right ${Math.round(
-                reading.right_value!,
-              )}°`
-            : `${Math.round(reading.value!)}°`}
+          {status}
         </AppText>
-      ) : null}
-      {review ? (
-        <View>
-          <Breadcrumbs
-            crumbs={[
-              {
-                label:
-                  metric === 'shoulder_reach' ? 'Shoulder reach' : 'Leg spread',
-                onPress: resetReview,
-              },
-              { label: 'Review' },
-            ]}
-          />
-          {metric === 'shoulder_reach' &&
-          ['baseline', 'raise'].includes(stability.current.phase) ? (
-            <AppText>
-              No clear raising movement was detected. This is a manually stopped
-              projected angle; retry from resting arms to measure your overhead
-              reach.
-            </AppText>
-          ) : null}
-          <AppText>
-            Review your result:{' '}
-            {metric === 'shoulder_reach'
-              ? `Left ${Math.round(review.left_value!)}° · Right ${Math.round(
-                  review.right_value!,
-                )}°`
-              : `${Math.round(review.value!)}°`}
+        {reading && active ? (
+          <AppText variant="caption">
+            {measurementText(reading, metric)}
           </AppText>
+        ) : null}
+        {error ? <AppText accessibilityRole="alert">{error}</AppText> : null}
+        {active ? (
+          <Button title="Stop" variant="danger" onPress={finish} />
+        ) : (
           <Button
-            title="Save result"
-            disabled={saving || saved}
-            onPress={save}
+            title="Record"
+            disabled={saving || !consent || !capability}
+            onPress={record}
           />
-        </View>
-      ) : null}
-      {saving ? (
-        <AppText accessibilityLiveRegion="polite">
-          Saving reviewed result…
-        </AppText>
-      ) : null}
-      {saved ? (
-        <AppText>
+        )}
+        {!consent ? (
+          <Button
+            title="Settings"
+            variant="secondary"
+            small
+            onPress={onSettings}
+          />
+        ) : null}
+        <AppText variant="caption" muted>
           {simulated
-            ? 'Saved simulated result to your demo profile.'
-            : 'Saved to your profile.'}
+            ? 'Example analysis runs on this device. Saved results stay in your separate demo profile.'
+            : `Sampled frames go to ${media.server} while recording and are discarded after analysis. Stop or leave to end uploads.`}
         </AppText>
-      ) : null}
-      {error ? <AppText accessibilityRole="alert">{error}</AppText> : null}
-      <AppText variant="caption" muted>
-        A projected angle from the camera, not a validated flexibility test.
-        Camera framing and clothing affect the estimate.
-      </AppText>
-      {!consent ? (
-        <>
-          <AppText>
-            Allow live camera analysis in Settings before recording.
-          </AppText>
-          <Button title="Settings" onPress={onSettings} />
-        </>
-      ) : null}
+      </Panel>
+      <Panel title="How to measure" variant="quiet">
+        <AppText variant="caption">
+          {metric === 'shoulder_reach'
+            ? 'Face the camera with hips, shoulders, elbows and wrists visible. Begin with arms resting at your sides, then raise overhead with straight elbows.'
+            : 'Face the camera with your full body visible. Keep hips and ankles clear, spread your feet comfortably and hold steady.'}
+        </AppText>
+        <AppText variant="caption" muted>
+          A projected angle from the camera, not a validated flexibility test.
+        </AppText>
+      </Panel>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  preview: { overflow: 'hidden' },
-  previewActive: { height: 280 },
-  previewOff: { height: 0 },
-});
