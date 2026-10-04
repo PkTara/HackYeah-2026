@@ -184,6 +184,7 @@ export function HandsScreen() {
                 <View style={styles.offer}>
                   <DecisionHelp
                     label="alternative quest"
+                    takeaway={quest.quest.why}
                     explanation={explainQuest(
                       quest.quest,
                       focus,

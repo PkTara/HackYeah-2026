@@ -15,7 +15,12 @@ it('opens local focus help with the actual current climb records on Profile', as
     'Profile',
   );
   try {
-    await press(screen, 'Why your focus?', 'Your inputs for your focus');
+    await press(
+      screen,
+      'Why your focus?',
+      'How it works for your focus',
+      'Your inputs for your focus',
+    );
     expect(text(screen)).toContain(sampleGame.logs[0].date);
     expect(text(screen)).toContain(sampleGame.logs[0].id);
     expect(text(screen)).toContain('local-focus-v1');
@@ -27,25 +32,37 @@ it('opens local focus help with the actual current climb records on Profile', as
 it('offers disclosures beside the profile quest and each calculated chart or reward', async () => {
   const screen = await render(setup(), 'Profile');
   try {
-    await press(screen, 'Why your quest?', 'Your inputs for your quest');
+    await press(
+      screen,
+      'Why your quest?',
+      'How it works for your quest',
+      'Your inputs for your quest',
+    );
     expect(JSON.stringify(screen.toJSON())).not.toContain('Draft suggestion');
-    expect(text(screen)).toContain('Draft quest: Quiet feet');
+    expect(text(screen)).toContain('deliberate foot placement');
     await press(
       screen,
       'Why XP and level?',
+      'How it works for XP and level',
       'Your inputs for XP and level',
       'How was this data created?',
       'Why Slab tally?',
+      'How it works for Slab tally',
       'Your inputs for Slab tally',
       'Why Vertical tally?',
+      'How it works for Vertical tally',
       'Your inputs for Vertical tally',
       'Why Overhang tally?',
+      'How it works for Overhang tally',
       'Your inputs for Overhang tally',
       'Why Controlled tally?',
+      'How it works for Controlled tally',
       'Your inputs for Controlled tally',
       'Why Dynamic tally?',
+      'How it works for Dynamic tally',
       'Your inputs for Dynamic tally',
       'Why movement radar?',
+      'How it works for movement radar',
       'Your inputs for movement radar',
     );
     expect(text(screen)).toContain('fixed demonstration');
@@ -72,8 +89,10 @@ it('shows the actual dated finger flag behind pausing and the offered alternativ
     await press(
       screen,
       'Why finger pause rule?',
+      'How it works for finger pause rule',
       'Your inputs for finger pause rule',
       'Why alternative quest?',
+      'How it works for alternative quest',
       'Your inputs for alternative quest',
     );
     expect(text(screen)).toContain('2026-10-01');
@@ -90,10 +109,13 @@ it('explains selected Evidence counts and each style cell with matching records'
     await press(
       screen,
       'Why Vertical tally?',
+      'How it works for Vertical tally',
       'Your inputs for Vertical tally',
       'Why evidence focus?',
+      'How it works for evidence focus',
       'Your inputs for evidence focus',
       'Why Controlled Vertical cell?',
+      'How it works for Controlled Vertical cell',
       'Your inputs for Controlled Vertical cell',
     );
     expect(text(screen)).toContain('sample-3');
@@ -128,8 +150,10 @@ it('reveals saved reach arithmetic and home-test protocol context from Tests', a
     await press(
       screen,
       'Why reach difference?',
+      'How it works for reach difference',
       'Your inputs for reach difference',
       'Why pull-ups result?',
+      'How it works for pull-ups result',
       'Your inputs for pull-ups result',
     );
     expect(text(screen)).toContain('arm span minus height');
@@ -145,6 +169,7 @@ it('opens the bundled original-source library from About with study details', as
   const screen = await render(setup(), 'About');
   try {
     expect(text(screen)).toContain('structured observation');
+    await press(screen, `Study details: ${RESEARCH_SOURCES[0].title}`);
     expect(text(screen)).toContain(RESEARCH_SOURCES[0].title);
     expect(text(screen)).toContain(RESEARCH_SOURCES[0].readingDepth);
     const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
@@ -166,6 +191,7 @@ it('opens help on the actual analyzed camera reading including usable counts and
       'Send for analysis, I consent to sending this capture to the server for analysis.',
       'Analyse photo',
       'Why camera reading?',
+      'How it works for camera reading',
       'Your inputs for camera reading',
     );
     expect(text(screen)).toContain('front-facing-leg-spread-v1');
@@ -204,6 +230,7 @@ it('explains an invalid camera capture using its actual rejection reason', async
       'Send for analysis, I consent to sending this capture to the server for analysis.',
       'Analyse photo',
       'Why camera reading?',
+      'How it works for camera reading',
       'Your inputs for camera reading',
     );
     expect(text(screen)).toContain('Both hips and ankles must be visible.');
@@ -221,6 +248,7 @@ it('names both filters for a style cell and excludes other terrains from its rec
     await press(
       screen,
       'Why Controlled Slab cell?',
+      'How it works for Controlled Slab cell',
       'Your inputs for Controlled Slab cell',
     );
     expect(text(screen)).toContain('First filter terrain=slab');
@@ -266,11 +294,21 @@ it('keeps a server quest snapshot separate from the current local focus', async 
     'Profile',
   );
   try {
-    await press(screen, 'Why your quest?', 'Your inputs for your quest');
+    await press(
+      screen,
+      'Why your quest?',
+      'How it works for your quest',
+      'Your inputs for your quest',
+    );
     expect(text(screen)).toContain('earlier-report');
     expect(text(screen)).toContain('server-saved-rule');
     expect(text(screen)).not.toContain('(sample-1)');
-    await press(screen, 'Why your focus?', 'Your inputs for your focus');
+    await press(
+      screen,
+      'Why your focus?',
+      'How it works for your focus',
+      'Your inputs for your focus',
+    );
     expect(text(screen)).toContain('(sample-1)');
     expect(text(screen)).toContain('Independent of server quest selection');
   } finally {
@@ -326,6 +364,7 @@ it('uses returned camera landmark snapshots and identifies relative clip offsets
       'Send for analysis, I consent to sending this capture to the server for analysis.',
       'Analyse photo',
       'Why camera reading?',
+      'How it works for camera reading',
       'Your inputs for camera reading',
     );
     expect(text(screen)).toContain('x=0.42; y=0.50; visibility=0.91');
@@ -359,6 +398,7 @@ it('describes an empty legacy camera response without inferring capture rejectio
       'Send for analysis, I consent to sending this capture to the server for analysis.',
       'Analyse photo',
       'Why camera reading?',
+      'How it works for camera reading',
       'Your inputs for camera reading',
     );
     expect(text(screen)).toContain('No valid sample was returned');
@@ -381,7 +421,7 @@ it('keeps wall tallies below the triangle inside a collapsed creation tray', asy
     expect(control(screen, 'Why Slab tally?')).toBeDefined();
     expect(control(screen, 'Why Vertical tally?')).toBeDefined();
     expect(control(screen, 'Why Overhang tally?')).toBeDefined();
-    await press(screen, 'Why Slab tally?');
+    await press(screen, 'Why Slab tally?', 'How it works for Slab tally');
     expect(text(screen)).not.toContain('(sample-1)');
     await press(screen, 'Your inputs for Slab tally');
     expect(text(screen)).toContain('(sample-1)');

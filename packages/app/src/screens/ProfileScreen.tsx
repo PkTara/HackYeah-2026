@@ -220,6 +220,7 @@ export function ProfileScreen() {
                 {/* Server quests can have long titles, so they wrap. */}
                 <DecisionHelp
                   label="your quest"
+                  takeaway={quest.quest.why}
                   explanation={explainQuest(
                     quest.quest,
                     focus,

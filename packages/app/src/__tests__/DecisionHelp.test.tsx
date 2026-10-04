@@ -6,7 +6,7 @@ import {
 } from '../components/resultExplanations';
 import { Linking, View } from 'react-native';
 import { AppText } from '@hackyeah/ui';
-import { DecisionHelp } from '../components/DecisionHelp';
+import { DecisionHelp, ResearchPaper } from '../components/DecisionHelp';
 import { press, text, control, type Renderer } from '../testing/cameraFixture';
 
 const source = {
@@ -49,7 +49,12 @@ async function render() {
 it('starts collapsed and toggles actual records, rule, limitations and original paper link', async () => {
   const screen = await render();
   expect(text(screen)).not.toContain('Count matching records');
-  await press(screen, 'Why focus?', 'Your inputs for focus');
+  await press(
+    screen,
+    'Why focus?',
+    'How it works for focus',
+    'Your inputs for focus',
+  );
   expect(control(screen, 'Why focus?')?.props.accessibilityState.expanded).toBe(
     true,
   );
@@ -82,7 +87,12 @@ it('reports missing research and provenance honestly for a legacy explanation', 
       />,
     );
   });
-  await press(screen, 'Why legacy quest?', 'Your inputs for legacy quest');
+  await press(
+    screen,
+    'Why legacy quest?',
+    'How it works for legacy quest',
+    'Your inputs for legacy quest',
+  );
   expect(text(screen)).toContain('Input records unavailable');
   expect(text(screen)).toContain('Source unavailable: missing-paper');
   await act(async () => screen.unmount());
@@ -94,7 +104,12 @@ it('shows a failed paper opening and allows retry', async () => {
     .spyOn(Linking, 'openURL')
     .mockRejectedValueOnce(new Error('offline'))
     .mockResolvedValue(undefined);
-  await press(screen, 'Why focus?', 'Open original paper: Original paper');
+  await press(
+    screen,
+    'Why focus?',
+    'How it works for focus',
+    'Open original paper: Original paper',
+  );
   expect(text(screen)).toContain('Could not open this paper. Try again.');
   await press(screen, 'Open original paper: Original paper');
   expect(text(screen)).not.toContain('Could not open this paper');
@@ -167,7 +182,7 @@ it('keeps input records in a separate tray collapsed until requested', async () 
       control(screen, 'Your inputs for focus')?.props.accessibilityState
         .expanded,
     ).toBe(false);
-    expect(text(screen)).toContain('Count matching records');
+    expect(text(screen)).toContain('A count from your climbs');
     await press(screen, 'Your inputs for focus');
     expect(text(screen)).toContain('log-7');
     await press(screen, 'Your inputs for focus');
@@ -191,8 +206,72 @@ it('attaches help to its displayed value without a separate status row', async (
     expect(text(screen)).not.toContain('focus');
     expect(JSON.stringify(screen.toJSON())).not.toContain('App rule');
     expect(control(screen, 'Why focus?')).toBeDefined();
-    await press(screen, 'Why focus?');
+    await press(screen, 'Why focus?', 'How it works for focus');
     expect(text(screen)).toContain('Count matching records');
+  } finally {
+    await act(async () => screen.unmount());
+  }
+});
+
+it('keeps source citations short and hides study detail until requested', async () => {
+  let screen!: Renderer;
+  await act(async () => {
+    screen = ReactTestRenderer.create(<ResearchPaper source={source} />);
+  });
+  try {
+    expect(text(screen)).toContain('2024');
+    expect(text(screen)).not.toContain('Climbers');
+    expect(text(screen)).not.toContain('An association only');
+    expect(
+      control(screen, 'Open original paper: Original paper'),
+    ).toBeDefined();
+    await press(screen, 'Study details: Original paper');
+    expect(text(screen)).toContain('Climbers');
+    expect(text(screen)).toContain('An association only');
+    expect(text(screen)).toContain('No app validation');
+  } finally {
+    await act(async () => screen.unmount());
+  }
+});
+
+it('keeps product-rule background reading and calculation detail out of the short explanation', async () => {
+  const screen = await render();
+  try {
+    await press(screen, 'Why focus?');
+    expect(text(screen)).toContain('A count from your climbs');
+    expect(text(screen)).not.toContain('Count matching records');
+    expect(text(screen)).not.toContain('Self-reported');
+    expect(
+      control(screen, 'Open original paper: Original paper'),
+    ).toBeUndefined();
+    await press(screen, 'How it works for focus');
+    expect(text(screen)).toContain('Count matching records');
+    expect(text(screen)).toContain('Self-reported');
+    expect(
+      control(screen, 'Open original paper: Original paper'),
+    ).toBeDefined();
+  } finally {
+    await act(async () => screen.unmount());
+  }
+});
+
+it('shows the provided relevant takeaway instead of a repeated generic summary', async () => {
+  let screen!: Renderer;
+  await act(async () => {
+    screen = ReactTestRenderer.create(
+      <DecisionHelp
+        label="focus"
+        explanation={explanation}
+        takeaway="Your vertical logs prompted this practice idea."
+      />,
+    );
+  });
+  try {
+    await press(screen, 'Why focus?');
+    expect(text(screen)).toContain(
+      'Your vertical logs prompted this practice idea.',
+    );
+    expect(text(screen)).not.toContain('A count from your climbs');
   } finally {
     await act(async () => screen.unmount());
   }

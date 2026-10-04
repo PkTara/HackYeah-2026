@@ -14,14 +14,26 @@ export function DecisionHelp({
   explanation,
   sources = RESEARCH_SOURCES,
   children,
+  takeaway,
 }: {
   label: string;
   explanation: DecisionExplanation;
   sources?: readonly ResearchSource[];
   children?: ReactNode;
+  takeaway?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   const { colors: c } = useTheme();
+  const readingIsBackground =
+    explanation.status === 'app_rule' || explanation.status === 'example';
+  const research = explanation.sourceIds.map(id => {
+    const source = sources.find(item => item.id === id);
+    return source ? (
+      <ResearchPaper key={id} source={source} />
+    ) : (
+      <AppText key={id}>Source unavailable: {id}</AppText>
+    );
+  });
   return (
     <View style={styles.stack}>
       <View style={styles.row}>
@@ -53,25 +65,43 @@ export function DecisionHelp({
               { backgroundColor: c.surfaceShade, borderColor: c.outline },
             ]}
           >
-            <AppText accessibilityRole="header">{explanation.summary}</AppText>
-            <AppText style={styles.heading}>Rule</AppText>
-            <AppText>{explanation.rule}</AppText>
-            <AppText style={styles.heading}>Research</AppText>
-            {explanation.sourceIds.length === 0 ? (
-              <AppText>No published source is attached to this rule.</AppText>
+            <AppText accessibilityRole="header">
+              {takeaway ?? explanation.summary}
+            </AppText>
+            {!readingIsBackground && research.length > 0 ? (
+              <View style={styles.stack}>
+                <AppText variant="caption" muted>
+                  Related research; this app's{' '}
+                  {explanation.status === 'estimate'
+                    ? 'measurement'
+                    : 'suggestion'}{' '}
+                  is unvalidated.
+                </AppText>
+                {research}
+              </View>
             ) : null}
-            {explanation.sourceIds.map(id => {
-              const source = sources.find(s => s.id === id);
-              return source ? (
-                <ResearchPaper key={id} source={source} />
-              ) : (
-                <AppText key={id}>Source unavailable: {id}</AppText>
-              );
-            })}
-            <AppText style={styles.heading}>Limits</AppText>
-            {explanation.limitations.map((limit, index) => (
-              <AppText key={index}>{limit}</AppText>
-            ))}
+            <ExpandableTray
+              title="How it works"
+              accessibilityLabel={`How it works for ${label}`}
+            >
+              {takeaway && takeaway !== explanation.summary ? (
+                <AppText variant="caption">{explanation.summary}</AppText>
+              ) : null}
+              <AppText>{explanation.rule}</AppText>
+              {explanation.limitations.map((limit, index) => (
+                <AppText key={index} variant="caption">
+                  • {limit}
+                </AppText>
+              ))}
+              {readingIsBackground && research.length > 0 ? (
+                <View style={styles.stack}>
+                  <AppText variant="caption" muted>
+                    Background reading
+                  </AppText>
+                  {research}
+                </View>
+              ) : null}
+            </ExpandableTray>
             <ExpandableTray
               title="Your inputs"
               count={explanation.evidence.length}
@@ -96,6 +126,26 @@ export function DecisionHelp({
   );
 }
 
+const SOURCE_TOPICS: Readonly<Record<string, string>> = {
+  michailov2018: 'Finger testing',
+  mermier2000: 'Climbing performance',
+  draga2020: 'Flexibility',
+  orth2018: 'Learning through practice',
+  seifert2017: 'Route preview',
+  stenum2021: '2D movement estimates',
+  barzegar2024: 'Camera joint angles',
+  schweizer2001: 'Crimp grip loading',
+  klauser2002: 'Finger pulley imaging',
+  paxton2012: 'Ligament lab study',
+  shaw2017: 'Nutrition and collagen markers',
+  baar2019: 'Tendon case report',
+  walker2020: 'Coached video feedback',
+  sanchez2012: 'Route inspection',
+  medernach2021: 'Bouldering decisions',
+  langer2024: 'Climbing training trial',
+  stien2024: 'Movement practice pilot',
+};
+
 /** Only this deliberate press opens a remote paper; sources are bundled. */
 export function ResearchPaper({ source }: { source: ResearchSource }) {
   const [error, setError] = useState(false);
@@ -114,20 +164,33 @@ export function ResearchPaper({ source }: { source: ResearchSource }) {
         accessibilityLabel={`Open original paper: ${source.title}`}
         onPress={open}
       >
-        <AppText style={styles.link}>{source.title}</AppText>
-      </Pressable>
-      <AppText variant="caption">
-        {source.authors}, {source.year}. {source.studyType}. {source.population}
-      </AppText>
-      <AppText variant="caption">
-        Read: {source.readingDepth}. Verified: {source.verifiedAt}
-      </AppText>
-      <AppText>{source.supports}</AppText>
-      {source.limitations.map((limit, index) => (
-        <AppText variant="caption" key={index}>
-          {limit}
+        <AppText style={styles.link}>
+          {SOURCE_TOPICS[source.id] ?? source.title} ·{' '}
+          {source.authors.split(',')[0]}
+          {source.authors.includes(',') ? ' et al.' : ''}, {source.year}
         </AppText>
-      ))}
+      </Pressable>
+      <ExpandableTray
+        title="Study details"
+        accessibilityLabel={`Study details: ${source.title}`}
+      >
+        <AppText>{source.title}</AppText>
+        <AppText variant="caption">
+          {source.authors}, {source.year}
+        </AppText>
+        <AppText variant="caption">
+          {source.studyType} · {source.population}
+        </AppText>
+        <AppText>{source.supports}</AppText>
+        {source.limitations.map((limit, index) => (
+          <AppText variant="caption" key={index}>
+            • {limit}
+          </AppText>
+        ))}
+        <AppText variant="caption" muted>
+          Read: {source.readingDepth} · Checked: {source.verifiedAt}
+        </AppText>
+      </ExpandableTray>
       {error ? (
         <AppText accessibilityRole="alert">
           Could not open this paper. Try again.
@@ -148,7 +211,6 @@ const styles = StyleSheet.create({
     marginTop: -4,
   },
   question: { fontWeight: '700', fontSize: 12, lineHeight: 16 },
-  heading: { fontWeight: '800' },
   details: { padding: 12, borderWidth: 3, gap: 10 },
   link: { textDecorationLine: 'underline', fontWeight: '700' },
 });
