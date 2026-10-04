@@ -12,6 +12,7 @@ import {
   type OnboardingResult,
 } from './onboarding';
 import type { Quest } from './quests';
+import type { DecisionExplanation } from './evidence';
 
 export type Side = 'left' | 'right';
 export type Finger = 'thumb' | 'index' | 'middle' | 'ring' | 'little';
@@ -34,6 +35,8 @@ export type HandFlag = Readonly<{
 }>;
 
 export type Reach = Readonly<{
+  /** Original measurement provenance for derived reach, when recorded. */
+  decision?: DecisionExplanation;
   armSpanCm: number;
   heightCm: number;
   date: string;

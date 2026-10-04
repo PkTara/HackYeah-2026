@@ -5,12 +5,15 @@
  * to review them before release (see docs/climbing-app-design.md).
  */
 import type { Focus, Terrain } from './climbing';
+import type { DecisionExplanation } from './evidence';
 
 /** 'assess' only comes from a server: record a measurement. */
 export type QuestKind = 'log' | 'practice' | 'plan' | 'checkin' | 'assess';
 
 export type Quest = Readonly<{
   id: string;
+  /** Authoritative server provenance, when available. */
+  decision?: DecisionExplanation;
   kind: QuestKind;
   /** Which focus terrain it serves. Undefined means any. */
   terrain?: Terrain;
@@ -41,7 +44,7 @@ function logQuest(terrain: Terrain): Quest {
     terrain,
     title: `Scout the ${name}`,
     task: `Log 3 ${name} climbs next session, sent or not.`,
-    why: `You have fewer than 3 ${name} climbs logged, so there is nothing to compare yet.`,
+    why: `You have fewer than 3 ${name} climbs logged, so the app asks for more logs before comparing send shares.`,
     minutes: 20,
     equipment: 'Climbing wall',
     loadsFingers: true,
@@ -58,7 +61,7 @@ export const QUESTS: readonly Quest[] = [
     terrain: 'vertical',
     title: 'Quiet feet',
     task: 'Climb 4 easy vertical problems. Place every foot without a sound.',
-    why: 'Vertical is your lowest send rate. Careful feet take weight off your arms.',
+    why: 'Vertical has your lowest logged send share. This task explores deliberate foot placement.',
     minutes: 15,
     equipment: 'Climbing wall',
     loadsFingers: true,
@@ -80,7 +83,7 @@ export const QUESTS: readonly Quest[] = [
     terrain: 'slab',
     title: 'Trust the rubber',
     task: 'Climb 3 easy slabs keeping your hips over your feet the whole way.',
-    why: 'Slab is your lowest send rate. Weight over your feet is what makes slab stick.',
+    why: 'Slab has your lowest logged send share. This task explores body position over your feet.',
     minutes: 15,
     equipment: 'Climbing wall',
     loadsFingers: true,
@@ -102,7 +105,7 @@ export const QUESTS: readonly Quest[] = [
     terrain: 'overhang',
     title: 'Keep feet on',
     task: 'Climb 3 easy overhangs without a foot cutting loose.',
-    why: 'Overhang is your lowest send rate. Feet staying on means less load on your arms.',
+    why: 'Overhang has your lowest logged send share. This task explores keeping foot contact.',
     minutes: 15,
     equipment: 'Climbing wall',
     loadsFingers: true,
@@ -123,7 +126,7 @@ export const QUESTS: readonly Quest[] = [
     kind: 'checkin',
     title: 'Finger check-in',
     task: 'Rate how your flagged finger feels from 0 to 10 and write one line about it.',
-    why: 'A quick note now makes it easier to see if it is getting better.',
+    why: 'A quick note records what you reported today for later comparison.',
     minutes: 2,
     equipment: 'None',
     loadsFingers: false,

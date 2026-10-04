@@ -201,3 +201,53 @@ it('clears acknowledged assessment ids after resetting the HTTP profile', async 
   await backend.saveAssessment(record);
   expect(api.only().assessments).toHaveLength(1);
 });
+
+it('preserves reviewed camera decision snapshots through remote save and restart', async () => {
+  const decision = {
+    summary: 'Left shoulder 170 degrees',
+    status: 'estimate' as const,
+    rule: 'camera-shoulder-reach-v1',
+    evidence: [
+      {
+        id: 'landmark-11',
+        label: 'Left shoulder',
+        detail: '{"x":0.4,"y":0.5,"visibility":0.9}',
+      },
+    ],
+    sourceIds: ['barzegar2024'],
+    limitations: ['Model/version unavailable'],
+  };
+  const camera: AssessmentRecord = {
+    id: 'camera-reviewed',
+    metric: 'shoulder_reach_left',
+    value: 170,
+    unit: 'degrees',
+    method: 'camera',
+    protocol: 'front-facing-overhead-reach-v1',
+    confidence: 0.9,
+    occurredAt: record.occurredAt,
+    decision,
+  };
+  const api = createFakeApi();
+  const storage = createMemoryStore();
+  const backend = createHttpBackend({
+    baseUrl: 'http://api.test',
+    storage,
+    fetch: api.fetch,
+  });
+  await backend.saveAssessment(camera);
+  const body = api.calls.find(
+    c => c.path === '/v1/me/assessments' && c.method === 'POST',
+  )?.body;
+  const { sourceIds, ...snapshot } = decision;
+  expect(body).toMatchObject({
+    decision: { ...snapshot, source_ids: sourceIds },
+  });
+  expect(body).not.toHaveProperty('decision.sourceIds');
+  const restarted = createHttpBackend({
+    baseUrl: 'http://api.test',
+    storage,
+    fetch: api.fetch,
+  });
+  expect((await restarted.load()).assessments?.[0].decision).toEqual(decision);
+});

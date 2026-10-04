@@ -8,7 +8,7 @@ Use this file for significant AI/external-resource disclosure in the Sport & Hea
 |---|---|---|
 | Claude Code (VS Code extension) | Claude Opus 5.5 (`claude-opus-5-5`) | Converting the challenge PDFs to Markdown, researching the React Native setup, scaffolding the project, writing code and docs |
 | Codex desktop | GPT-6 | Drafting the climbing app product design and checking MediaPipe capability documentation |
-| Codex (with subagents) | GPT-6.1 Sol, reviewed by GPT-6 Astra | The FastAPI backend, its video and live camera APIs, the first camera adapters and capture screens, and the scientific evidence notes, demo mode and the Data hub with live assessments (log entries 11, 20, 27 and 28) |
+| Codex (with subagents) | GPT-6.1 Sol, reviewed by GPT-6 Astra | The FastAPI backend, its video and live camera APIs, the first camera adapters and capture screens, and the scientific evidence notes, demo mode and the Data hub with live assessments (log entries 11, 20, 27 and 28), and the decision evidence work merged in log entry 35 |
 | Claude Code (claude.ai cloud session, with parallel subagents) | Claude | Pixel-art pets, the jungle pixel UI kit, the climbing profile rules, the app screens, the web layout, onboarding, connecting the app to the backend, and the camera screens |
 
 ### Third-party code in the app
@@ -422,3 +422,17 @@ The Codex design-drafting step used the `superpowers:using-superpowers` and `sup
 **Tools:** Claude Code (Anthropic). No new libraries, models or APIs.
 
 **Validation:** `npm run check` (typecheck, lint with no errors, all Jest tests). A script checked that every relative link and anchor in the edited Markdown resolves.
+
+### 35. Merging the decision evidence branch (2026-10-04)
+
+**Prompt:** Merge `origin/main` (the team's decision evidence and citation work) into the app branch. Keep all of main's logic, data contracts, backend, tests and new screens, keep all of this branch's features and its visual style, and wire main's new code into this branch's shapes.
+
+**What main brought:** the source registry and explanation builders (`packages/core/src/evidence.ts`), question-mark explanations (`DecisionHelp`, `ExpandableTray`, `resultExplanations`), decision DTOs in `wire.ts`, backend quest snapshots with deletion redaction, compact Data and Profile summaries with detail pages (`BodyReachScreen`, `MeasurementDetailScreen`, `ActivityScreen`, `DataRow`), `SubpageFooter` and the `TabScreen` `completion` prop, the `HandDiagram` hand input, the assessment camera and review trays, more climbing styles in the log, and the Claude handoff docs. Main added no entries to this log; its handoff note and plan say the work was done with Codex, so it is recorded here.
+
+**What the agent did (Claude Code):** ran the merge and resolved five conflicts. `TabScreen` keeps the sport modes and gains main's `completion` prop and `SubpageFooter`. `SubpageFooter` now treats the gazelle and dolphin tabs as tab roots, so they show no Close button, and falls back to the sport profile from a sport page. The Data tab takes main's compact rows, which moved the reach, home test, camera and activity panels to their detail pages. The shoulder reach labels take main's wording, which main's explanation tests use. The simulated finger strength caption and the demo caption keep this branch's wording. Everything else merged cleanly: `PetsPanel` stays on Profile, `GameProvider` keeps its save sounds, and onboarding keeps its props and tap-to-edit next to main's explanations. Two App-level tests cover the sport-mode footer rule, seen failing before the fix. `docs/camera-video.md` now describes main's Data layout.
+
+**Tools:** Claude Code (Anthropic). Playwright with the preinstalled Chromium for the smoke test. No new libraries, models or APIs.
+
+**Validation:** `npm run check` (typecheck, lint with no errors, 76 Jest suites and 1137 tests), `npm run backend:check` (258 tests), the web build and the Android bundle. Playwright at 390 px and 1280 px on the built web app: skip setup, visit Profile, Log, Hands, Data and Settings, open a question-mark explanation, switch to the dolphin and back; no console errors.
+
+**Limits:** main's handoff asks for a later redesign of how the explanations are presented. This merge keeps them as main built them.

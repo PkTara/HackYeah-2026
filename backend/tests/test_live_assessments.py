@@ -431,3 +431,148 @@ def test_instrument_force_can_record_both_hands(client, auth):
     assert response.status_code == 201, response.json()
     assert response.json()["side"] == "both"
     assert client.get("/v1/me/assessments", headers=auth).json()[0]["side"] == "both"
+
+
+def test_shoulder_decision_snapshots_actual_joint_inputs_and_geometry():
+    import json
+    import math
+
+    points = front_pose()
+    points[13].update(x=0.2, y=0.3)
+    points[15].update(x=0, y=0.1)
+    result = pose.analyze_shoulder_landmarks(points, image_size=(200, 100))
+    decision = result["decision"]
+    indices = (11, 12, 13, 14, 15, 16, 23, 24)
+    assert [entry["id"] for entry in decision["evidence"][:8]] == [
+        f"landmark-{index}" for index in indices
+    ]
+    captured = {
+        index: json.loads(entry["detail"])
+        for index, entry in zip(indices, decision["evidence"][:8], strict=True)
+    }
+    assert captured == {index: points[index] for index in indices}
+    geometry = json.loads(decision["evidence"][8]["detail"])
+    assert geometry == {
+        "width": 200,
+        "height": 100,
+        "aspect_ratio": 2,
+        "square_assumption": False,
+        "visibility_threshold": 0.7,
+        "minimum_elbow_angle": 160,
+    }
+
+    def angle(a, vertex, b):
+        left = ((a["x"] - vertex["x"]) * geometry["aspect_ratio"], a["y"] - vertex["y"])
+        right = ((b["x"] - vertex["x"]) * geometry["aspect_ratio"], b["y"] - vertex["y"])
+        return math.degrees(
+            math.acos(
+                sum(a * b for a, b in zip(left, right)) / (math.hypot(*left) * math.hypot(*right))
+            )
+        )
+
+    assert result["left_value"] == pytest.approx(angle(captured[23], captured[11], captured[13]))
+    assert result["right_value"] == pytest.approx(angle(captured[24], captured[12], captured[14]))
+    assert result["value"] == pytest.approx((result["left_value"] + result["right_value"]) / 2)
+    assert "shoulder" in decision["summary"]
+    assert "hip midpoint" not in decision["rule"]
+    assert "160" in decision["rule"]
+    assert decision["source_ids"] == ["stenum2021", "barzegar2024"]
+    assert "model/version unavailable" in " ".join(decision["limitations"])
+    assert "decision" not in pose.analyze_shoulder_landmarks([])
+
+
+def test_confirmed_camera_snapshot_round_trips_with_explicit_report_limitation(client, auth):
+    import json
+
+    result = pose.analyze_shoulder_landmarks(front_pose(), image_size=(64, 48))
+    payload = {
+        "metric": "shoulder_reach_left",
+        "value": result["left_value"],
+        "unit": "degrees",
+        "method": "camera",
+        "protocol": result["protocol"],
+        "confidence": result["confidence"],
+        "occurred_at": "2026-10-04T10:00:00Z",
+        "decision": result["decision"],
+    }
+    response = client.post("/v1/me/assessments", headers=auth, json=payload)
+    assert response.status_code == 201, response.json()
+    saved = response.json()
+    assert saved["model_version"] is None
+    assert saved["decision"]["evidence"] == result["decision"]["evidence"]
+    assert saved["decision"]["source_ids"] == result["decision"]["source_ids"]
+    assert "client-supplied" in " ".join(saved["decision"]["limitations"])
+    assert client.get("/v1/me/assessments", headers=auth).json() == [saved]
+    assert client.delete(f"/v1/me/assessments/{saved['id']}", headers=auth).status_code == 204
+    assert client.get("/v1/me/assessments", headers=auth).json() == []
+    assert "landmark-11" not in json.dumps(client.get("/v1/me/export", headers=auth).json())
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"status": "verified"},
+        {"rule": "x" * 6001},
+        {"evidence": [{}]},
+        {"evidence": [{"id": "point", "label": "Point", "detail": "x" * 4001}]},
+        {"source_ids": ["x"] * 33},
+        {"limitations": ["x"] * 33},
+        {"unknown": "field"},
+    ],
+)
+def test_saved_decision_rejects_malformed_or_unbounded_metadata(client, auth, changes):
+    snapshot = pose.analyze_shoulder_landmarks(front_pose())["decision"]
+    snapshot.update(changes)
+    payload = {
+        "metric": "shoulder_reach_left",
+        "value": 180,
+        "unit": "degrees",
+        "method": "camera",
+        "protocol": "front-facing-overhead-reach-v1",
+        "confidence": 0.9,
+        "decision": snapshot,
+    }
+    assert client.post("/v1/me/assessments", headers=auth, json=payload).status_code == 422
+
+
+def test_deleted_record_is_redacted_from_saved_assessment_snapshot(client, auth):
+    hand = client.post(
+        "/v1/me/hands",
+        headers=auth,
+        json={
+            "side": "left",
+            "region": "ring_finger",
+            "pain": 3,
+        },
+    ).json()
+    snapshot = pose.analyze_shoulder_landmarks(front_pose())["decision"]
+    snapshot["evidence"].append(
+        {
+            "id": hand["id"],
+            "label": "Reported hand",
+            "detail": "pain=3; private-note",
+        }
+    )
+    saved = client.post(
+        "/v1/me/assessments",
+        headers=auth,
+        json={
+            "metric": "shoulder_reach_left",
+            "value": 180,
+            "unit": "degrees",
+            "method": "camera",
+            "protocol": "front-facing-overhead-reach-v1",
+            "confidence": 0.9,
+            "decision": snapshot,
+        },
+    ).json()
+    assert "id" in saved, saved
+    assert client.delete(f"/v1/me/hands/{hand['id']}", headers=auth).status_code == 204
+    history = client.get("/v1/me/assessments", headers=auth).json()
+    entry = next(entry for entry in history[0]["decision"]["evidence"] if entry["id"] == hand["id"])
+    assert entry == {
+        "id": hand["id"],
+        "label": "Record removed",
+        "detail": "Provenance unavailable after deletion.",
+    }
+    assert "private-note" not in str(client.get("/v1/me/export", headers=auth).json())

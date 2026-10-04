@@ -20,6 +20,7 @@ import { trailFor } from '../navigation/trail';
 import { useGame } from '../state/GameProvider';
 import { useDemo } from '../demo/DemoProvider';
 import { useSport } from '../state/SportProvider';
+import { SubpageFooter, type SubpageCompletion } from './SubpageFooter';
 
 type TabRoute = Extract<
   RouteName,
@@ -57,6 +58,8 @@ const SPORT_TAB_KEYS: readonly RouteName[] = [
 type Props = {
   children: ReactNode;
   hero?: ReactNode;
+  /** Override a local detail stage, or false when it supplies its own completion. */
+  completion?: SubpageCompletion | false;
 };
 
 const isTab = (route: RouteName | undefined): route is TabRoute =>
@@ -68,7 +71,7 @@ const isTab = (route: RouteName | undefined): route is TabRoute =>
  * on wide screens. The active tab is the root of the navigation stack, or the
  * tab a linked screen belongs to (a link to a finger close-up shows Hands).
  */
-export function TabScreen({ children, hero }: Props) {
+export function TabScreen({ children, hero, completion }: Props) {
   const demo = useDemo();
   const { root, reset } = useNavigation<RouteName>();
   const { mode, view } = useSport();
@@ -101,6 +104,7 @@ export function TabScreen({ children, hero }: Props) {
         </AppText>
       ) : null}
       {children}
+      {completion !== false ? <SubpageFooter {...completion} /> : null}
     </Screen>
   );
 }

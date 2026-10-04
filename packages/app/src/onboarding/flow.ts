@@ -145,16 +145,18 @@ const LINES: Readonly<Record<Exclude<StepId, ConsentStepId>, string>> = {
   places: 'First up: where do you climb? Pick all that fit.',
   experience: 'And how long have you been climbing?',
   grade: 'What grade do you usually send? A rough guess is fine.',
-  goal: 'What do you want most from climbing right now? Your goal shapes the quests I give you.',
+  goal: 'What do you want most from climbing right now? A connected server can use your goal to prioritize quests.',
   body: 'Want to add your height and arm span? It tells me about your reach. Skip it if you like.',
   apps: 'Use other apps for training? You decide for each one, and you can skip them all.',
-  tests: 'Want a baseline? 6 quick tests at home, about 5 to 10 minutes. All optional.',
+  tests:
+    'Want a baseline? 6 quick tests at home, about 5 to 10 minutes. All optional.',
   'dead-hang': 'First, a dead hang. Straight arms, and keep breathing.',
   'pull-ups': 'Pull-ups next. Clean reps only, no kicking.',
   'sit-and-reach': 'Time to stretch. Reach slowly and do not bounce.',
   plank: 'Plank time. Keep your hips in line with your shoulders.',
   'one-leg-balance': 'Eyes closed, one leg. Wobbling is part of it.',
-  'push-ups': 'Last one: push-ups. They train the muscles climbing tends to skip.',
+  'push-ups':
+    'Last one: push-ups. They train the muscles climbing tends to skip.',
   done: 'All set. I saved your answers and your profile is ready!',
 };
 

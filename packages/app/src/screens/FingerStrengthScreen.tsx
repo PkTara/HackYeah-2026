@@ -106,7 +106,12 @@ export function FingerStrengthScreen() {
     });
   };
   return (
-    <TabScreen>
+    <TabScreen
+      completion={{
+        disabled: saving,
+        ...(review ? { onPress: editReview } : {}),
+      }}
+    >
       <View style={styles.column}>
         {review ? (
           <Breadcrumbs

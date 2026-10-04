@@ -19,21 +19,23 @@ describe('Data tab', () => {
   it('opens leg spread from the supported Tests alias under Data', async () => {
     const fixture = setup();
     const screen = await render(fixture, 'Tests');
-    expect(text(screen)).toContain('not a validated flexibility test');
+    expect(control(screen, 'Open leg spread')).toBeDefined();
     expect(text(screen)).not.toContain(NEEDS_SERVER);
+    await press(screen, 'Open leg spread');
     await press(screen, 'Leg spread assessment');
     expect(has(screen, 'Back to Data')).toBe(true);
     expect(has(screen, 'Leg spread')).toBe(true);
     expect(control(screen, 'Record')).toBeDefined();
     expect(fixture.preview.active).toBe(false);
     await press(screen, 'Back to Data');
-    expect(control(screen, 'Leg spread assessment')).toBeDefined();
+    expect(control(screen, 'Open leg spread')).toBeDefined();
     await act(async () => screen.unmount());
   });
 
   it('opens shoulder reach with its selected metric and Data breadcrumb', async () => {
     const fixture = setup();
     const screen = await render(fixture, 'Data');
+    await press(screen, 'Open shoulder reach');
     await press(screen, 'Shoulder reach assessment');
     expect(has(screen, 'Back to Data')).toBe(true);
     expect(has(screen, 'Shoulder reach')).toBe(true);
@@ -41,24 +43,34 @@ describe('Data tab', () => {
     expect(control(screen, 'Record')).toBeDefined();
     expect(fixture.preview.active).toBe(false);
     await press(screen, 'Back to Data');
-    expect(control(screen, 'Shoulder reach assessment')).toBeDefined();
+    expect(control(screen, 'Open shoulder reach')).toBeDefined();
     await act(async () => screen.unmount());
   });
 
-  it('says it needs the server in the on-device demo', async () => {
+  it('keeps the camera placeholder when opening a measurement without a server', async () => {
     const fixture = setup({ media: false });
     const screen = await render(fixture, 'Tests');
-    expect(text(screen)).toContain('This needs the Climbing Monkey server');
-    expect(text(screen)).toContain('npm run backend:start');
+    await press(screen, 'Open leg spread', 'Leg spread assessment');
+    expect(text(screen)).toContain('Connect the analysis service');
+    expect(text(screen)).toContain('Camera off');
+    expect(control(screen, 'Record').props.accessibilityState.disabled).toBe(
+      true,
+    );
     expect(control(screen, 'Leg spread assessment')).toBeUndefined();
     await act(async () => screen.unmount());
   });
 
-  it('a link straight to the camera screen without a server shows no camera', async () => {
+  it('a link straight to the assessment without a server retains a camera placeholder and disables Record', async () => {
     const fixture = setup({ media: false });
     const screen = await render(fixture, 'Assessment');
-    expect(text(screen)).toContain(`The camera assessment ${NEEDS_SERVER}`);
-    expect(control(screen, 'Record')).toBeUndefined();
+    expect(text(screen)).toContain('Connect the analysis service');
+    expect(text(screen)).toContain('Camera off');
+    expect(control(screen, 'Record').props.accessibilityState.disabled).toBe(
+      true,
+    );
+    await press(screen, 'Record');
+    expect(fixture.preview.active).toBe(false);
+    expect(fixture.requests).toEqual([]);
     await act(async () => screen.unmount());
   });
 });

@@ -4,7 +4,7 @@ The server side was built on `codex/climbing-monkey-backend` and merged into the
 
 ## User flows
 
-**Data** groups body/reach, mobility/movement, strength/endurance and activity/recovery. Leg spread and overhead shoulder reach are in Mobility & movement. Finger strength is an external instrument-reading form in Strength & endurance; camera footage never supplies force.
+**Data** shows compact rows for strength, flexibility, finger strength, body and reach, and activity and recovery; each row opens a detail page. Leg spread and overhead shoulder reach are under Flexibility, and their detail pages start the camera assessment. Finger strength is an external instrument-reading form under Finger strength; camera footage never supplies force.
 
 Optional permissions are offered during setup and can be revoked in Settings. Old installations without a recorded preference remain opted out. Camera analysis and retained hand photos have separate switches. No per-capture consent boxes remain in these app flows.
 

@@ -126,3 +126,27 @@ it('allows a 120-character instrument but rejects one longer than the API limit'
     )?.assessments,
   ).toEqual([boundary]);
 });
+
+it('keeps reviewed snapshots and legacy records but rejects malformed stored decision metadata', () => {
+  const decision = {
+    summary: 'Saved estimate',
+    status: 'estimate' as const,
+    rule: 'camera-v1',
+    evidence: [{ id: 'landmark-11', label: 'Left shoulder', detail: 'x=0.4' }],
+    sourceIds: ['barzegar2024'],
+    limitations: ['Client-supplied report'],
+  };
+  const saved = { ...record, decision };
+  expect(
+    parseGameState(
+      JSON.stringify({
+        ...emptyGame,
+        assessments: [
+          record,
+          saved,
+          { ...saved, decision: { ...decision, evidence: [{ id: 11 }] } },
+        ],
+      }),
+    )?.assessments,
+  ).toEqual([record, saved]);
+});

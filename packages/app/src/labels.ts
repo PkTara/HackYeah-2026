@@ -27,11 +27,20 @@ export const TERRAIN_ICON: Record<Terrain, IconName> = {
 export const MOVEMENT_NAME: Record<Movement, string> = {
   controlled: 'Controlled',
   dynamic: 'Dynamic',
+  technical: 'Technical',
+  powerful: 'Powerful',
+  balance: 'Balance',
+  coordination: 'Coordination',
+  compression: 'Compression',
+  endurance: 'Endurance',
 };
 
-/** "controlled", "dynamic" or "controlled and dynamic". */
+/** A readable list, e.g. "controlled, dynamic and technical". */
 export function styleText(movements: readonly Movement[]): string {
-  return movements.map(m => MOVEMENT_NAME[m].toLowerCase()).join(' and ');
+  const names = movements.map(m => MOVEMENT_NAME[m].toLowerCase());
+  return names.length <= 2
+    ? names.join(' and ')
+    : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 
 export const HOLD_NAME: Record<HoldType, string> = {

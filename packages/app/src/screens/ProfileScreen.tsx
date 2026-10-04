@@ -2,6 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, StyleSheet, View } from 'react-native';
 import {
   MOVEMENTS,
+  explainFocus,
+  explainQuest,
+  explainPause,
+  explainTerrain,
+  explainMovement,
+  TERRAINS,
   XP_PER_LEVEL,
   XP_PER_QUEST,
   movementTallies,
@@ -30,6 +36,13 @@ import {
   useTheme,
   type MovementAxis,
 } from '@hackyeah/ui';
+import {
+  explainXP,
+  explainExampleRadar,
+} from '../components/resultExplanations';
+import { ExpandableTray } from '../components/ExpandableTray';
+import { DecisionHelp } from '../components/DecisionHelp';
+import { DataRow } from '../components/DataRow';
 import { TabScreen } from '../components/TabScreen';
 import {
   MOVEMENT_NAME,
@@ -37,18 +50,17 @@ import {
   TERRAIN_NAME,
   fingerLabel,
   flagText,
-  styleText,
 } from '../labels';
 import { useNavigation } from '../navigation/Navigator';
 import type { RouteName } from '../navigation/routes';
 import { useGame } from '../state/GameProvider';
-import { IntegrationsPanel } from '../demo/IntegrationsPanel';
+import { ActivitySummary } from './ActivityScreen';
 import { AssessmentSummary } from '../components/AssessmentSummary';
 import { PetsPanel } from '../components/PetsPanel';
 
 const STEPS = XP_PER_LEVEL / XP_PER_QUEST;
 
-// Not scored yet: shown striped and labelled EXAMPLE until real evidence exists.
+// Illustrative values; their provenance is available in the radar explanation.
 const EXAMPLE_MOVES: readonly MovementAxis[] = [
   { label: 'Footwork', value: 0.45 },
   { label: 'Balance', value: 0.75 },
@@ -67,42 +79,26 @@ export function ProfileScreen() {
 
   const terrain = terrainTallies(state.logs);
   const moves = movementTallies(state.logs);
-  const hasSample = state.logs.some(l => l.sample);
   const questsToGo = STEPS - pet.xpInLevel / XP_PER_QUEST;
   const recent = [...state.logs].reverse().slice(0, 4);
 
   // Recent climbs. Wide screens show them under the quest, so both columns
   // end at about the same height. Phones keep them after Style.
   const recentPanel = (
-    <Panel title="Recent" icon="log">
-      {recent.length === 0 ? (
-        <AppText>No climbs logged yet.</AppText>
-      ) : (
-        recent.map(log => (
-          <View
-            key={log.id}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
-          >
-            <Icon name={TERRAIN_ICON[log.terrain]} />
-            <View style={{ flex: 1 }}>
-              <AppText>
-                {log.grade} {TERRAIN_NAME[log.terrain].toLowerCase()},{' '}
-                {styleText(log.movements)}
-              </AppText>
-              <AppText variant="caption" muted>
-                {shortDate(log.date)}
-                {log.sample ? ' (example)' : ''}
-              </AppText>
-            </View>
-            <Tag
-              text={log.sent ? 'Sent' : 'Not yet'}
-              tone={log.sent ? 'new' : 'muted'}
-            />
-          </View>
-        ))
-      )}
-      <Button title="Log a climb" icon="log" onPress={() => reset('Log')} />
-    </Panel>
+    <DataRow
+      title="Recent climbs"
+      subtitle={
+        recent.length
+          ? `${state.logs.length} observations · Latest: ${
+              recent[0].grade
+            } ${TERRAIN_NAME[recent[0].terrain].toLowerCase()} · ${shortDate(
+              recent[0].date,
+            )}`
+          : 'No climbs logged yet.'
+      }
+      accessibilityLabel="Open climbing log"
+      onPress={() => reset('Log')}
+    />
   );
 
   return (
@@ -120,8 +116,13 @@ export function ProfileScreen() {
     >
       {/* Monkey level and XP */}
       <Panel variant="wood">
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <DecisionHelp
+          label="XP and level"
+          explanation={explainXP(state.completed)}
+        >
           <PixelText text={`Lvl ${pet.level}`} scale={4} heading />
+        </DecisionHelp>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <View style={{ flex: 1, gap: 6 }}>
             <Meter
               value={pet.xpInLevel / XP_PER_QUEST}
@@ -153,12 +154,22 @@ export function ProfileScreen() {
         <Column>
           {/* The one thing to work on */}
           <Panel variant="banana" title="Your focus">
-            <View
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+            <DecisionHelp
+              label="your focus"
+              explanation={explainFocus(focus, state.logs)}
             >
-              <Icon name={TERRAIN_ICON[focus.terrain]} scale={3} />
-              <PixelText text={TERRAIN_NAME[focus.terrain]} scale={4} heading />
-            </View>
+              <View
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+              >
+                <Icon name={TERRAIN_ICON[focus.terrain]} scale={3} />
+                <PixelText
+                  text={TERRAIN_NAME[focus.terrain]}
+                  scale={4}
+                  heading
+                />
+              </View>
+            </DecisionHelp>
+
             {focus.kind === 'practice' ? (
               <AppText>
                 You sent {focus.tally.sent} of the {focus.tally.logged}{' '}
@@ -174,7 +185,8 @@ export function ProfileScreen() {
               </AppText>
             )}
             <AppText variant="caption" muted>
-              From your logged climbs only. Not a grade prediction.
+              Local rule from logged climbs only. Independent of server quest
+              selection. Not a grade prediction.
             </AppText>
             <Button
               title="View evidence"
@@ -193,7 +205,19 @@ export function ProfileScreen() {
             {quest.quest ? (
               <>
                 {/* Server quests can have long titles, so they wrap. */}
-                <PixelText text={quest.quest.title} scale={3} heading wrap />
+                <DecisionHelp
+                  label="your quest"
+                  takeaway={quest.quest.why}
+                  explanation={explainQuest(
+                    quest.quest,
+                    focus,
+                    state.logs,
+                    state.flags,
+                    { completed: state.completed, skipped: state.skipped },
+                  )}
+                >
+                  <PixelText text={quest.quest.title} scale={3} heading wrap />
+                </DecisionHelp>
                 <AppText>{quest.quest.task}</AppText>
                 <View
                   style={{ flexDirection: 'row', gap: 16, flexWrap: 'wrap' }}
@@ -217,6 +241,12 @@ export function ProfileScreen() {
                 <AppText variant="caption" muted>
                   Why: {quest.quest.why}
                 </AppText>
+
+                <AppText variant="caption" muted>
+                  {state.assigned !== undefined
+                    ? 'The server selected this quest. Its saved decision is separate from the local wall focus.'
+                    : 'Selected on this device from logged climbs, finger flags and quest progress.'}
+                </AppText>
               </>
             ) : (
               <AppText>
@@ -236,6 +266,10 @@ export function ProfileScreen() {
                 }}
               >
                 <Tag text="Paused" tone="paused" />
+                <DecisionHelp
+                  label="paused quests"
+                  explanation={explainPause(state.flags)}
+                />
                 <AppText variant="caption">
                   {quest.paused.map(q => q.title).join(', ')} waits until your
                   flagged finger is cleared. Climbing loads your fingers.
@@ -268,54 +302,60 @@ export function ProfileScreen() {
           </Panel>
 
           {/* Active hand flags change what the monkey suggests */}
-          {state.flags.length > 0 ? (
-            <Panel variant="alert" title="Hands" icon="flag">
-              {state.flags.map(f => (
-                <View
-                  key={`${f.side}-${f.finger}`}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 10,
-                  }}
-                >
-                  <AppText style={{ flex: 1 }}>{flagText(f, today)}</AppText>
-                  <Button
-                    title="Edit"
-                    variant="secondary"
-                    small
-                    accessibilityLabel={`Edit ${fingerLabel(
-                      f.side,
-                      f.finger,
-                    ).toLowerCase()}`}
-                    onPress={() =>
-                      navigate('Finger', { side: f.side, finger: f.finger })
-                    }
-                  />
-                </View>
-              ))}
-              <AppText variant="caption" muted>
-                Finger-loading quests are paused. Your climbing profile stays
-                the same.
-              </AppText>
-              <Button
-                title="Update hands"
-                variant="secondary"
-                small
-                onPress={() => reset('Hands')}
+          <Panel
+            variant={state.flags.length > 0 ? 'alert' : 'quiet'}
+            title="Hands"
+            icon="flag"
+          >
+            {state.flags.length > 0 ? (
+              <DecisionHelp
+                label="finger pause rule"
+                explanation={explainPause(state.flags)}
               />
-            </Panel>
-          ) : null}
+            ) : null}
+            {state.flags.map(f => (
+              <View
+                key={`${f.side}-${f.finger}`}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 10,
+                }}
+              >
+                <AppText style={{ flex: 1 }}>{flagText(f, today)}</AppText>
+                <Button
+                  title="Edit"
+                  variant="secondary"
+                  small
+                  accessibilityLabel={`Edit ${fingerLabel(
+                    f.side,
+                    f.finger,
+                  ).toLowerCase()}`}
+                  onPress={() =>
+                    navigate('Finger', { side: f.side, finger: f.finger })
+                  }
+                />
+              </View>
+            ))}
+            <AppText variant="caption" muted>
+              {state.flags.length > 0
+                ? 'Finger-loading quests are paused. Your climbing profile stays the same.'
+                : 'No finger discomfort is marked. Open the hand journal to check in.'}
+            </AppText>
+            <Button
+              title={state.flags.length > 0 ? 'Update hands' : 'Open Hands'}
+              variant="secondary"
+              small
+              onPress={() => reset('Hands')}
+            />
+          </Panel>
 
           {wide ? recentPanel : null}
         </Column>
 
         <Column>
           {/* Terrain triangle */}
-          <Panel
-            title="Walls"
-            badge={hasSample ? <Tag text="Example" /> : undefined}
-          >
+          <Panel title="Walls">
             <TerrainTriangle
               stats={terrain}
               focus={focus.terrain}
@@ -325,23 +365,38 @@ export function ProfileScreen() {
               Each corner grows with the share of logged climbs you sent on that
               wall. Tap a corner to see the climbs.
             </AppText>
+            <ExpandableTray title="How was this data created?">
+              {TERRAINS.map(t => (
+                <DecisionHelp
+                  key={t}
+                  label={`${TERRAIN_NAME[t]} tally`}
+                  explanation={explainTerrain(t, state.logs)}
+                />
+              ))}
+            </ExpandableTray>
           </Panel>
 
-          {/* Style: controlled and dynamic, counted separately */}
+          {/* Each style is counted separately, including multi-style climbs. */}
           <Panel title="Style">
             {MOVEMENTS.map(m => (
               <View key={m} style={{ gap: 6 }}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                  }}
+                <DecisionHelp
+                  label={`${MOVEMENT_NAME[m]} tally`}
+                  explanation={explainMovement(m, state.logs)}
                 >
-                  <PixelText text={MOVEMENT_NAME[m]} />
-                  <AppText variant="caption" muted>
-                    {moves[m].sent} of {moves[m].logged} sent
-                  </AppText>
-                </View>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 10,
+                    }}
+                  >
+                    <PixelText text={MOVEMENT_NAME[m]} />
+                    <AppText variant="caption" muted>
+                      {moves[m].sent} of {moves[m].logged} sent
+                    </AppText>
+                  </View>
+                </DecisionHelp>
                 <Pips
                   results={state.logs
                     .filter(l => l.movements.includes(m))
@@ -351,7 +406,7 @@ export function ProfileScreen() {
               </View>
             ))}
             <AppText variant="caption" muted>
-              Two separate skills, not one slider. You can be good at both.
+              A climb can use several styles. Each selected style counts here.
             </AppText>
             <View
               style={{
@@ -360,12 +415,12 @@ export function ProfileScreen() {
                 marginVertical: 4,
               }}
             />
-            <View
-              style={{ flexDirection: 'row', justifyContent: 'space-between' }}
+            <DecisionHelp
+              label="movement radar"
+              explanation={explainExampleRadar(EXAMPLE_MOVES)}
             >
               <PixelText text="Movement radar" />
-              <Tag text="Example" />
-            </View>
+            </DecisionHelp>
             <MovementRadar axes={EXAMPLE_MOVES} example />
             <AppText variant="caption" muted>
               Not scored yet. These axes need movement evidence before they show
@@ -374,8 +429,10 @@ export function ProfileScreen() {
           </Panel>
 
           {wide ? null : recentPanel}
-          <IntegrationsPanel />
+          <ActivitySummary />
           <AssessmentSummary
+            compact
+            onOpen={metric => navigate('MeasurementDetail', { metric })}
             records={state.assessments}
             metrics={[
               'leg_spread',

@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Annotated, Literal
+from typing import Annotated, Literal, get_args
 
 from pydantic import (
     AfterValidator,
@@ -14,7 +14,17 @@ from pydantic import (
 
 Text = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
 Goal = Literal["general", "technique", "mobility", "endurance"]
-Movement = Literal["controlled", "dynamic"]
+Movement = Literal[
+    "controlled",
+    "dynamic",
+    "technical",
+    "powerful",
+    "balance",
+    "coordination",
+    "compression",
+    "endurance",
+]
+MOVEMENTS = get_args(Movement)
 Hold = Literal["jug", "crimp", "sloper", "pinch", "pocket", "volume"]
 # Where a finger hurts, as a spot id from the app's packages/core/src/spots.ts, e.g. "a2".
 SpotId = Annotated[str, StringConstraints(pattern=r"^[a-z0-9-]{1,32}$")]
@@ -36,8 +46,10 @@ def _distinct(values):
     return values
 
 
-# One climb can be controlled, dynamic or both.
-Movements = Annotated[list[Movement], Field(min_length=1, max_length=2), AfterValidator(_distinct)]
+# One climb can use any combination of distinct movement styles.
+Movements = Annotated[
+    list[Movement], Field(min_length=1, max_length=len(MOVEMENTS)), AfterValidator(_distinct)
+]
 Holds = Annotated[list[Hold], AfterValidator(_distinct)]
 Spots = Annotated[list[SpotId], Field(max_length=24), AfterValidator(_distinct)]
 
@@ -99,6 +111,29 @@ class FingerForceSetup(Input):
     effort_seconds: float = Field(gt=0)
 
 
+class DecisionEvidence(Input):
+    id: Annotated[str, StringConstraints(min_length=1, max_length=120)]
+    label: Annotated[str, StringConstraints(min_length=1, max_length=240)]
+    detail: Annotated[str, StringConstraints(max_length=4000)]
+
+
+class DecisionSnapshot(Input):
+    """Bounded client-supplied disclosure, not independently verified provenance."""
+
+    summary: Annotated[str, StringConstraints(min_length=1, max_length=1000)]
+    status: Literal["app_rule", "draft", "estimate", "example"]
+    rule: Annotated[str, StringConstraints(min_length=1, max_length=6000)]
+    evidence: list[DecisionEvidence] = Field(max_length=64)
+    source_ids: list[Text] = Field(max_length=32)
+    limitations: list[Annotated[str, StringConstraints(max_length=2000)]] = Field(max_length=32)
+
+
+CAMERA_REPORT_LIMITATION = (
+    "User-confirmed reading and client-supplied explanation; saving does not independently "
+    "verify the measurement or its provenance."
+)
+
+
 class AssessmentCreate(Evidence):
     metric: Literal[
         "leg_spread",
@@ -119,6 +154,7 @@ class AssessmentCreate(Evidence):
     side: Literal["left", "right", "both"] | None = None
     setup: FingerForceSetup | None = None
     simulated: bool = False
+    decision: DecisionSnapshot | None = None
 
     @model_validator(mode="after")
     def matching_unit(self):
@@ -160,6 +196,11 @@ class AssessmentCreate(Evidence):
             raise ValueError("Body length must be positive")
         if self.metric == "pullups" and not self.value.is_integer():
             raise ValueError("Repetition count must be a whole number")
+        if self.method == "camera" and self.decision is not None:
+            if CAMERA_REPORT_LIMITATION not in self.decision.limitations:
+                if len(self.decision.limitations) >= 32:
+                    raise ValueError("Leave room for the camera self-report limitation")
+                self.decision.limitations.append(CAMERA_REPORT_LIMITATION)
         return self
 
 

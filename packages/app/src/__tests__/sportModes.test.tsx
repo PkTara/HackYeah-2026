@@ -197,3 +197,33 @@ describe('dolphin mode', () => {
     act(() => renderer.unmount());
   });
 });
+
+describe('sport mode pages', () => {
+  const closes = (renderer: Renderer) =>
+    renderer.root.findAll(
+      node =>
+        typeof node.props.onPress === 'function' &&
+        node.props.accessibilityLabel === 'Close',
+    ).length;
+
+  it('shows no Close footer on the sport tabs', async () => {
+    const renderer = await renderApp();
+    press(renderer, 'Switch to dolphin mode');
+    expect(closes(renderer)).toBe(0);
+    press(renderer, 'Log');
+    expect(closes(renderer)).toBe(0);
+    press(renderer, 'Body');
+    expect(closes(renderer)).toBe(0);
+    act(() => renderer.unmount());
+  });
+
+  it('closes the sport evidence page back to the sport profile', async () => {
+    const renderer = await renderApp();
+    press(renderer, 'Switch to gazelle mode', 'View evidence');
+    expect(closes(renderer)).toBe(1);
+    press(renderer, 'Close');
+    expect(closes(renderer)).toBe(0);
+    expect(screenText(renderer)).toContain('Even splits');
+    act(() => renderer.unmount());
+  });
+});

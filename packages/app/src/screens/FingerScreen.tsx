@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
   SPOT_LAYERS,
@@ -41,15 +41,14 @@ const ANATOMY_LAYER: Readonly<Record<SpotLayer, AnatomyLayer>> = {
 /**
  * Close-up of one finger, opened from the Hands tab with
  * navigate('Finger', { side, finger }). Tap the spots that hurt. Every tap
- * is saved straight away, so Done only goes back.
+ * is saved straight away; the shared footer only goes back.
  *
  * Everything that works together sits in one tray, split by dividers: the
  * layer, the finger and its spots, "not sure where" (the other way to
  * answer) and what is marked now.
  */
 export function FingerScreen() {
-  const { params, canGoBack, goBack, reset, navigate } =
-    useNavigation<RouteName>();
+  const { params, navigate } = useNavigation<RouteName>();
   const { state, today, setFingerSpots, clearFinger } = useGame();
   const media = useMedia();
   // Wide windows have room for a bigger drawing and a one-line title.
@@ -60,7 +59,10 @@ export function FingerScreen() {
   const spots = spotsFor(finger);
   // Open on the layer of the first marked spot, so the marks are in view.
   const [layer, setLayer] = useState<SpotLayer>(
-    () => spots.find(s => marked.includes(s.id))?.layer ?? 'segments',
+    () =>
+      SPOT_LAYERS.find(l => l === params.spotLayer) ??
+      spots.find(s => marked.includes(s.id))?.layer ??
+      'segments',
   );
   const shown = spots.filter(s => s.layer === layer);
 
@@ -72,8 +74,6 @@ export function FingerScreen() {
     ? `Flagged ${ageLabel(flag.date, today)}: ${spotsText(finger, marked)}.`
     : 'Not flagged. Quests run as normal.';
 
-  // Opened from a web link there is nothing to go back to.
-  const done = () => (canGoBack ? goBack() : reset('Hands'));
   const toggle = (id: string) =>
     setFingerSpots(
       side,
@@ -82,15 +82,15 @@ export function FingerScreen() {
     );
   // The anatomy viewer opens on a spot of this layer, a marked one first.
   const learn = () =>
-    navigate(
-      'Anatomy',
-      anatomyParams({
+    navigate('Anatomy', {
+      ...anatomyParams({
         side,
         finger,
         layer: ANATOMY_LAYER[layer],
         spot: (shown.find(s => marked.includes(s.id)) ?? shown[0])?.id,
       }),
-    );
+      spotLayer: layer,
+    });
 
   const picker = (
     <View style={styles.part}>
@@ -119,10 +119,10 @@ export function FingerScreen() {
           Palm side, tip at the top.
         </AppText>
         <Button
-          title="What is each part"
+          title="Not sure which part?"
           variant="secondary"
           small
-          accessibilityLabel="What is each part: open the hand anatomy"
+          accessibilityLabel={`Help identify a part of your ${label.toLowerCase()}`}
           onPress={learn}
         />
       </View>
@@ -189,6 +189,11 @@ export function FingerScreen() {
       />
 
       <Panel variant="quiet">
+        <AppText variant="caption" muted>
+          Your spots save immediately. Use Hands in the breadcrumbs above to
+          return to the whole-hand diagram.
+        </AppText>
+        <Divider />
         {wide ? (
           <View style={styles.split}>
             <View style={styles.grow}>{picker}</View>
@@ -204,28 +209,18 @@ export function FingerScreen() {
         )}
       </Panel>
 
-      <Outside wide={wide}>
-        <View style={wide ? styles.done : null}>
-          <Button title="Done" onPress={done} />
+      <Panel variant="quiet">
+        <View style={styles.note}>
+          <WarningSign />
+          <AppText variant="caption" style={styles.grow}>
+            This marks where it hurts. It is not a diagnosis. If you heard a
+            pop, see swelling or bruising, or it hurts to bend or straighten the
+            finger, stop climbing and see a physio or doctor.
+          </AppText>
         </View>
-        <Panel variant="quiet" style={styles.grow}>
-          <View style={styles.note}>
-            <WarningSign />
-            <AppText variant="caption" style={styles.grow}>
-              This marks where it hurts. It is not a diagnosis. If you heard a
-              pop, see swelling or bruising, or it hurts to bend or straighten
-              the finger, stop climbing and see a physio or doctor.
-            </AppText>
-          </View>
-        </Panel>
-      </Outside>
+      </Panel>
     </TabScreen>
   );
-}
-
-/** Done and the safety note: side by side on wide screens. */
-function Outside({ wide, children }: { wide: boolean; children: ReactNode }) {
-  return <View style={wide ? styles.outsideWide : styles.outside}>{children}</View>;
 }
 
 const styles = StyleSheet.create({
@@ -242,9 +237,6 @@ const styles = StyleSheet.create({
   },
   status: { gap: spacing.sm },
   start: { alignSelf: 'flex-start' },
-  outside: { gap: spacing.lg },
-  outsideWide: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.lg },
-  done: { width: 240 },
   note: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   grow: { flex: 1 },
 });

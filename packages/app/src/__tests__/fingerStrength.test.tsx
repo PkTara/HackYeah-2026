@@ -202,6 +202,8 @@ it('keeps the current force review while saving, then allows another review afte
   await act(async () => {
     save = control(screen, 'Save result').props.onPress();
   });
+  expect(control(screen, 'Close').props.disabled).toBe(true);
+  await press(screen, 'Close');
   await press(screen, 'Back to Finger strength');
   expect(
     screen.root
@@ -219,7 +221,8 @@ it('keeps the current force review while saving, then allows another review afte
     await save;
   });
   expect(text(screen)).toContain('Saved to your profile');
-  await press(screen, 'Back to Finger strength');
+  expect(control(screen, 'Close').props.disabled).toBe(false);
+  await press(screen, 'Close');
   await type(screen, 'Force reading', '410');
   await press(screen, 'Review result');
   expect(control(screen, 'Save result').props.disabled).toBe(false);

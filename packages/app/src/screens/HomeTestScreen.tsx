@@ -7,6 +7,8 @@ import {
   type ResultMethod,
 } from '@hackyeah/core';
 import { AppText, Button, spacing } from '@hackyeah/ui';
+import { DecisionHelp } from '../components/DecisionHelp';
+import { explainHomeTest } from '../components/resultExplanations';
 import { Crumbs } from '../components/Crumbs';
 import { PageHeader } from '../components/PageHeader';
 import { TabScreen } from '../components/TabScreen';
@@ -56,6 +58,12 @@ export function HomeTestScreen() {
               : 'Optional. Stop if anything hurts.'
           }
         />
+        {last ? (
+          <DecisionHelp
+            label="last home test result"
+            explanation={explainHomeTest(test, last)}
+          />
+        ) : null}
         <TestStep
           test={test}
           title="How it works"

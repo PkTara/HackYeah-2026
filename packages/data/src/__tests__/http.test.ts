@@ -343,6 +343,19 @@ describe('reach', () => {
       armSpanCm: 181,
       heightCm: 178,
       date: '2026-10-03',
+      decision: expect.objectContaining({
+        rule: expect.stringContaining('arm span minus height'),
+        evidence: [
+          expect.objectContaining({
+            label: 'Height · 2026-10-03T12:00:00.000Z',
+            detail: 'value=178 cm; method=manual; protocol=self-measured-v1',
+          }),
+          expect.objectContaining({
+            label: 'Arm span · 2026-10-03T12:00:00.000Z',
+            detail: 'value=181 cm; method=manual; protocol=self-measured-v1',
+          }),
+        ],
+      }),
     });
   });
 
@@ -387,6 +400,9 @@ describe('quests', () => {
       minutes: 1,
       equipment: 'None',
       loadsFingers: false,
+      decision: expect.objectContaining({
+        rule: expect.stringMatching(/unavailable/i),
+      }),
     });
     expect((await backend.load()).assigned?.id).toBe(state.assigned?.id);
   });

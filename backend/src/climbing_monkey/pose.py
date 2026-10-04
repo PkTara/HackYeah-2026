@@ -1,5 +1,6 @@
 """Transient pose estimates from front-facing captures."""
 
+import json
 import math
 from io import BytesIO
 from pathlib import Path
@@ -78,10 +79,58 @@ def analyze_landmarks(
     if magnitude <= 1e-12:
         return _invalid("The hips and ankles must define two nonzero leg vectors.", confidence)
     cosine = sum(a * b for a, b in zip(left, right)) / magnitude
+    value = math.degrees(math.acos(max(-1, min(1, cosine))))
     return {
+        "decision": {
+            "summary": f"Estimated image-plane leg-spread angle: {value:g} degrees.",
+            "status": "estimate",
+            "rule": "camera-leg-spread-v1 / front-facing-leg-spread-v1: average the hips "
+            "to form the hip midpoint; subtract it from each ankle; multiply horizontal "
+            "coordinates by width/height (1 if absent); angle = degrees(acos(clamp("
+            "dot(left,right)/(length(left)*length(right)), -1, 1))). "
+            "Require finite in-frame hips/ankles, visibility >= threshold and nonzero vectors.",
+            "evidence": [
+                {
+                    "id": f"landmark-{index}",
+                    "label": name,
+                    "detail": json.dumps({key: point[key] for key in ("x", "y", "visibility")}),
+                }
+                for index, name, point in zip(
+                    (23, 24, 27, 28),
+                    ("Left hip", "Right hip", "Left ankle", "Right ankle"),
+                    required,
+                    strict=True,
+                )
+            ]
+            + [
+                {
+                    "id": "capture-geometry",
+                    "label": "Image dimensions and quality threshold",
+                    "detail": json.dumps(
+                        {
+                            "width": image_size[0] if image_size else None,
+                            "height": image_size[1] if image_size else None,
+                            "aspect_ratio": aspect,
+                            "square_assumption": image_size is None,
+                            "visibility_threshold": min_visibility,
+                        }
+                    ),
+                }
+            ],
+            "source_ids": ["draga2020", "stenum2021", "barzegar2024"],
+            "limitations": [
+                "Actual inputs for this analyzed image/frame; capture timestamp and "
+                "model/version unavailable in this response.",
+                "Minimum landmark visibility is not angle accuracy or an error bound.",
+                "Projected ankle-to-hip-midpoint geometry is not validated hip mobility "
+                "or true 3D joint range; viewpoint, bent knees and out-of-plane motion affect it.",
+                "Related papers use other tasks, protocols or hardware; none validates "
+                "this app metric or a flexibility-to-terrain mapping.",
+            ],
+        },
         "status": "ok",
         "metric": "leg_spread",
-        "value": math.degrees(math.acos(max(-1, min(1, cosine)))),
+        "value": value,
         "unit": "degrees",
         "confidence": confidence,
         "reason": None,
@@ -140,6 +189,67 @@ def analyze_shoulder_landmarks(landmarks, min_visibility=0.7, *, image_size=None
     if left is None or right is None:
         return invalid("Hips, shoulders and elbows must define nonzero vectors.", confidence)
     return {
+        "decision": {
+            "summary": f"Estimated image-plane shoulder reach: left {left:g}, "
+            f"right {right:g}, mean {(left + right) / 2:g} degrees.",
+            "status": "estimate",
+            "rule": "camera-shoulder-reach-v1 / front-facing-overhead-reach-v1: "
+            "for each side form hip-to-shoulder and elbow-to-shoulder vectors; "
+            "multiply horizontal coordinates by width/height (1 if absent); "
+            "angle = degrees(acos(clamp(dot(a,b)/(length(a)*length(b)), -1, 1))). "
+            "Report left and right angles and their arithmetic mean. Require finite "
+            "in-frame hips, shoulders, elbows and wrists, visibility >= threshold, "
+            "nonzero vectors and shoulder-elbow-wrist angles >=160 degrees.",
+            "evidence": [
+                {
+                    "id": f"landmark-{index}",
+                    "label": name,
+                    "detail": json.dumps({key: point[key] for key in ("x", "y", "visibility")}),
+                }
+                for index, name, point in zip(
+                    (11, 12, 13, 14, 15, 16, 23, 24),
+                    (
+                        "Left shoulder",
+                        "Right shoulder",
+                        "Left elbow",
+                        "Right elbow",
+                        "Left wrist",
+                        "Right wrist",
+                        "Left hip",
+                        "Right hip",
+                    ),
+                    required,
+                    strict=True,
+                )
+            ]
+            + [
+                {
+                    "id": "capture-geometry",
+                    "label": "Image dimensions and quality thresholds",
+                    "detail": json.dumps(
+                        {
+                            "width": image_size[0] if image_size else None,
+                            "height": image_size[1] if image_size else None,
+                            "aspect_ratio": aspect,
+                            "square_assumption": image_size is None,
+                            "visibility_threshold": min_visibility,
+                            "minimum_elbow_angle": 160,
+                        }
+                    ),
+                }
+            ],
+            "source_ids": ["stenum2021", "barzegar2024"],
+            "limitations": [
+                "Actual inputs for this analyzed image/frame; capture timestamp and "
+                "model/version unavailable in this response.",
+                "Minimum landmark visibility is not angle accuracy or an error bound.",
+                "Projected hip-shoulder-elbow geometry is not validated shoulder mobility "
+                "or true 3D joint range; viewpoint and out-of-plane motion affect it.",
+                "The visibility and 160-degree elbow thresholds are product rules. "
+                "Related papers use other tasks, protocols or hardware and do not "
+                "validate this app shoulder metric or a mobility-to-terrain mapping.",
+            ],
+        },
         "status": "ok",
         "metric": "shoulder_reach",
         "value": (left + right) / 2,

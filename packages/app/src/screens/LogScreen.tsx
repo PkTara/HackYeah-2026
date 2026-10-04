@@ -36,8 +36,6 @@ import {
   holdsText,
   styleText,
 } from '../labels';
-import { useNavigation } from '../navigation/Navigator';
-import type { RouteName } from '../navigation/routes';
 import { useGame } from '../state/GameProvider';
 
 /** How long "Saved: ..." stays under the button. */
@@ -65,7 +63,6 @@ function toggle<T>(list: readonly T[], item: T): T[] {
  * save. The profile builds the terrain triangle and style tallies from these.
  */
 export function LogScreen() {
-  const { reset } = useNavigation<RouteName>();
   const { haptics } = useCapabilities();
   const { state, today, logClimb, removeClimb } = useGame();
 
@@ -132,9 +129,9 @@ export function LogScreen() {
               </Group>
 
               <Group label="Style">
-                <View style={styles.row}>
+                <View style={[styles.row, styles.wrap]}>
                   {MOVEMENTS.map(m => (
-                    <View key={m} style={styles.cell}>
+                    <View key={m} style={styles.styleCell}>
                       <Chip
                         label={MOVEMENT_NAME[m]}
                         selected={movements.includes(m)}
@@ -144,8 +141,11 @@ export function LogScreen() {
                   ))}
                 </View>
                 <AppText variant="caption" muted>
-                  Pick one or both. Controlled is steady, hold to hold. Dynamic
-                  uses momentum, like jumps and dynos.
+                  Pick every style the climb used. Controlled is steady; dynamic
+                  uses momentum. Technical needs precise moves; powerful needs
+                  strength. Balance uses body position; coordination links timed
+                  moves. Compression squeezes opposing holds; endurance means
+                  sustained effort.
                 </AppText>
               </Group>
 
@@ -264,19 +264,6 @@ export function LogScreen() {
               ))
             )}
           </Panel>
-
-          <Panel variant="quiet">
-            <View style={styles.inline}>
-              <AppText style={styles.grow}>Fingers feeling it?</AppText>
-              <Button
-                title="Check hands"
-                variant="secondary"
-                small
-                onPress={() => reset('Hands')}
-                accessibilityHint="Opens the Hands tab"
-              />
-            </View>
-          </Panel>
         </Column>
       </Columns>
     </TabScreen>
@@ -354,6 +341,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 8 },
   wrap: { flexWrap: 'wrap' },
   cell: { flex: 1 },
+  // Two styles per row, leaving room for the longer names.
+  styleCell: { flexBasis: '40%', flexGrow: 1 },
   // Four grades per row on any phone width.
   gradeCell: { flexBasis: '20%', flexGrow: 1 },
   // Two hold types per row: "Volume" plus its icon needs the room.

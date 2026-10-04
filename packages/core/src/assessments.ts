@@ -1,3 +1,5 @@
+import { isDecisionExplanation, type DecisionExplanation } from './evidence';
+
 /** Measurements retain their protocol and setup so changes compare like with like. */
 export type AssessmentMetric =
   | 'leg_spread'
@@ -37,6 +39,8 @@ export type AssessmentRecord = Readonly<{
   side?: 'left' | 'right' | 'both';
   setup?: FingerForceSetup;
   simulated?: boolean;
+  /** Reviewed explanation snapshot; a user report, not verified provenance. */
+  decision?: DecisionExplanation;
 }>;
 
 const METRIC_UNITS: Readonly<
@@ -96,6 +100,8 @@ export function isAssessmentRecord(value: unknown): value is AssessmentRecord {
         !Number.isFinite(record.confidence) ||
         record.confidence < 0 ||
         record.confidence > 1)) ||
+    (record.decision !== undefined &&
+      !isDecisionExplanation(record.decision)) ||
     (record.setup !== undefined && !isFingerForceSetup(record.setup))
   ) {
     return false;

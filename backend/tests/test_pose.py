@@ -21,7 +21,7 @@ def visible_pose():
 def test_known_planar_leg_spread_from_hip_midpoint():
     result = analyze_landmarks(visible_pose())
 
-    assert result == {
+    assert {key: value for key, value in result.items() if key != "decision"} == {
         "status": "ok",
         "metric": "leg_spread",
         "value": 90.0,
@@ -329,3 +329,47 @@ def test_inference_failure_is_unavailable_and_closes_detector(tmp_path):
     with pytest.raises(RuntimeError):
         analyzer.analyze(image_bytes())
     assert detector.closed
+
+
+def test_camera_decision_declares_actual_landmarks_and_reproduces_ninety_degree_geometry():
+    import json
+
+    result = analyze_landmarks(visible_pose())
+    decision = result["decision"]
+    points = [json.loads(entry["detail"]) for entry in decision["evidence"][:4]]
+    assert [entry["id"] for entry in decision["evidence"][:4]] == [
+        "landmark-23",
+        "landmark-24",
+        "landmark-27",
+        "landmark-28",
+    ]
+    assert points == [visible_pose()[index] for index in (23, 24, 27, 28)]
+    image = json.loads(decision["evidence"][4]["detail"])
+    assert image["square_assumption"] is True
+    assert image["width"] is None and image["height"] is None
+    hip_x, hip_y = (points[0]["x"] + points[1]["x"]) / 2, (points[0]["y"] + points[1]["y"]) / 2
+    left = ((points[2]["x"] - hip_x) * image["aspect_ratio"], points[2]["y"] - hip_y)
+    right = ((points[3]["x"] - hip_x) * image["aspect_ratio"], points[3]["y"] - hip_y)
+    calculated = math.degrees(
+        math.acos(
+            sum(a * b for a, b in zip(left, right)) / (math.hypot(*left) * math.hypot(*right))
+        )
+    )
+    assert calculated == result["value"] == 90.0
+    assert "hip midpoint" in decision["rule"]
+    assert "model/version unavailable" in " ".join(decision["limitations"])
+
+
+def test_camera_decision_reports_real_dimensions_and_invalid_capture_has_no_geometry():
+    import json
+
+    decision = analyze_landmarks(visible_pose(), image_size=(200, 100))["decision"]
+    geometry = json.loads(decision["evidence"][4]["detail"])
+    assert geometry == {
+        "width": 200,
+        "height": 100,
+        "aspect_ratio": 2,
+        "square_assumption": False,
+        "visibility_threshold": 0.7,
+    }
+    assert "decision" not in analyze_landmarks([])
