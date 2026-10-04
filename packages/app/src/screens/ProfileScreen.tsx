@@ -83,6 +83,9 @@ export function ProfileScreen() {
   const moves = movementTallies(state.logs);
   const questsToGo = STEPS - pet.xpInLevel / XP_PER_QUEST;
   const recent = [...state.logs].reverse().slice(0, 4);
+  const measured = [
+    ...new Set((state.assessments ?? []).map(record => record.metric)),
+  ];
 
   // Recent climbs. Wide screens show them under the quest, so both columns
   // end at about the same height. Phones keep them after Style.
@@ -106,17 +109,15 @@ export function ProfileScreen() {
           accessibilityLabel="Open climbing log"
           onPress={() => reset('Log')}
         />
-        <AssessmentSummary
-          compact
-          onOpen={metric => navigate('MeasurementDetail', { metric })}
-          records={state.assessments}
-          metrics={[
-            'leg_spread',
-            'shoulder_reach_left',
-            'shoulder_reach_right',
-            'finger_force',
-          ]}
-        />
+        {/* Only measurements you have taken; the rest wait on Data. */}
+        {measured.length ? (
+          <AssessmentSummary
+            compact
+            onOpen={metric => navigate('MeasurementDetail', { metric })}
+            records={state.assessments}
+            metrics={measured}
+          />
+        ) : null}
         <ActivitySummary hideUnavailable divider={false} />
       </View>
       <Button
