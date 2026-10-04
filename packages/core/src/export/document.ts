@@ -13,6 +13,7 @@ import {
   PAUSE_LINE,
   XP_LINE,
   sectionsFor,
+  sourcesFor,
 } from './audiences';
 import { createLabeler, provenanceOfAll, type Labeler } from './provenance';
 import {
@@ -801,14 +802,15 @@ const SECTIONS: Readonly<
   },
 
   whyLayout: ctx => {
+    const mode = ctx.s.mode;
     const ids =
       ctx.audience === 'you'
         ? [
             ...new Set(
-              AUDIENCE_ORDER.flatMap(id => AUDIENCES[id].sourceIds),
+              AUDIENCE_ORDER.flatMap(id => sourcesFor(AUDIENCES[id], mode)),
             ),
           ]
-        : AUDIENCES[ctx.audience].sourceIds;
+        : sourcesFor(AUDIENCES[ctx.audience], mode);
     const sources = ids
       .map(id => RESEARCH_SOURCES.find(src => src.id === id))
       .filter((src): src is ResearchSource => src !== undefined);

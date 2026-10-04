@@ -5,7 +5,7 @@
  */
 import type { DecisionExplanation } from '../evidence';
 import type { DecisionFlow, FlowInput } from '../flow';
-import { AUDIENCES, filesFor } from './audiences';
+import { AUDIENCES, filesFor, sourcesFor } from './audiences';
 import { FILE_LABEL } from './files';
 import type { AudienceId, ExportMode, ModeWords } from './types';
 
@@ -104,8 +104,9 @@ export function explainAudience(
   const climb = mode === 'climb';
   const base = {
     status: 'app_rule' as const,
-    sourceIds: audience.sourceIds,
+    sourceIds: sourcesFor(audience, mode),
     flow: audienceFlow(id, words, mode),
+    inputSummary: 'Built from these records only. Nothing else is read.',
   };
   switch (id) {
     case 'doctor':

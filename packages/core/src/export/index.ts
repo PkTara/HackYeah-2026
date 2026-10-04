@@ -8,6 +8,7 @@ export {
   defaultWeeks,
   filesFor,
   sectionsFor,
+  sourcesFor,
 } from './audiences';
 export {
   MAX_TYPED,

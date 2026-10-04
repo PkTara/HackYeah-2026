@@ -15,7 +15,8 @@ export function noDashes(text: string): string {
     .replace(/ - /g, ', ');
 }
 
-const RULE = '______________________________________________';
+/** A line to write on. Short enough not to wrap on a phone. */
+const RULE = '______________________________';
 
 function legendHeading(doc: ExportDocument): string | null {
   return doc.legend.length ? 'Labels' : null;

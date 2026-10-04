@@ -125,8 +125,8 @@ const SECTION: Readonly<
     modes: CLIMB,
   },
   provenance: {
-    label: 'How was this data created?',
-    detail: 'One line on where each kind of record came from.',
+    label: 'How it was made',
+    detail: 'Where each kind of record came from: typed, timed or worked out.',
   },
   questions: { label: 'Questions', detail: 'The questions you pick below.' },
   afterVisit: {
@@ -484,6 +484,21 @@ export function sectionsFor(
   mode: ExportMode,
 ): SectionDef[] {
   return audience.sections.filter(s => !s.modes || s.modes.includes(mode));
+}
+
+/** Sources about fingers, grip and the camera: climbing only. */
+const CLIMB_SOURCES: readonly string[] = [
+  'klauser2002',
+  'schweizer2001',
+  'michailov2018',
+  'stenum2021',
+];
+
+/** The sources behind an audience's layout that apply in this mode. */
+export function sourcesFor(audience: Audience, mode: ExportMode): string[] {
+  return audience.sourceIds.filter(
+    id => mode === 'climb' || !CLIMB_SOURCES.includes(id),
+  );
 }
 
 /** The file kinds an audience offers in this mode. */

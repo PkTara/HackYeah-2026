@@ -410,11 +410,11 @@ export function ExportFormatScreen() {
       ) : null}
 
       {hasQuestions ? (
-        <Panel title={audience.questionsHeading} icon="flag">
+        <Panel title={audience.questionsHeading}>
           {isOn('reason') ? (
             <TypedField
               label="Why are you going? (optional)"
-              placeholder="Pain in my left knee when I run."
+              placeholder="My left knee has hurt for two weeks."
               value={reason}
               onChange={setReason}
             />
@@ -425,6 +425,7 @@ export function ExportFormatScreen() {
               name={q.text}
               checked={chosen.includes(q.text)}
               tone="agree"
+              plain
               onPress={() => togglePick(q.text)}
             />
           ))}
@@ -441,7 +442,7 @@ export function ExportFormatScreen() {
         </Panel>
       ) : null}
 
-      <Panel title="Format" icon="log">
+      <Panel title="Format" icon="disk">
         <View style={styles.chips}>
           {files.map(k => (
             <Chip
@@ -515,7 +516,7 @@ function Preview({ kind, text }: { kind: FileKind; text: string }) {
   const limit = PREVIEW_LINES[kind];
   const folded = !all && lines.length > limit;
   return (
-    <Panel title="Preview" icon="tests">
+    <Panel title="Preview" icon="log">
       {kind === 'html' ? (
         <AppText variant="caption" muted>
           The printable page has the same words, laid out for paper.
@@ -697,6 +698,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   paper: { borderWidth: PX, padding: 12 },
-  paperText: { lineHeight: 19 },
+  paperText: { lineHeight: 19, fontWeight: '400' },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
 });

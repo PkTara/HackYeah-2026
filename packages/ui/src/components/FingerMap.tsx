@@ -118,6 +118,8 @@ type CheckRowProps = {
    * agree fills it banana yellow, for consent and confirmations.
    */
   tone?: 'warn' | 'agree';
+  /** Plain text instead of the pixel font, for a whole sentence. */
+  plain?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -135,6 +137,7 @@ export function CheckRow({
   checked,
   onPress,
   tone = 'warn',
+  plain = false,
   style,
 }: CheckRowProps) {
   const c = useTheme().colors;
@@ -183,7 +186,11 @@ export function CheckRow({
             ) : null}
           </PixelBox>
           <View style={styles.text}>
-            <PixelText text={name} accessible={false} />
+            {plain ? (
+              <AppText accessible={false}>{name}</AppText>
+            ) : (
+              <PixelText text={name} accessible={false} />
+            )}
             {detail ? (
               <AppText variant="caption" muted>
                 {detail}

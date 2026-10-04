@@ -559,3 +559,23 @@ describe('format flow', () => {
     }
   });
 });
+
+describe('sources by mode', () => {
+  it('cites finger, grip and camera studies only in climbing', () => {
+    const climbOnly = /klauser2002|schweizer2001|michailov2018|stenum2021/;
+    for (const id of AUDIENCE_ORDER) {
+      for (const mode of ['run', 'swim'] as const) {
+        expect(
+          explainAudience(id, CLIMB_WORDS, mode).sourceIds.join(' '),
+        ).not.toMatch(climbOnly);
+      }
+    }
+    expect(
+      explainAudience('physio', CLIMB_WORDS, 'climb').sourceIds,
+    ).toContain('klauser2002');
+    const swim = renderText(buildDocument('you', snapshotFor('swim')));
+    expect(swim).not.toContain('Klauser');
+    const climb = renderText(buildDocument('you', snapshotFor('climb')));
+    expect(climb).toContain('Klauser');
+  });
+});
