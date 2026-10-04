@@ -8,6 +8,7 @@ import {
   PixelText,
   Screen,
   useCornerReserve,
+  Breadcrumbs,
   useLayout,
   useTheme,
 } from '@hackyeah/ui';
@@ -16,9 +17,12 @@ import {
   PERCHES,
   chapterOf,
   perchOf,
+  consentApp,
   propFor,
   type StepId,
 } from './flow';
+import { BASELINE_TESTS, CONNECTIONS } from '@hackyeah/core';
+import { DemoButton } from '../demo/DemoControls';
 
 /** Width of the onboarding column on wide screens. */
 const COLUMN_MAX = 600;
@@ -47,6 +51,9 @@ type Props = {
   skip?: FooterAction;
   next?: FooterAction;
   children: ReactNode;
+  onStart?: () => void;
+  onApps?: () => void;
+  onTests?: () => void;
 };
 
 /**
@@ -54,14 +61,48 @@ type Props = {
  * jungle strip with a speech bubble, the step itself, and a footer with
  * Back, Skip and Next. No tab bar or rail while it runs.
  */
-export function StepFrame({ step, from, line, back, skip, next, children }: Props) {
+export function StepFrame({
+  step,
+  from,
+  line,
+  back,
+  skip,
+  next,
+  children,
+  onStart,
+  onApps,
+  onTests,
+}: Props) {
   const theme = useTheme();
   const { width } = useWindowDimensions();
   const layout = useLayout();
   const column = Math.min(COLUMN_MAX, width - layout.gutter * 2);
+  const app = consentApp(step);
+  const test = BASELINE_TESTS.find(t => t.id === step);
+  const labels: Partial<Record<StepId, string>> = {
+    places: 'Where you climb',
+    experience: 'Experience',
+    grade: 'Usual grade',
+    goal: 'Your goal',
+    body: 'Body & reach',
+    apps: 'Connected apps',
+    tests: 'Home tests',
+    done: 'Summary',
+  };
+  const current = app
+    ? CONNECTIONS[app].name
+    : test
+    ? test.name
+    : labels[step] ?? 'Setup';
   const footer =
     back || skip || next ? (
-      <Footer column={column} gutter={layout.gutter} back={back} skip={skip} next={next} />
+      <Footer
+        column={column}
+        gutter={layout.gutter}
+        back={back}
+        skip={skip}
+        next={next}
+      />
     ) : undefined;
 
   return (
@@ -88,8 +129,24 @@ export function StepFrame({ step, from, line, back, skip, next, children }: Prop
       }
       footer={footer}
     >
-      <View style={[styles.column, { maxWidth: column, gap: theme.spacing.lg }]}>
+      <View
+        style={[styles.column, { maxWidth: column, gap: theme.spacing.lg }]}
+      >
+        {step !== 'welcome' ? (
+          <Breadcrumbs
+            crumbs={[
+              { label: 'Setup', onPress: onStart ?? back },
+              ...(app
+                ? [{ label: 'Connected apps', onPress: onApps ?? back }]
+                : test
+                ? [{ label: 'Home tests', onPress: onTests ?? back }]
+                : []),
+              { label: current },
+            ]}
+          />
+        ) : null}
         {children}
+        <DemoButton parent="Setup" />
       </View>
     </Screen>
   );
@@ -116,8 +173,8 @@ function Progress({
     step === 'welcome'
       ? 'Climbing Monkey'
       : step === 'done'
-        ? 'All done'
-        : `Step ${chapter} of ${CHAPTERS}`;
+      ? 'All done'
+      : `Step ${chapter} of ${CHAPTERS}`;
   return (
     <View
       style={[
@@ -183,7 +240,9 @@ function Footer({
       ]}
     >
       <View style={[styles.footerRow, { maxWidth: column }]}>
-        {back ? <Button title="Back" variant="secondary" onPress={back} /> : null}
+        {back ? (
+          <Button title="Back" variant="secondary" onPress={back} />
+        ) : null}
         {skip ? (
           <Button
             title={skip.label}

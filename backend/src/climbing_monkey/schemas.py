@@ -91,34 +91,71 @@ class ClimbCreate(Evidence):
         return self
 
 
+class FingerForceSetup(Input):
+    instrument: Text
+    grip: Literal["open_hand", "half_crimp", "full_crimp"]
+    edge_mm: float = Field(gt=0)
+    arm_position: Literal["straight", "bent"]
+    effort_seconds: float = Field(gt=0)
+
+
 class AssessmentCreate(Evidence):
-    metric: Literal["leg_spread", "height", "arm_span", "pullups", "hang_duration"]
+    metric: Literal[
+        "leg_spread",
+        "height",
+        "arm_span",
+        "pullups",
+        "hang_duration",
+        "finger_force",
+        "shoulder_reach_left",
+        "shoulder_reach_right",
+    ]
     value: float = Field(ge=0)
-    unit: Literal["degrees", "cm", "repetitions", "seconds"]
+    unit: Literal["degrees", "cm", "repetitions", "seconds", "N", "kgf"]
     method: Literal["manual", "camera"]
     protocol: Text
     confidence: float = Field(default=1, ge=0, le=1)
     model_version: Text | None = None
+    side: Literal["left", "right", "both"] | None = None
+    setup: FingerForceSetup | None = None
+    simulated: bool = False
 
     @model_validator(mode="after")
     def matching_unit(self):
         units = {
-            "leg_spread": "degrees",
-            "height": "cm",
-            "arm_span": "cm",
-            "pullups": "repetitions",
-            "hang_duration": "seconds",
+            "leg_spread": {"degrees"},
+            "shoulder_reach_left": {"degrees"},
+            "shoulder_reach_right": {"degrees"},
+            "height": {"cm"},
+            "arm_span": {"cm"},
+            "pullups": {"repetitions"},
+            "hang_duration": {"seconds"},
+            "finger_force": {"N", "kgf"},
         }
-        if self.unit != units[self.metric]:
+        if self.metric == "finger_force":
+            if self.value <= 0:
+                raise ValueError("Instrument force must be positive")
+            if self.side is None:
+                raise ValueError("Finger force requires a measured hand side")
+            if self.setup is None:
+                raise ValueError("Finger force requires instrument setup")
+        if self.unit not in units[self.metric]:
             raise ValueError("Unit does not match assessment metric")
         if self.method == "camera" and "confidence" not in self.model_fields_set:
             raise ValueError("Camera captures require explicit confidence")
         if self.method == "camera" and self.confidence < 0.7:
             raise ValueError("Camera capture confidence must be at least 0.7")
-        if self.method == "camera" and self.metric != "leg_spread":
-            raise ValueError("Only leg-spread camera estimation is currently supported")
-        if self.metric == "leg_spread" and self.value > 180:
-            raise ValueError("Leg-spread angle cannot exceed 180 degrees")
+        if self.method == "camera" and self.metric not in {
+            "leg_spread",
+            "shoulder_reach_left",
+            "shoulder_reach_right",
+        }:
+            raise ValueError("Camera estimation only supports leg spread and shoulder reach")
+        if self.metric.startswith("shoulder_reach_") and self.side is not None:
+            if self.side != self.metric.rsplit("_", 1)[1]:
+                raise ValueError("Shoulder side must match the assessment metric")
+        if self.unit == "degrees" and self.value > 180:
+            raise ValueError("Projected angle cannot exceed 180 degrees")
         if self.metric in {"height", "arm_span"} and self.value <= 0:
             raise ValueError("Body length must be positive")
         if self.metric == "pullups" and not self.value.is_integer():

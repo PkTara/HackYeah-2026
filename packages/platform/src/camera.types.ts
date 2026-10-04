@@ -17,12 +17,21 @@ export type MediaCapture = {
  * clip. Android and iOS do not record yet, so those methods are missing.
  */
 export interface CameraSession {
+  readonly simulated?: boolean;
   snapshot(): Promise<MediaCapture>;
   startRecording?(): Promise<void>;
   stopRecording?(): Promise<MediaCapture>;
 }
 
+export type CameraGeometry = {
+  imageWidth: number;
+  imageHeight: number;
+  mirrored: boolean;
+  fit: 'contain' | 'cover';
+};
+
 export type CameraPreviewProps = {
+  onGeometry?: (geometry: CameraGeometry) => void;
   active: boolean;
   mode: CaptureMode;
   onReady: (session: CameraSession | null) => void;

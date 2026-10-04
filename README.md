@@ -11,7 +11,7 @@
 
 The [Python/FastAPI backend](backend/README.md) implements the confirmed-evidence → profile → quest → pet XP loop, with SQLite persistence, private hand photos and optional MediaPipe pose analysis of photos, recorded clips and a sampled live camera. The web app saves to it when `VITE_MONKEY_API_URL` is set (see [Connecting a backend](#connecting-a-backend)). See the backend README for setup, API contracts and TDD checks, the [camera and video guide](docs/camera-video.md) for the capture flows, and the [scientific evidence notes](docs/climbing-scientific-evidence.md) for what the research does and does not support. Use `npm run backend:check` after creating its virtualenv.
 
-**Sound effects.** Quiet clicks for buttons, chips and toggles, a soft murmur while the monkey's speech bubble types, and a short chime when a climb, a test result, setup or a quest is saved (an arpeggio on a level up). They are made in code with [ZzFX](https://github.com/KilledByAPixel/ZzFX) (`packages/platform/src/sfx`), no audio files, and peak about 24 dB below full scale, well under the music. They are on by default, play nothing before the first tap or key press and nothing while the page is hidden, and can be turned off with the Sound effects switch on the About page (remembered on the device). Web only for now, like the music.
+**Sound effects.** Quiet clicks for buttons, chips and toggles, a soft murmur while the monkey's speech bubble types, and a short chime when a climb, a test result, setup or a quest is saved (an arpeggio on a level up). They are made in code with [ZzFX](https://github.com/KilledByAPixel/ZzFX) (`packages/platform/src/sfx`), no audio files, and peak about 24 dB below full scale, well under the music. They are on by default, play nothing before the first tap or key press and nothing while the page is hidden, and can be turned off with the Sound effects switch in Settings (Data, then Settings; remembered on the device). Web only for now, like the music.
 
 **Music.** A small speaker key in the top-right corner of every page, setup included, plays background music: an original island loop composed in code and synthesised with Web Audio (`packages/platform/src/music`), no audio files. It is off until pressed and remembers the choice; if it was left on, it starts again at the first tap or key press, never by itself. On the web only for now: Android and iOS need a native audio library behind the same `music` capability, and the key is hidden there.
 
@@ -63,7 +63,13 @@ If Android and iOS ever need different code, add `capabilities.android.ts` or `c
 
 Screens only talk to `useGame()`. It saves through a `ClimbingBackend` from `packages/data`: on-device storage by default, or the HTTP API when a server address is set. Endpoints and JSON shapes each live in one file. See [packages/data/README.md](packages/data/README.md).
 
-To use the FastAPI backend, run `npm run backend:setup` once, then `MONKEY_CORS_ORIGINS=http://localhost:5173 npm run backend:start`, and start the web app with `VITE_MONKEY_API_URL=http://127.0.0.1:8000 npm run web`. Without the variable the app keeps everything on the device. Native builds read `API_BASE_URL` in `packages/data/src/config.ts` instead. The same address is used by the camera screens (the camera assessment on the Tests tab and hand photos on the Hands tab); without a server they say they need one. See the [camera and video guide](docs/camera-video.md).
+To use the FastAPI backend, run `npm run backend:setup` once, then `MONKEY_CORS_ORIGINS=http://localhost:5173 npm run backend:start`, and start the web app with `VITE_MONKEY_API_URL=http://127.0.0.1:8000 npm run web`. Without the variable the app keeps everything on the device. Native builds read `API_BASE_URL` in `packages/data/src/config.ts` instead. The same address is used by the camera screens (live leg-spread and shoulder assessments on the Data tab and hand photos on the Hands tab); without a server they say they need one. See the [camera and video guide](docs/camera-video.md).
+
+### Demo mode
+
+Open **Data → Demo controls**, beside **About this build**, and tick **Demo mode**. The controls are also available in About, during setup and when the backend cannot load. Individual checkboxes simulate the profile, health-provider feeds, webcam, pose analysis, hand-photo storage, home-test results. Finger strength uses the same instrument-reading form with a demo-fill action. Untick **Webcam input** to use your real camera while keeping **Analysis results** simulated. The default demo needs no backend, physical webcam, provider accounts or pose model. Enable optional camera-analysis permission in setup or Settings before pressing Record; simulated frames remain local.
+
+Choices survive refreshes. Demo data, tokens and server identities are separate from your normal profile; switching demo mode off restores it. **Reset demo** starts a fresh presentation scenario. See [the demo guide](docs/demo-mode.md) for the switches and limitations.
 
 ## Setup
 
@@ -115,7 +121,7 @@ React Native provides the core APIs (`Platform`, `Vibration`, `BackHandler`, `Sa
 
 **Music on Android and iOS** is not there yet. The web plays it with Web Audio (`capabilities.web.ts`); a phone needs a native audio library (for example one that plays a rendered loop) wrapped as the `music` capability in `capabilities.ts`. Until then `music` is undefined and the app hides the music key.
 
-**Sound effects on Android and iOS** are not there yet either, for the same reason. On the web the `sfx` capability plays them with Web Audio, sharing one AudioContext with the music. On the phones `sfx` is undefined: the app is silent and the About page says sound effects are not available.
+**Sound effects on Android and iOS** are not there yet either, for the same reason. On the web the `sfx` capability plays them with Web Audio, sharing one AudioContext with the music. On the phones `sfx` is undefined: the app is silent and the Settings page says sound effects are not available.
 
 **Third-party libraries:** a library with native code needs a native rebuild (and `pod install` on iOS), and it won't run in the web host, so keep it behind a capability with a web fallback. Pure-JS libraries work everywhere as they are.
 
@@ -128,7 +134,7 @@ React Native provides the core APIs (`Platform`, `Vibration`, `BackHandler`, `Sa
 
 ## Third-party code
 
-- **ZzFX** by Frank Force, MIT licence ([KilledByAPixel/ZzFX](https://github.com/KilledByAPixel/ZzFX)). The sound generator from version 1.4.0 is vendored in `packages/platform/src/sfx/zzfx.ts` with its original copyright and licence header. Only the part that builds samples was kept and ported to TypeScript; the sounds are unchanged. The npm package was not used because it creates an AudioContext as soon as it is imported, which browsers block before a tap and which does not exist in Jest or on the phones. The About page credits it too.
+- **ZzFX** by Frank Force, MIT licence ([KilledByAPixel/ZzFX](https://github.com/KilledByAPixel/ZzFX)). The sound generator from version 1.4.0 is vendored in `packages/platform/src/sfx/zzfx.ts` with its original copyright and licence header. Only the part that builds samples was kept and ported to TypeScript; the sounds are unchanged. The npm package was not used because it creates an AudioContext as soon as it is imported, which browsers block before a tap and which does not exist in Jest or on the phones. The About and Settings pages credit it too.
 
 Libraries installed from npm are listed in `apps/mobile/package.json` and `apps/web/package.json`.
 

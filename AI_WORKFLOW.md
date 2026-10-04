@@ -8,7 +8,7 @@ Use this file for significant AI/external-resource disclosure in the Sport & Hea
 |---|---|---|
 | Claude Code (VS Code extension) | Claude Opus 5.5 (`claude-opus-5-5`) | Converting the challenge PDFs to Markdown, researching the React Native setup, scaffolding the project, writing code and docs |
 | Codex desktop | GPT-6 | Drafting the climbing app product design and checking MediaPipe capability documentation |
-| Codex (with subagents) | GPT-6.1 Sol, reviewed by GPT-6 Astra | The FastAPI backend, its video and live camera APIs, the first camera adapters and capture screens, and the scientific evidence notes (log entries 11 and 20) |
+| Codex (with subagents) | GPT-6.1 Sol, reviewed by GPT-6 Astra | The FastAPI backend, its video and live camera APIs, the first camera adapters and capture screens, and the scientific evidence notes, demo mode and the Data hub with live assessments (log entries 11, 20, 27 and 28) |
 | Claude Code (claude.ai cloud session, with parallel subagents) | Claude | Pixel-art pets, the jungle pixel UI kit, the climbing profile rules, the app screens, the web layout, onboarding, connecting the app to the backend, and the camera screens |
 
 ### Third-party code in the app
@@ -329,3 +329,37 @@ The Codex design-drafting step used the `superpowers:using-superpowers` and `sup
 **Output:** The guide monkey holds or wears something different on every setup step: a wave, map, alarm clock, V-grade tag, trophy, tape measure, phone (apps and consent), clipboard, stopwatch, tally counter, ruler, hourglass, eyes shut with one foot up, a sweatband and a party hat. The props are pixel patches in `packages/ui/src/pixel/sprites.ts` (`MONKEY_PROPS`), drawn over the monkey with the same `overlay` as the cosmetics; held props swap in a bent arm and draw the fist on top, so they stay in the hand while it blinks and hops. `propFor` in `packages/app/src/onboarding/flow.ts` maps each step to its prop. No new libraries, models or APIs.
 
 **Validation:** Jest checks that every prop stays in its slot, uses palette colours, never touches the arm that holds the vine, keeps the 32x28 frame, and stays put in every pose; that every step has its own prop; and that stepping through the flow shows the expected prop. Every step was screenshotted in Chromium at 390 px in light and dark mode and at 1280 px.
+
+### 27. Configurable presentation demo (2026-10-04)
+
+**Prompt:** Add demo mode with individually selectable mocks for unavailable integrations and features, including a choice between simulated and real webcam input. Put the controls beside About; commit and push after verification.
+
+**Output:** Shared demo controls on Tests and About, plus setup and backend-failure access; persistent switches for the sample profile, five health-provider feeds, webcam, photo/clip/live analysis, hand-photo storage, home-test examples and unfinished-test previews. Separate demo storage, anonymous API identities and scenario generations preserve the normal profile and keep late saves out of a reset scenario. Mock media keeps its existing consent/review/save flow and uses explicit simulation labels. Saved entries/results appear on Hands/Tests. `docs/demo-mode.md` documents usage and limits.
+
+**AI/process:** Codex implemented the feature using Canon TDD and reviewed it with a code-review subagent. Review identified reset isolation and simulated-input/real-live combinations; regression tests cover the fixes. No new external libraries, models, provider accounts or image-generation tools were used. The sample camera is drawn with React Native Views; provider feeds and measurements are invented, labelled examples.
+
+**Validation:** `npm run check` passed typechecking, lint and 677 Jest tests in 42 suites (14 added demo tests). `npm run web:build` passed. The in-app browser verified selectable controls, simulated preview, reviewed photo analysis/save, live results, clip recording/review/analysis and persistence after refresh. A separate test verifies real-camera selection with simulated analysis at the capability boundary. Existing lint/deprecation and bundle-size warnings remain.
+
+**Limits:** Physical camera permissions, native device builds and real health integrations were not tested or added. Future-test previews are not measurements. Reset starts a new scenario; deletion of previously retained real demo-server captures uses the existing profile-deletion flow before reset.
+
+### 28. Data hub and live shoulder/force assessments (2026-10-04)
+
+**Prompt:** Group Tests into Data, stream camera assessments with live person markings and manual/automatic stop, move consent to setup and revocable Settings, add shoulder reach and finger strength, and use breadcrumbs for every submenu. The user requested TDD and allowed independent subagents; commit/push authorization continued.
+
+**Output:** Data groups body/reach, mobility/movement, strength/endurance and activity/recovery. Record uses saved optional permission and starts sampled frame streaming rather than a video-file upload. Live skeleton/angles, capture-quality feedback, steady-hold completion and reviewed save support leg spread and bilateral overhead shoulder estimates. Finger strength records external instrument force with N/kgf, side and setup conditions. Assessment history persists locally/API-side, appears on Data/Profile and compares matching conditions/provenance. Settings, setup, demo controls, assessment/force review and direct-linked details have breadcrumb returns; navigation context survives source/demo changes. Invalid measurements keep usable detected markings and correction text but cannot complete/save. Existing photo/video API clients remain supported.
+
+**AI/process:** GPT-6.1 Sol workers independently implemented backend geometry/schema, history/force input, live UI/overlays and test integration. GPT-6 Astra reviewed the complete feature; workers fixed navigation and inactive-state lifecycle findings, and a real-model probe led to better rejected-pose feedback. Canon TDD observed missing behavior before implementation; existing valid behavior was retained as passing characterization coverage. Review regressions include disk-write rollback, partial shoulder-save retries, API/UI instrument length, pending-save breadcrumb races, setup/context preservation and invalid/stale geometry.
+
+**Libraries/models:** Existing React Native/react-native-web, FastAPI/Pydantic, Pillow, MediaPipe Tasks and WebSocket dependencies. No new code dependency or image-generation tool. The official MediaPipe full float16 v1 model was downloaded from Google model storage into gitignored `backend/data/models/pose_landmarker_full.task`; model binaries remain outside Git. Camera/overlay graphics use Views and existing pose landmarks. A previously downloaded public sample image supplied non-personal verification frames.
+
+**Validation:** `npm run check` passed typecheck, lint and 756 Jest tests in 54 suites; `npm run backend:check` passed 237 pytest cases and Ruff. Production web build passed. Browser verification covered Data grouping, stored consent, source-switch breadcrumb return, live simulated shoulder movement/automatic stop, reviewed side-pair save, instrument-force review/save and Data history display. Real MediaPipe/WebSocket checks passed against a temporary database and the running local server: valid leg readings returned 33 points; a bent-elbow shoulder pose returned an invalid measurement with 33 points and a correction. Streaming saved no assessment automatically. Temporary real-server verification profiles were deleted.
+
+**Limits:** Physical webcam/device permission dialogs and native builds were not verified. Camera angles and hold thresholds remain unvalidated engineering estimates; instrument readings are self-reported. Health-provider mocks remain explicit examples, and no grade/clinical/strength-from-photo inference was introduced. Existing native temporary-file/storage limitations and lint/deprecation/bundle-size warnings remain.
+
+### 29. Merging the demo mode and Data hub branch (2026-10-04)
+
+**Prompt:** Merge the team's new backend work (`origin/codex/climbing-monkey-backend`, entries 27 and 28) into the app branch, keeping the music, sound effects, tap-to-edit and onboarding props, and preferring the branch's backend.
+
+**What the agent did (Claude Code):** a single merge commit. The backend came in unchanged. In `App.tsx` the music and sound providers wrap the demo-aware `GameProvider` (which remounts on demo changes) and the demo controls, so the music keeps playing and the corner key also shows in the demo controls. `StepFrame` keeps the prop and the room for the music key and gains the setup breadcrumbs and demo button. `saveAssessment` chimes once the reviewed result is saved. The Sound effects switch moved from About to the new Settings page; About keeps the ZzFX credit. App copy from the branch lost its em dashes and a hand emoji (now the pixel hand icon).
+
+**Validation:** `npm run check`, `npm run backend:check`, the web build and the Android bundle; a Playwright smoke run of setup, music, sound effects, demo mode, the Data hub, Settings and finger strength. No new libraries, models or APIs.

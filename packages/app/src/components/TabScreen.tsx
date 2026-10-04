@@ -15,14 +15,15 @@ import { useNavigation } from '../navigation/Navigator';
 import type { RouteName } from '../navigation/routes';
 import { trailFor } from '../navigation/trail';
 import { useGame } from '../state/GameProvider';
+import { useDemo } from '../demo/DemoProvider';
 
-type TabRoute = Extract<RouteName, 'Profile' | 'Log' | 'Hands' | 'Tests'>;
+type TabRoute = Extract<RouteName, 'Profile' | 'Log' | 'Hands' | 'Data'>;
 
 const TABS: readonly Tab<TabRoute>[] = [
   { key: 'Profile', label: 'Profile', icon: 'profile' },
   { key: 'Log', label: 'Log', icon: 'log' },
   { key: 'Hands', label: 'Hands', icon: 'hands' },
-  { key: 'Tests', label: 'Tests', icon: 'tests' },
+  { key: 'Data', label: 'Data', icon: 'tests' },
 ];
 
 type Props = {
@@ -39,6 +40,7 @@ const isTab = (route: RouteName | undefined): route is TabRoute =>
  * tab a linked screen belongs to (a link to a finger close-up shows Hands).
  */
 export function TabScreen({ children, hero }: Props) {
+  const demo = useDemo();
   const { root, reset } = useNavigation<RouteName>();
   const home = trailFor(root, {})[0]?.route;
   const active: TabRoute = isTab(root) ? root : isTab(home) ? home : 'Profile';
@@ -56,6 +58,11 @@ export function TabScreen({ children, hero }: Props) {
         />
       }
     >
+      {demo.settings.enabled ? (
+        <AppText variant="caption">
+          Demo: records stay in the separate demo profile.
+        </AppText>
+      ) : null}
       {children}
     </Screen>
   );

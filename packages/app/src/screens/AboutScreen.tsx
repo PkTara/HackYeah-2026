@@ -7,15 +7,14 @@ import {
   Monkey,
   Panel,
   PixelText,
-  Toggle,
   useLayout,
 } from '@hackyeah/ui';
 import { useCapabilities } from '../capabilities';
 import { Crumbs } from '../components/Crumbs';
 import { PageHeader } from '../components/PageHeader';
-import { useSfx } from '../sfx';
 import { TabScreen } from '../components/TabScreen';
 import { useGame } from '../state/GameProvider';
+import { DemoButton } from '../demo/DemoControls';
 
 const PACKAGES = [
   {
@@ -58,6 +57,7 @@ export function AboutScreen() {
         title="About"
         subtitle="Climbing Monkey, a HackYeah 2026 prototype."
       />
+      <DemoButton parent="About" />
 
       {/* Wide screens put the honest bits under Platform, so the two columns
           come out about even. Phones keep them last, after How it is built. */}
@@ -83,7 +83,7 @@ export function AboutScreen() {
               one they run on.
             </AppText>
           </Panel>
-          <SoundPanel />
+          <CreditsPanel />
           {wide ? <HonestBits /> : null}
         </Column>
 
@@ -108,26 +108,13 @@ export function AboutScreen() {
   );
 }
 
-/**
- * The sound effects switch. It lives here because About is the app's only
- * settings page; the music keeps its own key in the corner.
- */
-function SoundPanel() {
-  const { available, on, setOn } = useSfx();
+/** Third-party code credits. The sound effects switch is in Settings. */
+function CreditsPanel() {
   return (
-    <Panel title="Sound">
-      {available ? (
-        <Toggle
-          name="Sound effects"
-          detail="Quiet clicks, typing and a chime when you save. The music has its own key in the corner."
-          value={on}
-          onValueChange={setOn}
-        />
-      ) : (
-        <AppText>Sound effects are not available on this device yet.</AppText>
-      )}
+    <Panel title="Credits">
       <AppText variant="caption" muted>
-        Sound effects made with ZzFX by Frank Force (MIT).
+        Sound effects made with ZzFX by Frank Force (MIT). Turn them on or off
+        in Settings.
       </AppText>
     </Panel>
   );

@@ -29,6 +29,7 @@ import { useNavigation } from '../navigation/Navigator';
 import type { RouteName } from '../navigation/routes';
 import { useMedia } from '../media';
 import { useGame } from '../state/GameProvider';
+import { SavedMedia } from '../demo/SavedMedia';
 
 // Symptom screen: quiet panels and plain words. No monkey, no rewards.
 
@@ -91,6 +92,7 @@ export function HandsScreen() {
         title="Hands"
         subtitle="Mark where a finger hurts. Quests that load your fingers wait until you clear it."
       />
+      <SavedMedia kind="hands" />
 
       <Columns>
         <Column>

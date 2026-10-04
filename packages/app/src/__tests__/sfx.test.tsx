@@ -36,7 +36,7 @@ function capabilities(sfx?: SfxCapability): Capabilities {
   };
 }
 
-async function renderApp(caps: Capabilities, initialRoute: RouteName = 'About') {
+async function renderApp(caps: Capabilities, initialRoute: RouteName = 'Settings') {
   let renderer!: Renderer;
   await act(async () => {
     renderer = ReactTestRenderer.create(
@@ -74,7 +74,7 @@ beforeEach(() => jest.useFakeTimers());
 afterEach(() => jest.useRealTimers());
 
 describe('sound effects switch', () => {
-  it('is on by default, on the About page, with the ZzFX credit', async () => {
+  it('is on by default, on the Settings page, with the ZzFX credit', async () => {
     const sfx = fakeSfx();
     const renderer = await renderApp(capabilities(sfx));
     const [toggle] = soundSwitch(renderer);
@@ -83,6 +83,15 @@ describe('sound effects switch', () => {
       'Sound effects made with ZzFX by Frank Force (MIT).',
     );
     expect(sfx.setEnabled).toHaveBeenLastCalledWith(true);
+    act(() => renderer.unmount());
+  });
+
+  it('keeps the ZzFX credit on the About page', async () => {
+    const renderer = await renderApp(capabilities(fakeSfx()), 'About');
+    expect(soundSwitch(renderer)).toHaveLength(0);
+    expect(JSON.stringify(renderer.toJSON())).toContain(
+      'Sound effects made with ZzFX by Frank Force (MIT).',
+    );
     act(() => renderer.unmount());
   });
 

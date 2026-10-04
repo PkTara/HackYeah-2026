@@ -17,6 +17,7 @@ import {
   onboardingAssessments,
   reachAssessments,
   toClimbBody,
+  toAssessmentBody,
   toGameState,
   toHandReportBody,
   type AssessmentBody,
@@ -196,6 +197,8 @@ export function createHttpBackend(opts: HttpBackendOptions): ClimbingBackend {
   // The server makes its own climb ids. Climbs logged since the last load
   // still have the app's id, so remember which server id each one got.
   const serverIds = new Map<string, string>();
+  // Review retries reuse record ids, including a partly acknowledged side pair.
+  const savedAssessmentIds = new Set<string>();
 
   async function readState(): Promise<GameState> {
     const [climbs, hands, assessments, quests, assigned, saved] =
@@ -269,6 +272,14 @@ export function createHttpBackend(opts: HttpBackendOptions): ClimbingBackend {
 
   return {
     kind: 'remote',
+    saveAssessment: record =>
+      save(async () => {
+        if (savedAssessmentIds.has(record.id)) {
+          return;
+        }
+        await api(endpoints.addAssessment(), toAssessmentBody(record));
+        savedAssessmentIds.add(record.id);
+      }),
     load: () => writes.then(readState),
 
     addClimb: log =>
@@ -356,6 +367,7 @@ export function createHttpBackend(opts: HttpBackendOptions): ClimbingBackend {
         // the setup answers and home tests on this device.
         token = null;
         serverIds.clear();
+        savedAssessmentIds.clear();
         await device.forget();
         // Loading makes a new anonymous climber. If only that fails, the old
         // profile is still gone: answer with an empty one, and the next

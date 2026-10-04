@@ -19,6 +19,8 @@ import { AppText, Button, Panel, PixelText, Tag, useTheme } from '@hackyeah/ui';
 import { Fact, NumberedList, SafetyLine } from './bits';
 import { RepCounter } from './RepCounter';
 import { Stopwatch } from './Stopwatch';
+import { useDemo } from '../demo/DemoProvider';
+import { demoSeed } from '../demo/seed';
 
 export function TestsIntroStep({
   onStart,
@@ -70,6 +72,8 @@ export function TestStep({
   result: Readonly<{ value: number; method: ResultMethod }> | undefined;
   onResult: (value: number | null, method: ResultMethod) => void;
 }) {
+  const demo = useDemo();
+  const example = demoSeed('').baseline.find(r => r.testId === test.id);
   const { colors: c } = useTheme();
   const limits = BASELINE_LIMITS[test.unit];
   return (
@@ -105,6 +109,21 @@ export function TestStep({
             : 'Your reach'
         }
       >
+        {demo.settings.enabled && demo.settings.testResults && example ? (
+          <>
+            <Tag text="Simulated result available" />
+            <AppText variant="caption">
+              Use an example to demonstrate the save flow. It stays in the demo
+              profile.
+            </AppText>
+            <Button
+              title="Use demo result"
+              small
+              variant="secondary"
+              onPress={() => onResult(example.value, 'typed')}
+            />
+          </>
+        ) : null}
         {test.input === 'stopwatch' ? (
           <Stopwatch
             value={result?.value ?? null}

@@ -143,7 +143,10 @@ describe('gameReducer', () => {
   });
 
   it('only loads saved state that looks valid', () => {
-    expect(parseGameState(JSON.stringify(sampleGame))).toEqual(sampleGame);
+    expect(parseGameState(JSON.stringify(sampleGame))).toEqual({
+      ...sampleGame,
+      assessments: [],
+    });
     expect(parseGameState('{"version":2}')).toBeNull();
     expect(parseGameState('not json')).toBeNull();
     expect(parseGameState(null)).toBeNull();

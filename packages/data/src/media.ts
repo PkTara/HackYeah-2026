@@ -81,6 +81,7 @@ export interface MediaClient {
     camera: CameraSession,
     consent: boolean,
     handlers: LiveHandlers,
+    options?: { metric?: 'leg_spread' | 'shoulder_reach' },
   ): Promise<LiveSession>;
 }
 
@@ -300,7 +301,7 @@ export function createMediaClient(opts: MediaClientOptions): MediaClient {
       }
     },
 
-    async startLive(camera, consent, handlers) {
+    async startLive(camera, consent, handlers, selection) {
       if (!consent) {
         throw new MediaError('Tick the consent box before sending frames.', 0);
       }
@@ -312,6 +313,7 @@ export function createMediaClient(opts: MediaClientOptions): MediaClient {
         consent,
         camera,
         socketFactory,
+        metric: selection?.metric,
       });
     },
   };

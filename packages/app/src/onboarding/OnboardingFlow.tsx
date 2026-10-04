@@ -41,6 +41,7 @@ import {
 } from './flow';
 import { StepFrame, type FooterAction } from './StepFrame';
 import { DoneStep, TestStep, TestsIntroStep } from './TestSteps';
+import { PrivacyPanel } from '../privacy/PrivacyPanel';
 
 type Props = {
   /** Called once with everything the climber entered. */
@@ -108,7 +109,11 @@ export function OnboardingFlow({ onFinish, onSkip, today }: Props) {
 
   const frame = (
     content: ReactNode,
-    footer: Readonly<{ back?: boolean; skip?: FooterAction; next?: FooterAction }>,
+    footer: Readonly<{
+      back?: boolean;
+      skip?: FooterAction;
+      next?: FooterAction;
+    }>,
   ) => (
     // A new frame per step: the page starts at the top and the monkey hops
     // over from the step before.
@@ -120,6 +125,9 @@ export function OnboardingFlow({ onFinish, onSkip, today }: Props) {
       back={footer.back === false ? undefined : back}
       skip={footer.skip}
       next={footer.next}
+      onStart={() => setNav(startNav)}
+      onApps={() => go('apps')}
+      onTests={() => go('tests')}
     >
       {content}
     </StepFrame>
@@ -168,8 +176,8 @@ export function OnboardingFlow({ onFinish, onSkip, today }: Props) {
           hint: result
             ? undefined
             : timed
-              ? 'Time it or tap the time first'
-              : 'Count it or tap the number first',
+            ? 'Time it or tap the time first'
+            : 'Count it or tap the number first',
           onPress: forward,
         },
       },
@@ -178,15 +186,21 @@ export function OnboardingFlow({ onFinish, onSkip, today }: Props) {
 
   switch (step) {
     case 'welcome':
-      return frame(<WelcomeStep />, {
-        back: false,
-        skip: {
-          label: 'Skip setup',
-          onPress: onSkip,
-          hint: 'Goes straight to the app',
+      return frame(
+        <>
+          <WelcomeStep />
+          <PrivacyPanel />
+        </>,
+        {
+          back: false,
+          skip: {
+            label: 'Skip setup',
+            onPress: onSkip,
+            hint: 'Goes straight to the app',
+          },
+          next: { label: 'Start', onPress: forward },
         },
-        next: { label: 'Start', onPress: forward },
-      });
+      );
 
     case 'places':
       return frame(
@@ -209,7 +223,12 @@ export function OnboardingFlow({ onFinish, onSkip, today }: Props) {
           value={draft.experience}
           onPick={experience => update({ experience })}
         />,
-        { next: required(draft.experience !== null, 'how long you have climbed') },
+        {
+          next: required(
+            draft.experience !== null,
+            'how long you have climbed',
+          ),
+        },
       );
 
     case 'grade':
@@ -299,7 +318,10 @@ export function OnboardingFlow({ onFinish, onSkip, today }: Props) {
       );
 
     case 'done': {
-      const result = buildOnboardingResult(draft, today ?? toLocalDate(new Date()));
+      const result = buildOnboardingResult(
+        draft,
+        today ?? toLocalDate(new Date()),
+      );
       return frame(<DoneStep result={result} />, {
         next: {
           label: 'Go to my profile',

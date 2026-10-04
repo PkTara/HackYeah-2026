@@ -60,7 +60,15 @@ Post to `/v1/me/climbs`. A climb log records one terrain and one or both movemen
 {"metric":"leg_spread","value":90,"unit":"degrees","method":"manual","protocol":"front-facing-leg-spread-v1"}
 ```
 
-Post to `/v1/me/assessments`. Supported metrics: `leg_spread/degrees`, `height/cm`, `arm_span/cm`, `pullups/repetitions`, `hang_duration/seconds`. Camera assessments currently support only leg spread and require explicit confidence ≥0.7. A persisted camera result is a **user-confirmed report**, not proof the server measured it; never treat client-supplied confidence as independent verification. Optional `model_version` records provenance.
+Post to `/v1/me/assessments`. Supported metrics: `leg_spread/degrees`, `shoulder_reach_left/degrees`, `shoulder_reach_right/degrees`, `height/cm`, `arm_span/cm`, `pullups/repetitions`, `hang_duration/seconds`, and `finger_force/N|kgf` (newtons or kilogram-force). Camera assessments support leg spread and shoulder reach and require explicit confidence ≥0.7. Shoulder records retain each side separately; an optional `side` must agree with the metric. Projected angles must be between 0° and 180°. A persisted camera result is a **user-confirmed report**, not proof the server measured it; never treat client-supplied confidence as independent verification. Optional `model_version` records provenance. All assessments accept `simulated` (default false); simulation is preserved and excluded from comparisons with real records.
+
+Instrument finger force is a manual report from an external instrument, never a camera force estimate. Force, edge depth and effort duration must be positive finite numbers; `side` (`left`, `right`, or `both`) and the complete `setup` are required. Example:
+
+```json
+{"metric":"finger_force","value":450,"unit":"N","method":"manual","protocol":"instrument-finger-force-v1","side":"left","setup":{"instrument":"Load cell","grip":"half_crimp","edge_mm":20,"arm_position":"straight","effort_seconds":7},"simulated":false}
+```
+
+Grip accepts `open_hand`, `half_crimp`, or `full_crimp`; arm position accepts `straight` or `bent`. Units remain as entered; the service does not mix newtons with kilogram-force in trends.
 
 ```json
 {"side":"right","region":"ring_finger","pain":4,"spots":["a2","pip"],"note":"Observed after my session"}
@@ -82,7 +90,7 @@ Each evidence collection supports `GET` and `DELETE /v1/me/{collection}/{id}`. `
 
 - Independent `terrain`, `movement` and `grid` summaries: counts, observed completion rate and evidence IDs. `ability_score` remains null. A climb with both styles counts under each of its movements in the `movement` and `grid` summaries, and once in `terrain`.
 - `radar` axes with null values until there are validated technique observations. Do not render null as zero.
-- `assessment_trends` with latest result, comparable previous result and delta; comparisons require matching metric, unit, method and protocol.
+- `assessment_trends` with latest result, comparable previous result and delta; comparisons require matching metric, unit, method, protocol, side, complete setup and simulation provenance. Legacy records without `simulated` are treated as real.
 - `active_hand_flags` from the latest report per side/region (active when `pain` is null or above 0), `activity_context`, and an evidence-linked `focus`.
 
 Completion rates are descriptive observations, not grade forecasts or proven technique scores. Grade systems/locations remain attached to records. The initial focus rule needs at least three observations with an incomplete outcome for a terrain reflection, and otherwise gathers evidence; it does not prove an underlying physical weakness.
@@ -119,7 +127,11 @@ The response contains `duration_ms`, `sampled_frame_count`, `valid_frame_count` 
 {"type":"start","token":"your privately stored token","upload_consent":true}
 ```
 
-After the server's `ready` message, send `{"type":"frame","timestamp_ms":0}` followed by binary JPEG bytes. Wait for the matching `result` before sending another pair. Timestamps must strictly increase. Send `{"type":"stop"}` to finish. Credentials belong in the first message, never in the URL. Identity is checked again before each frame, so deletion revokes an existing stream.
+After the server's `ready` message, send `{"type":"frame","timestamp_ms":0}` followed by binary JPEG bytes. Wait for the matching `result` before sending another pair. Timestamps must strictly increase. Send `{"type":"stop"}` to finish. The start message also accepts `"metric":"shoulder_reach"`; omitting `metric` selects `leg_spread`. Unknown selectors are rejected before creating a detector. Each result preserves the submitted `timestamp_ms`, retains the scalar pose fields, and includes normalized `landmarks` (`x`, `y`, `visibility`) plus the analyzed frame's `image_width`/`image_height` for aligning the preview overlay. Invalid captures return null values and an empty landmark list to clear the overlay.
+
+Shoulder reach uses `front-facing-overhead-reach-v1`: the projected hip→shoulder→elbow angle per side, with visible hips, shoulders, elbows and wrists. Both elbow angles must be at least 160° as an engineering straight-arm heuristic. The response includes `left_value`, `right_value`, and scalar `value` as their mean; invalid captures have all three null. Angles use the frame's aspect ratio and are not 3D mobility or force measurements. Uploading a live result never saves an assessment automatically; the client reviews and separately saves each shoulder side.
+
+Credentials belong in the first message, never in the URL. Identity is checked again before each frame, so deletion revokes an existing stream.
 
 Each live session owns one detector, limits JPEGs to 8 MiB/16 million pixels, applies EXIF orientation and downsamples to 1280×720. It has a 60-second lifetime, 1,800-frame cap, 1 KiB control messages and 10-second message timeouts. Processing runs in worker threads; disconnects and errors close the detector. There is no frame retention. The client samples with backpressure rather than attempting to send every native camera frame.
 

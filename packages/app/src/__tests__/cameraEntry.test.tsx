@@ -1,5 +1,5 @@
 /**
- * Where the camera screens start from: the Tests tab (camera assessment)
+ * Where the camera screens start from: the Data tab (camera assessment)
  * and the Hands tab and finger close-up (hand photos). Without a server,
  * the on-device demo says so and offers nothing that would fake a result.
  */
@@ -15,19 +15,33 @@ import {
 
 const NEEDS_SERVER = 'needs the Climbing Monkey server';
 
-describe('Tests tab', () => {
-  it('opens the camera assessment under Tests', async () => {
+describe('Data tab', () => {
+  it('opens leg spread from the supported Tests alias under Data', async () => {
     const fixture = setup();
     const screen = await render(fixture, 'Tests');
     expect(text(screen)).toContain('not a validated flexibility test');
     expect(text(screen)).not.toContain(NEEDS_SERVER);
-    await press(screen, 'Camera assessment');
-    expect(has(screen, 'Back to Tests')).toBe(true);
+    await press(screen, 'Leg spread assessment');
+    expect(has(screen, 'Back to Data')).toBe(true);
     expect(has(screen, 'Leg spread')).toBe(true);
-    expect(control(screen, 'Start camera')).toBeDefined();
+    expect(control(screen, 'Record')).toBeDefined();
     expect(fixture.preview.active).toBe(false);
-    await press(screen, 'Back to Tests');
-    expect(control(screen, 'Camera assessment')).toBeDefined();
+    await press(screen, 'Back to Data');
+    expect(control(screen, 'Leg spread assessment')).toBeDefined();
+    await act(async () => screen.unmount());
+  });
+
+  it('opens shoulder reach with its selected metric and Data breadcrumb', async () => {
+    const fixture = setup();
+    const screen = await render(fixture, 'Data');
+    await press(screen, 'Shoulder reach assessment');
+    expect(has(screen, 'Back to Data')).toBe(true);
+    expect(has(screen, 'Shoulder reach')).toBe(true);
+    expect(text(screen)).toContain('Begin with arms resting at your sides');
+    expect(control(screen, 'Record')).toBeDefined();
+    expect(fixture.preview.active).toBe(false);
+    await press(screen, 'Back to Data');
+    expect(control(screen, 'Shoulder reach assessment')).toBeDefined();
     await act(async () => screen.unmount());
   });
 
@@ -36,7 +50,7 @@ describe('Tests tab', () => {
     const screen = await render(fixture, 'Tests');
     expect(text(screen)).toContain('This needs the Climbing Monkey server');
     expect(text(screen)).toContain('npm run backend:start');
-    expect(control(screen, 'Camera assessment')).toBeUndefined();
+    expect(control(screen, 'Leg spread assessment')).toBeUndefined();
     await act(async () => screen.unmount());
   });
 
@@ -44,7 +58,7 @@ describe('Tests tab', () => {
     const fixture = setup({ media: false });
     const screen = await render(fixture, 'Assessment');
     expect(text(screen)).toContain(`The camera assessment ${NEEDS_SERVER}`);
-    expect(control(screen, 'Start camera')).toBeUndefined();
+    expect(control(screen, 'Record')).toBeUndefined();
     await act(async () => screen.unmount());
   });
 });

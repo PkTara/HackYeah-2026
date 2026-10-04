@@ -17,6 +17,7 @@ import {
   pickFocus,
   pickQuest,
   toLocalDate,
+  type AssessmentRecord,
   type BaselineResult,
   type ClimbLog,
   type Finger,
@@ -86,6 +87,7 @@ type GameApi = Readonly<{
   skipOnboarding: () => void;
   /** One home test done from the Tests tab. */
   saveBaseline: (result: BaselineResult) => void;
+  saveAssessment: (record: AssessmentRecord) => Promise<void>;
   /**
    * Deletes the whole profile, then setup runs again. Not resetDemo: no
    * example data comes back. If it fails, the screen keeps what it shows.
@@ -154,10 +156,14 @@ export function GameProvider({ children, backend, today: fixedToday }: Props) {
 
   /** Show the change now, then save it. */
   const commit = useCallback(
-    (action: GameAction, save: () => Promise<GameState | void>) => {
+    (
+      action: GameAction,
+      save: () => Promise<GameState | void>,
+      propagate = false,
+    ) => {
       dispatch(action);
       saving.current += 1;
-      save().then(
+      const pending = save().then(
         fresh => {
           saving.current -= 1;
           setSyncError(null);
@@ -172,14 +178,18 @@ export function GameProvider({ children, backend, today: fixedToday }: Props) {
             }
           }
         },
-        () => {
+        error => {
           saving.current -= 1;
           setSyncError(
             'Could not save that change. Showing your last saved data.',
           );
           reload();
+          if (propagate) {
+            throw error;
+          }
         },
       );
+      return propagate ? pending : undefined;
     },
     [reload],
   );
@@ -306,6 +316,16 @@ export function GameProvider({ children, backend, today: fixedToday }: Props) {
         commit({ type: 'saveBaseline', result }, () =>
           backend.saveBaseline(result),
         );
+      },
+      // A reviewed camera or instrument result: the screen waits for the
+      // save, so the chime comes only once it has been kept.
+      saveAssessment: async record => {
+        await commit(
+          { type: 'saveAssessment', record },
+          () => backend.saveAssessment(record),
+          true,
+        );
+        play('success');
       },
       // Not shown before it is done: a failed reset must leave the profile.
       resetProfile: () => {

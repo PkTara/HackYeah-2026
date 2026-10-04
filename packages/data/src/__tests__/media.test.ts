@@ -373,3 +373,33 @@ test('live opens a WebSocket on the same server with the token in the first mess
   });
   session.stop();
 });
+
+test('the optional live selector reaches the streaming handshake', async () => {
+  const storage = createMemoryStore();
+  await storage.setItem(API_TOKEN_KEY, 'private-token');
+  const sent: unknown[] = [];
+  const transport: LiveSocket = {
+    onopen: null,
+    onmessage: null,
+    onerror: null,
+    onclose: null,
+    send: value => sent.push(value),
+    close: () => {},
+  };
+  const media = createMediaClient({
+    baseUrl: SERVER,
+    storage,
+    socketFactory: () => transport,
+  });
+  const session = await media.startLive(
+    { snapshot: jest.fn() },
+    true,
+    { onResult: jest.fn(), onError: jest.fn() },
+    { metric: 'shoulder_reach' },
+  );
+  transport.onopen!();
+  expect(JSON.parse(sent[0] as string)).toMatchObject({
+    metric: 'shoulder_reach',
+  });
+  session.stop();
+});

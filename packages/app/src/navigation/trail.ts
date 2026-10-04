@@ -23,7 +23,10 @@ export type Crumb = TrailStep<RouteName> &
     short?: string;
   }>;
 
-const tab = (route: RouteName): Crumb => ({ route, label: route });
+const tab = (route: RouteName): Crumb => ({
+  route: route === 'Tests' ? 'Data' : route,
+  label: route === 'Tests' ? 'Data' : route,
+});
 
 /** The side and finger in the params, with the finger close-up's defaults. */
 export function fingerParams(params: Params): { side: Side; finger: Finger } {
@@ -46,6 +49,8 @@ function fingerCrumb(params: Params): Crumb {
 /** The trail for a screen; empty for the tabs themselves. */
 export function trailFor(route: RouteName, params: Params): Crumb[] {
   switch (route) {
+    case 'Tests':
+      return [tab('Data')];
     case 'Finger':
       return [tab('Hands'), fingerCrumb(params)];
     case 'Anatomy': {
@@ -58,10 +63,48 @@ export function trailFor(route: RouteName, params: Params): Crumb[] {
     }
     case 'Evidence':
       return [tab('Profile'), { route, params, label: 'Evidence' }];
-    case 'About':
-      return [tab('Tests'), { route, label: 'About' }];
+    case 'About': {
+      if (params.from === 'Settings') {
+        const settingsParams = { ...params };
+        delete settingsParams.from;
+        delete settingsParams.settingsFrom;
+        if (params.settingsFrom) {
+          settingsParams.from = params.settingsFrom;
+        }
+        return [
+          ...trailFor('Settings', settingsParams),
+          { route, params, label: 'About' },
+        ];
+      }
+      return [
+        tab('Data'),
+        { route, params, label: 'About' },
+      ];
+    }
+    case 'Settings':
+      return [
+        ...(params.from === 'Assessment'
+          ? trailFor('Assessment', { metric: params.metric ?? 'leg_spread' })
+          : params.from === 'HandCapture'
+          ? trailFor('HandCapture', params)
+          : [tab('Data')]),
+        { route, params, label: 'Settings' },
+      ];
+    case 'FingerStrength':
+      return [tab('Data'), { route, label: 'Finger strength' }];
     case 'Assessment':
-      return [tab('Tests'), { route, label: 'Camera assessment', short: 'Camera' }];
+      return [
+        tab('Data'),
+        {
+          route,
+          params,
+          label:
+            params.metric === 'shoulder_reach'
+              ? 'Shoulder reach'
+              : 'Leg spread',
+          short: 'Camera',
+        },
+      ];
     case 'HandCapture': {
       // Opened from a finger close-up it sits under that finger.
       const here = { route, params, label: 'Add a photo', short: 'Photo' };
@@ -70,7 +113,8 @@ export function trailFor(route: RouteName, params: Params): Crumb[] {
         : [tab('Hands'), here];
     }
     case 'Test': {
-      const test = BASELINE_TESTS.find(t => t.id === params.id) ?? BASELINE_TESTS[0];
+      const test =
+        BASELINE_TESTS.find(t => t.id === params.id) ?? BASELINE_TESTS[0];
       return [tab('Tests'), { route, params, label: test.name }];
     }
     default:

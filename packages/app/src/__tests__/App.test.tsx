@@ -93,7 +93,7 @@ describe('App', () => {
   it('switches tabs from the tab bar', async () => {
     const renderer = await renderApp();
 
-    press(renderer, 'Tests');
+    press(renderer, 'Data');
     expect(screenText(renderer)).not.toContain('Quiet feet');
 
     press(renderer, 'Profile');
@@ -285,7 +285,7 @@ describe('first launch', () => {
     act(() => again.unmount());
   });
 
-  it('saves the answers, and can run setup again from Tests', async () => {
+  it('saves the answers, and can run setup again from Data', async () => {
     const capabilities = createFakeCapabilities();
     const renderer = await renderApp(
       capabilities,
@@ -308,7 +308,7 @@ describe('first launch', () => {
     expect((await saved()).onboarding.details.goal).toBe('finger-strength');
 
     // A rerun that is skipped keeps the first answers.
-    press(renderer, 'Tests');
+    press(renderer, 'Data');
     press(renderer, 'Redo setup');
     expect(screenText(renderer)).toContain('Skip setup');
     press(renderer, 'Skip setup');

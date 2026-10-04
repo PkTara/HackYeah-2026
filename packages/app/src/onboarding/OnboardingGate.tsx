@@ -44,9 +44,18 @@ export function useSetup(): SetupApi {
  * skipped. It can be run again later; finishing again replaces the answers,
  * and skipping a rerun leaves the earlier answers as they were.
  */
-export function OnboardingGate({ children }: { children: ReactNode }) {
+export function OnboardingGate({
+  children,
+  restoreSetup = false,
+  onVisibilityChange,
+}: {
+  children: ReactNode;
+  /** Keep an open setup session across an active-dataset remount. */
+  restoreSetup?: boolean;
+  onVisibilityChange?: (open: boolean) => void;
+}) {
   const { state, today, finishOnboarding, skipOnboarding } = useGame();
-  const [again, setAgain] = useState(previewRequested);
+  const [again, setAgain] = useState(() => restoreSetup || previewRequested());
 
   // Changing the address to #onboarding while the app is open starts it too.
   useEffect(() => {
@@ -65,6 +74,10 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
     [],
   );
   const firstRun = state.onboarding === null && !state.onboardingSkipped;
+  useEffect(
+    () => onVisibilityChange?.(firstRun || again),
+    [firstRun, again, onVisibilityChange],
+  );
 
   if (!firstRun && !again) {
     return (

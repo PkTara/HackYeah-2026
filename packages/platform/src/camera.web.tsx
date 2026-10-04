@@ -28,8 +28,21 @@ export function CameraPreview({
   mode,
   onReady,
   onError,
+  onGeometry,
 }: CameraPreviewProps) {
   const video = useRef<VideoSurface | null>(null);
+  const geometryCallback = useRef(onGeometry);
+  geometryCallback.current = onGeometry;
+  const reportGeometry = () => {
+    if (video.current?.videoWidth && video.current.videoHeight) {
+      geometryCallback.current?.({
+        imageWidth: video.current.videoWidth,
+        imageHeight: video.current.videoHeight,
+        mirrored: false,
+        fit: 'contain',
+      });
+    }
+  };
   useEffect(() => {
     if (!active) {
       return;
@@ -63,6 +76,7 @@ export function CameraPreview({
       .start(video.current, mode)
       .then(session => {
         if (!closed) {
+          reportGeometry();
           onReady(session);
         }
       })
@@ -87,6 +101,7 @@ export function CameraPreview({
   return createElement('video', {
     ref: video,
     autoPlay: true,
+    onLoadedMetadata: reportGeometry,
     muted: true,
     playsInline: true,
     'aria-label': 'Live camera preview',
