@@ -69,7 +69,7 @@ export function HandsScreen() {
         <Column>
           <Panel variant={flags.length > 0 ? 'alert' : 'quiet'} title="Flagged">
             <DecisionHelp
-              label="finger pause rule"
+              label="Finger pause rule"
               explanation={explainPause(flags)}
             />
             {flags.length === 0 ? (
@@ -126,7 +126,8 @@ export function HandsScreen() {
               {quest.quest ? (
                 <View style={styles.offer}>
                   <DecisionHelp
-                    label="alternative quest"
+                    label="Alternative quest"
+                    title={quest.quest.title}
                     takeaway={quest.quest.why}
                     explanation={explainQuest(
                       quest.quest,
@@ -135,11 +136,14 @@ export function HandsScreen() {
                       flags,
                       { completed: state.completed, skipped: state.skipped },
                     )}
-                  />
-                  <AppText>
-                    Offered instead:{' '}
-                    <AppText style={styles.strong}>{quest.quest.title}</AppText>
-                  </AppText>
+                  >
+                    <AppText>
+                      Offered instead:{' '}
+                      <AppText style={styles.strong}>
+                        {quest.quest.title}
+                      </AppText>
+                    </AppText>
+                  </DecisionHelp>
                   <AppText variant="caption" muted>
                     {quest.quest.task}
                   </AppText>

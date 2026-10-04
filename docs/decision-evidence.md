@@ -65,10 +65,14 @@ For example, “I fell after changing feet” does not establish a footwork defi
 
 Keep personal observations, derived calculations, rule choices, published research and missing information visible as separate parts of the explanation. No reviewed treatment library, stretching dose, photo healing assessment or return-to-climb protocol is implied by this contract.
 
-## Disclosure layout refinement
+## How a question mark presents an explanation
 
-Question marks are small superscript annotations beside the related values or labels. Each explanation keeps its personal records in a separate **Your inputs** tray that starts collapsed. On the profile, the slab/vertical/overhang tally explanations live beneath the terrain triangle in the collapsed **How was this data created?** section. Prominent status badges and repeated example qualifiers are omitted; the full provenance, study scope and limits remain available inside the explanations.
+A small superscript ? sits beside each generated value (`HelpMark` in `packages/ui`). It opens one sheet over the page (`DecisionHelp` and `ExplanationSheet` in `packages/app/src/components/DecisionHelp.tsx`), in the same order everywhere:
 
-Verified after this refinement: 44 Jest suites / 707 tests, typecheck, lint and the production web build passed. Browser checks confirmed nested tray visibility and the native/web expanded-state attributes; focused code review passed.
+1. One sentence saying what the result means. Sample data adds a quiet "Built from sample data" note; draft content says it has not been reviewed.
+2. **Your inputs:** the dated records behind it, each with its reference. More than three records start folded under a count. With no records, the sheet says they were not saved.
+3. **How it works:** the rule in plain words, one step per line, with the arithmetic and the three-log gate. No rule IDs, booleans or field names. It ends by saying the rule was chosen by the team, or for a camera reading that the formula is the app's own.
+4. **Research:** only where a published claim is made. One plain finding per study and a short citation (first author, year, title link). Full study details sit behind one **Study details** control. Arithmetic and selection rules (tallies, focus, XP, log quests, drills) cite no papers.
+5. **Limits:** one or two short lines.
 
-Research presentation is concise by default: a relevant decision takeaway and short topic/author/year citations. Full publication metadata, findings and caveats are in collapsed **Study details** trays. Calculation rules and their limits are in **How it works**; background papers for app rules and example data appear there rather than suggesting scientific validation of the selection rule. Original links, assignment summaries and all input records remain available. Verified: 44 suites / 710 tests, typecheck, lint, production build and focused review passed.
+The Evidence page's wall x style boxes open the same sheet when tapped. On Profile the slab, vertical and overhang tallies sit below the triangle in a folded **How was this data created?** section. Server snapshots, deletion redaction and the `DecisionExplanation` contract are unchanged; a server explanation is shown as the server wrote it.

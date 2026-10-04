@@ -2,6 +2,8 @@ import { StyleSheet, View } from 'react-native';
 import {
   XP_PER_LEVEL,
   XP_PER_QUEST,
+  explainSportFocus,
+  explainSportQuest,
   shortDate,
   talliesBy,
   weekDistance,
@@ -17,6 +19,7 @@ import {
   Pips,
   PixelText,
   RateTriangle,
+  SampleMark,
   SportHero,
   Tag,
   useContentWidth,
@@ -25,6 +28,7 @@ import {
   type TriangleCorner,
   type TriangleStat,
 } from '@hackyeah/ui';
+import { DecisionHelp } from '../../components/DecisionHelp';
 import { PetsPanel } from '../../components/PetsPanel';
 import { TabScreen } from '../../components/TabScreen';
 import { useNavigation } from '../../navigation/Navigator';
@@ -157,14 +161,24 @@ export function SportProfileScreen() {
         <Column>
           {/* The one thing to work on */}
           <Panel variant="banana" title="Your focus">
-            <View style={styles.inline}>
-              <Icon name={view.kindIcon[focus.sessionKind]} scale={3} />
-              <PixelText
-                text={view.kindName[focus.sessionKind]}
-                scale={4}
-                heading
-              />
-            </View>
+            <DecisionHelp
+              label="Focus"
+              explanation={explainSportFocus(
+                focus,
+                state.logs,
+                sport.kinds,
+                view,
+              )}
+            >
+              <View style={styles.inline}>
+                <Icon name={view.kindIcon[focus.sessionKind]} scale={3} />
+                <PixelText
+                  text={view.kindName[focus.sessionKind]}
+                  scale={4}
+                  heading
+                />
+              </View>
+            </DecisionHelp>
             {focus.kind === 'practice' ? (
               <AppText>
                 You finished {focus.tally.finished} of the {focus.tally.logged}{' '}
@@ -199,7 +213,21 @@ export function SportProfileScreen() {
           >
             {quest.quest ? (
               <>
-                <PixelText text={quest.quest.title} scale={3} heading wrap />
+                <DecisionHelp
+                  label="Quest"
+                  title={quest.quest.title}
+                  takeaway={quest.quest.why}
+                  explanation={explainSportQuest(
+                    quest.quest,
+                    focus,
+                    state,
+                    sport.quests,
+                    sport.kinds,
+                    view,
+                  )}
+                >
+                  <PixelText text={quest.quest.title} scale={3} heading wrap />
+                </DecisionHelp>
                 <AppText>{quest.quest.task}</AppText>
                 <View style={styles.facts}>
                   <View style={styles.fact}>
@@ -294,7 +322,6 @@ export function SportProfileScreen() {
             title={
               view.sessions.charAt(0).toUpperCase() + view.sessions.slice(1)
             }
-            badge={hasSample ? <Tag text="Example" /> : undefined}
           >
             <RateTriangle
               corners={corners}
@@ -308,6 +335,9 @@ export function SportProfileScreen() {
               Each corner grows with the share of logged {view.sessions} you
               finished as planned. Tap a corner to see them.
             </AppText>
+            {hasSample ? (
+              <SampleMark text={`Includes sample ${view.sessions}.`} />
+            ) : null}
           </Panel>
 
           {/* Distance and places */}

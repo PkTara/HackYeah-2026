@@ -19,6 +19,7 @@ import {
   Button,
   Column,
   Columns,
+  Disclosure,
   Icon,
   JungleHero,
   Meter,
@@ -27,6 +28,7 @@ import {
   Panel,
   Pips,
   PixelText,
+  SampleMark,
   Tag,
   TerrainTriangle,
   WarningSign,
@@ -40,7 +42,6 @@ import {
   explainXP,
   explainExampleRadar,
 } from '../components/resultExplanations';
-import { ExpandableTray } from '../components/ExpandableTray';
 import { DecisionHelp } from '../components/DecisionHelp';
 import { DataRow } from '../components/DataRow';
 import { TabScreen } from '../components/TabScreen';
@@ -155,7 +156,7 @@ export function ProfileScreen() {
           {/* The one thing to work on */}
           <Panel variant="banana" title="Your focus">
             <DecisionHelp
-              label="your focus"
+              label="Focus"
               explanation={explainFocus(focus, state.logs)}
             >
               <View
@@ -206,7 +207,8 @@ export function ProfileScreen() {
               <>
                 {/* Server quests can have long titles, so they wrap. */}
                 <DecisionHelp
-                  label="your quest"
+                  label="Quest"
+                  title={quest.quest.title}
                   takeaway={quest.quest.why}
                   explanation={explainQuest(
                     quest.quest,
@@ -267,13 +269,14 @@ export function ProfileScreen() {
               >
                 <Tag text="Paused" tone="paused" />
                 <DecisionHelp
-                  label="paused quests"
+                  label="Paused quests"
                   explanation={explainPause(state.flags)}
-                />
-                <AppText variant="caption">
-                  {quest.paused.map(q => q.title).join(', ')} waits until your
-                  flagged finger is cleared. Climbing loads your fingers.
-                </AppText>
+                >
+                  <AppText variant="caption">
+                    {quest.paused.map(q => q.title).join(', ')} waits until your
+                    flagged finger is cleared. Climbing loads your fingers.
+                  </AppText>
+                </DecisionHelp>
               </View>
             ) : null}
 
@@ -307,12 +310,6 @@ export function ProfileScreen() {
             title="Hands"
             icon="flag"
           >
-            {state.flags.length > 0 ? (
-              <DecisionHelp
-                label="finger pause rule"
-                explanation={explainPause(state.flags)}
-              />
-            ) : null}
             {state.flags.map(f => (
               <View
                 key={`${f.side}-${f.finger}`}
@@ -337,11 +334,22 @@ export function ProfileScreen() {
                 />
               </View>
             ))}
-            <AppText variant="caption" muted>
-              {state.flags.length > 0
-                ? 'Finger-loading quests are paused. Your climbing profile stays the same.'
-                : 'No finger discomfort is marked. Open the hand journal to check in.'}
-            </AppText>
+            {state.flags.length > 0 ? (
+              <DecisionHelp
+                label="Finger pause rule"
+                explanation={explainPause(state.flags)}
+              >
+                <AppText variant="caption" muted>
+                  Finger-loading quests are paused. Your climbing profile stays
+                  the same.
+                </AppText>
+              </DecisionHelp>
+            ) : (
+              <AppText variant="caption" muted>
+                No finger discomfort is marked. Open the hand journal to check
+                in.
+              </AppText>
+            )}
             <Button
               title={state.flags.length > 0 ? 'Update hands' : 'Open Hands'}
               variant="secondary"
@@ -365,15 +373,33 @@ export function ProfileScreen() {
               Each corner grows with the share of logged climbs you sent on that
               wall. Tap a corner to see the climbs.
             </AppText>
-            <ExpandableTray title="How was this data created?">
+            {state.logs.some(l => l.sample) ? (
+              <SampleMark text="Includes sample climbs." />
+            ) : null}
+            <Disclosure title="How was this data created?">
+              <AppText variant="caption">
+                Made only from the climbs you log. Two things count: the wall,
+                and whether you sent it. Tap a ? for the climbs behind a corner.
+              </AppText>
               {TERRAINS.map(t => (
                 <DecisionHelp
                   key={t}
                   label={`${TERRAIN_NAME[t]} tally`}
                   explanation={explainTerrain(t, state.logs)}
-                />
+                >
+                  <View style={styles.tallyRow}>
+                    <Icon name={TERRAIN_ICON[t]} />
+                    <PixelText text={TERRAIN_NAME[t]} />
+                    <AppText variant="caption" muted>
+                      {terrain[t].sent} of {terrain[t].logged} sent
+                    </AppText>
+                  </View>
+                </DecisionHelp>
               ))}
-            </ExpandableTray>
+              <AppText variant="caption" muted>
+                A wall needs 3 logged climbs before its corner is filled in.
+              </AppText>
+            </Disclosure>
           </Panel>
 
           {/* Each style is counted separately, including multi-style climbs. */}
@@ -416,7 +442,7 @@ export function ProfileScreen() {
               }}
             />
             <DecisionHelp
-              label="movement radar"
+              label="Movement radar"
               explanation={explainExampleRadar(EXAMPLE_MOVES)}
             >
               <PixelText text="Movement radar" />
@@ -578,6 +604,7 @@ const styles = StyleSheet.create({
   lines: { gap: spacing.sm },
   grow: { flex: 1 },
   rule: { height: PX },
+  tallyRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   choices: { gap: spacing.sm + 2 },
   choicesSide: { flexDirection: 'row', gap: spacing.sm + 2 },
 });

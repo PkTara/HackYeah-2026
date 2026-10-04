@@ -1,67 +1,95 @@
+/**
+ * Explanations for results the app itself computes on this screen layer:
+ * XP and level, reach, home tests and the example radar. Same contract and
+ * tone as packages/core/src/evidence.ts: records, the rule in plain words,
+ * research only where a published claim is made, then one or two limits.
+ */
 import {
   COSMETICS,
   XP_PER_LEVEL,
   XP_PER_QUEST,
+  findQuest,
   petStatus,
+  type BaselineTest,
   type DecisionExplanation,
+  type Reach,
 } from '@hackyeah/core';
 
 export function explainXP(completed: readonly string[]): DecisionExplanation {
   const pet = petStatus(completed);
+  const unique = [...new Set(completed)];
+  const unlocked = COSMETICS.filter(c => pet.cosmetics.includes(c.id));
   return {
-    summary: `${pet.xp} XP, level ${pet.level}: game progress`,
+    summary: `Level ${pet.level} with ${pet.xp} XP, from ${
+      unique.length === 1
+        ? '1 completed quest'
+        : `${unique.length} completed quests`
+    }. XP is a game reward for taking part.`,
     status: 'app_rule',
-    rule: `Each unique completed quest gives ${XP_PER_QUEST} XP. Level = floor(XP / ${XP_PER_LEVEL}) + 1; ${XP_PER_LEVEL} XP per level. The meter uses XP modulo ${XP_PER_LEVEL}. Quests to the next level = (${XP_PER_LEVEL} minus XP in this level) / ${XP_PER_QUEST}. Cosmetics: ${COSMETICS.map(
-      c => `${c.name} (${c.id}): level ${c.level}`,
-    ).join('; ')}. Currently unlocked: ${pet.cosmetics.join(', ') || 'none'}.`,
+    rule: [
+      `Each completed quest gives ${XP_PER_QUEST} XP, once per quest: ${unique.length} x ${XP_PER_QUEST} = ${pet.xp} XP.`,
+      `Every ${XP_PER_LEVEL} XP is a new level: ${pet.xp} divided by ${XP_PER_LEVEL}, rounded down, plus 1 is level ${pet.level}.`,
+      `Unlocks: ${COSMETICS.map(c => `${c.name} at level ${c.level}`).join(
+        ', ',
+      )}. Unlocked now: ${
+        unlocked.map(c => c.name).join(', ') || 'nothing yet'
+      }.`,
+    ].join('\n'),
     evidence:
-      completed.length === 0
+      unique.length === 0
         ? [
             {
               id: 'completed-none',
-              label: 'Stored completion list',
+              label: 'Completed quests',
               detail: 'No completed quests are stored in this profile.',
             },
           ]
-        : [...new Set(completed)].map(id => ({
+        : unique.map(id => ({
             id,
-            label: 'Completed quest',
-            detail:
-              'Completion ID stored in your profile; completion date is not recorded.',
+            label: findQuest(id)?.title ?? 'Completed quest',
+            detail: 'Completed. The date it was completed is not recorded.',
           })),
     sourceIds: [],
     limitations: [
-      'XP is a game reward, not a measure of climbing ability. Completing a quest does not change terrain or style tallies.',
-      'Example completion IDs can contribute XP in the demo profile.',
+      'XP measures taking part, not climbing ability. Completing a quest does not change your wall or style counts.',
+      'In the demo profile, example quests count towards XP.',
     ],
   };
 }
-export function explainReach(
-  reach: import('@hackyeah/core').Reach,
-): DecisionExplanation {
+
+export function explainReach(reach: Reach): DecisionExplanation {
   if (reach.decision) {
     return reach.decision;
   }
+  const difference = reach.armSpanCm - reach.heightCm;
   return {
-    summary: `Ape index: ${reach.armSpanCm - reach.heightCm} cm`,
+    summary:
+      difference === 0
+        ? 'Your arm span is the same as your height.'
+        : `Your arm span is ${Math.abs(difference)} cm ${
+            difference > 0 ? 'longer' : 'shorter'
+          } than your height.`,
     status: 'app_rule',
-    rule: 'The displayed difference is arm span minus height, in centimetres.',
+    rule: [
+      `Arm span minus height: ${reach.armSpanCm} minus ${reach.heightCm} = ${difference} cm.`,
+      'Arm span is measured fingertip to fingertip with arms wide, and height without shoes.',
+    ].join('\n'),
     evidence: [
       {
-        id: 'reach',
-        label: `App display reference (generated) · Stored reach dated ${reach.date}`,
-        detail: `Original record ID unavailable. This reference was generated for display. Arm span ${reach.armSpanCm} cm; height ${reach.heightCm} cm. Measure fingertip to fingertip with arms wide, and height without shoes.`,
+        id: `reach-${reach.date}`,
+        label: `Saved reach, ${reach.date}`,
+        detail: `Arm span ${reach.armSpanCm} cm, height ${reach.heightCm} cm. No original record ID was kept, and when each was measured is not recorded.`,
       },
     ],
-    sourceIds: [],
+    sourceIds: ['mermier2000'],
     limitations: [
-      'This is a body measurement, not a strength, weakness or grade prediction. It does not influence the local terrain focus.',
-      'Individual measurement record IDs, timestamps and methods are unavailable in this stored reach. The stored date does not establish that height and arm span were measured together. Measurement technique can change the result.',
+      'A body measurement only. It does not change your focus or quests, and it is never scored as a weakness.',
     ],
   };
 }
+
 export function explainHomeTest(
-  test: import('@hackyeah/core').BaselineTest,
+  test: BaselineTest,
   result?: Readonly<{
     value: number;
     method: string;
@@ -69,54 +97,59 @@ export function explainHomeTest(
     unit?: string;
   }>,
 ): DecisionExplanation {
+  const unit = result?.unit ?? test.unit;
   return {
-    summary: `${test.name}: self-reported home test`,
+    summary: result
+      ? `${test.name}: ${result.value} ${unit}${
+          result.date ? `, recorded on ${result.date}` : ', not saved yet'
+        }. A home test you run and record yourself.`
+      : `${test.name}: a home test you run and record yourself.`,
     status: 'draft',
-    rule: `Prototype protocol ${test.id} (setup version 1): ${test.steps.join(
-      ' ',
-    )} Equipment: ${test.equipment}. ${test.safety}`,
+    rule: [
+      ...test.steps,
+      `You need: ${test.equipment.replace(/\.$/, '')}.`,
+      test.safety,
+    ].join('\n'),
     evidence: result
       ? [
           {
             id: `baseline-${test.id}-${result.date ?? 'unsaved'}`,
             label: result.date
-              ? `App display reference (generated) · Recorded on ${result.date}`
-              : 'App display reference (generated) · Current unsaved reading',
-            detail: `Original record ID unavailable. This reference was generated for display. ${
-              result.value
-            } ${result.unit ?? test.unit}; method: ${result.method}.`,
+              ? `Saved result, ${result.date}`
+              : 'Current reading, not saved',
+            detail: `${result.value} ${unit}, method: ${result.method}. No original record ID was kept.`,
           },
         ]
       : [
           {
             id: test.id,
-            label: 'Home-test protocol',
-            detail:
-              'No result supplied. Time, count or type your own observation.',
+            label: 'No result yet',
+            detail: 'Time it, count it or type your result.',
           },
         ],
     sourceIds: [],
     limitations: [
-      'These prototype protocols and profile labels are not calibrated climbing ability scores or validated diagnostic tests.',
-      'Results depend on technique, equipment and timing. These measurements do not influence the local terrain focus or local quest selection.',
+      'A draft home test, not a calibrated score or a diagnosis. Technique, equipment and timing change the result.',
+      'Home test results do not change your focus or quests.',
     ],
   };
 }
+
 export function explainExampleRadar(
   axes: readonly Readonly<{ label: string; value: number | null }>[],
 ): DecisionExplanation {
   return {
-    summary: 'Movement radar: example values',
+    summary: 'These are example values. The movement radar is not scored yet.',
     status: 'example',
-    rule: 'The axes show fixed demonstration values from 0 to 1. No movement scoring algorithm is implemented.',
+    rule: 'The five axes show fixed example values from 0 to 1. The app has no movement scoring yet.',
     evidence: axes.map(axis => ({
       id: `example-${axis.label}`,
       label: axis.label,
-      detail: `${axis.value} on a 0–1 axis; fixed example.`,
+      detail: `${axis.value ?? 'not assessed'} of 1, a fixed example.`,
     })),
     sourceIds: [],
     limitations: [
-      'These values are not calculated from your records and say nothing about your ability.',
+      'Not calculated from your records, and says nothing about your ability.',
     ],
   };
 }

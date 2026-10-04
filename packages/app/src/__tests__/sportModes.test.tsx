@@ -227,3 +227,29 @@ describe('sport mode pages', () => {
     act(() => renderer.unmount());
   });
 });
+
+describe('why explanations in sport modes', () => {
+  it('opens the same explanation sheet for the gazelle focus and quest', async () => {
+    const renderer = await renderApp();
+    press(renderer, 'Switch to gazelle mode', 'Why: Focus');
+    let text = screenText(renderer);
+    expect(text).toContain('Tempo is your focus');
+    expect(text).toContain('Finished so far: easy');
+    expect(text).toContain('Built from sample data');
+    press(renderer, 'Close explanation');
+    expect(screenText(renderer)).not.toContain('Finished so far: easy');
+
+    press(renderer, 'Why: Quest');
+    text = screenText(renderer);
+    expect(text).toContain('Swapped quests go to the back');
+    expect(text).toContain('Draft content from the team');
+    act(() => renderer.unmount());
+  });
+
+  it('opens the dolphin focus explanation in its own words', async () => {
+    const renderer = await renderApp();
+    press(renderer, 'Switch to dolphin mode', 'Why: Focus');
+    expect(screenText(renderer)).toContain('logged swims');
+    act(() => renderer.unmount());
+  });
+});

@@ -1,4 +1,3 @@
-import { RESEARCH_SOURCES } from '@hackyeah/core';
 import { StyleSheet, View } from 'react-native';
 import {
   AppText,
@@ -11,7 +10,7 @@ import {
   useLayout,
 } from '@hackyeah/ui';
 import { useCapabilities } from '../capabilities';
-import { ResearchPaper } from '../components/DecisionHelp';
+import { ResearchList } from '../components/DecisionHelp';
 import { Crumbs } from '../components/Crumbs';
 import { PageHeader } from '../components/PageHeader';
 import { TabScreen } from '../components/TabScreen';
@@ -108,57 +107,44 @@ export function AboutScreen() {
       </Columns>
       <Panel title="How a suggestion is made">
         <AppText>
-          Input → structured observation → deterministic rule → question-mark
-          disclosure.
+          You record climbs, finger flags and tests. Fixed app rules turn those
+          records into your profile, your focus and one quest. Tap the small ?
+          beside a result to see the records and the rule behind it.
         </AppText>
-        <AppText>
-          Your manual climb logs record dates, wall, grade, movement, holds and
-          sent/not-yet. Local focus compares logged outcomes; local quest
-          selection also uses finger flags and completed/skipped quests. A
-          server can instead select a quest and use goal priority. Its saved
-          decision remains separate from the local focus.
-        </AppText>
-        <AppText>
-          Home-test results and reach measurements are stored as self-reports.
-          They do not alter local terrain focus or local quests. Camera results
-          estimate geometry from the recorded landmarks and capture dimensions
-          when supplied, and require review before saving.
-        </AppText>
-        <AppText variant="caption">
-          Free text is stored as a note; the app does not interpret it into
-          training decisions. Any future interpretation would need your
-          confirmation of extracted observations before a rule uses them.
-        </AppText>
-        <AppText variant="caption">
-          Question marks show the records, exact product rule, related papers
-          and limits. A paper can support background reasoning without
-          validating this app, a drill, its dose or your personalized selection.
-          Sources are bundled and are opened only when you tap a paper link.
+        <AppText variant="caption" muted>
+          Notes are kept as notes: the app does not read them to make decisions.
+          Home tests and reach are stored but do not change your focus or
+          quests. A camera reading is an estimate you review before saving.
         </AppText>
       </Panel>
-      <Panel title="Research library">
+      <Panel title="Research">
         <AppText>
-          Original studies and their scope. Reading depth distinguishes full
-          text from abstract-only verification.
+          Studies the team read while building the app, each with what it found.
+          They are background only: none of them tested this app, its camera or
+          its quests.
         </AppText>
-        {RESEARCH_SOURCES.map(source => (
-          <View key={source.id} style={styles.pkg}>
-            <ResearchPaper source={source} />
-          </View>
-        ))}
+        <ResearchList />
       </Panel>
     </TabScreen>
   );
 }
 
+const CREDITS = [
+  'Sound effects made with ZzFX by Frank Force (MIT). Turn them on or off in Settings.',
+  'Pose analysis on the server uses MediaPipe by Google (Apache-2.0).',
+  'Phone camera: react-native-camera-kit and react-native-permissions (MIT).',
+  'Research: the studies listed below belong to their authors and journals. Tap a title to open the original.',
+] as const;
+
 /** Third-party code credits. The sound effects switch is in Settings. */
 function CreditsPanel() {
   return (
     <Panel title="Credits">
-      <AppText variant="caption" muted>
-        Sound effects made with ZzFX by Frank Force (MIT). Turn them on or off
-        in Settings.
-      </AppText>
+      {CREDITS.map(line => (
+        <AppText key={line} variant="caption" muted>
+          {line}
+        </AppText>
+      ))}
     </Panel>
   );
 }

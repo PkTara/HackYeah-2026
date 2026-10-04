@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import {
   MIN_SESSIONS,
   ageLabel,
+  explainSportFocus,
   shortDate,
   talliesBy,
   type SessionLog,
@@ -17,9 +18,11 @@ import {
   PX,
   Panel,
   PixelText,
+  SampleMark,
   Tag,
   useTheme,
 } from '@hackyeah/ui';
+import { DecisionHelp } from '../../components/DecisionHelp';
 import { Crumbs } from '../../components/Crumbs';
 import { PageHeader } from '../../components/PageHeader';
 import { TabScreen } from '../../components/TabScreen';
@@ -94,11 +97,21 @@ export function SportEvidenceScreen() {
               </AppText>
             ) : null}
             {isFocus ? (
-              <AppText>
-                {focus.kind === 'practice'
-                  ? `This is your focus: the lowest share of ${view.sessions} finished as planned.`
-                  : `This is your focus: it has the fewest logged ${view.sessions}, so the ${view.pet} asks for more here first.`}
-              </AppText>
+              <DecisionHelp
+                label="Focus"
+                explanation={explainSportFocus(
+                  focus,
+                  state.logs,
+                  sport.kinds,
+                  view,
+                )}
+              >
+                <AppText>
+                  {focus.kind === 'practice'
+                    ? `This is your focus: the lowest share of ${view.sessions} finished as planned.`
+                    : `This is your focus: it has the fewest logged ${view.sessions}, so the ${view.pet} asks for more here first.`}
+                </AppText>
+              </DecisionHelp>
             ) : null}
             {logs.length > 0 ? (
               <AppText variant="caption" muted>
@@ -133,10 +146,10 @@ export function SportEvidenceScreen() {
               view.sessions.charAt(0).toUpperCase() + view.sessions.slice(1)
             }
             icon="log"
-            badge={
-              logs.some(l => l.sample) ? <Tag text="Example" /> : undefined
-            }
           >
+            {logs.some(l => l.sample) ? (
+              <SampleMark text={`Includes sample ${view.sessions}.`} />
+            ) : null}
             {logs.length === 0 ? (
               <AppText>
                 No {name.toLowerCase()} {view.sessions} logged yet.
