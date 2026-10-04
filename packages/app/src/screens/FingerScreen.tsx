@@ -21,6 +21,7 @@ import {
 } from '@hackyeah/ui';
 import { Crumbs } from '../components/Crumbs';
 import { PageHeader } from '../components/PageHeader';
+import { SavedNote } from '../components/SavedNote';
 import { TabScreen } from '../components/TabScreen';
 import { SPOT_LAYER_NAME, fingerLabel, spotsText } from '../labels';
 import { useNavigation } from '../navigation/Navigator';
@@ -48,7 +49,7 @@ const ANATOMY_LAYER: Readonly<Record<SpotLayer, AnatomyLayer>> = {
  * answer) and what is marked now.
  */
 export function FingerScreen() {
-  const { params, navigate } = useNavigation<RouteName>();
+  const { params, navigate, reset } = useNavigation<RouteName>();
   const { state, today, setFingerSpots, clearFinger } = useGame();
   const media = useMedia();
   // Wide windows have room for a bigger drawing and a one-line title.
@@ -141,12 +142,22 @@ export function FingerScreen() {
       />
       <Divider />
       <View style={styles.status}>
-        <AppText>{status}</AppText>
         {flag ? (
           <>
-            <AppText variant="caption" muted>
-              Quests that load your fingers wait until you clear it.
-            </AppText>
+            <SavedNote
+              title={`${label} flagged`}
+              lines={[
+                status,
+                'Finger-loading quests wait until you clear it. Your climbing profile stays the same.',
+              ]}
+              next={[
+                {
+                  title: 'See your quest',
+                  accessibilityLabel: 'See the quest on your profile',
+                  onPress: () => reset('Profile'),
+                },
+              ]}
+            />
             <Button
               title="Clear this finger"
               variant="secondary"
@@ -155,7 +166,9 @@ export function FingerScreen() {
               style={styles.start}
             />
           </>
-        ) : null}
+        ) : (
+          <AppText>{status}</AppText>
+        )}
       </View>
       {/* The photo journal writes to this same flag. Needs the server. */}
       {media ? (
@@ -190,8 +203,7 @@ export function FingerScreen() {
 
       <Panel variant="quiet">
         <AppText variant="caption" muted>
-          Your spots save immediately. Use Hands in the breadcrumbs above to
-          return to the whole-hand diagram.
+          Your spots save immediately. Nothing else to confirm.
         </AppText>
         <Divider />
         {wide ? (

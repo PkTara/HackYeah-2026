@@ -2,7 +2,7 @@ import { GLYPH_HEIGHT, textRows, textWidth } from '../pixel/font';
 import { art } from '../pixel/raster';
 
 /** Every character the font has a glyph for. */
-const SUPPORTED = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 .,!?:'-+/%()&=><*";
+const SUPPORTED = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 .,!?:'-+/%()&=><*°";
 
 describe('textRows', () => {
   it('draws a line of text as 7 rows of ink with one empty column between letters', () => {

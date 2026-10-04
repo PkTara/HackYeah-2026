@@ -1,14 +1,19 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import type { PoseReading, PoseResultDto } from '@hackyeah/data';
 import {
   AppText,
   Breadcrumbs,
   Button,
+  Column,
+  Columns,
+  Divider,
   Panel,
   Tag,
   spacing,
+  type Crumb,
 } from '@hackyeah/ui';
+import { SavedNote, type NextStep } from '../components/SavedNote';
 import { CameraReadingHelp } from './parts';
 import type { LiveMetric, Stability } from './stability';
 
@@ -25,7 +30,21 @@ export function measurementText(result: PoseResultDto, metric: LiveMetric) {
     : `${Math.round(result.value!)}°`;
 }
 
-/** Review navigation lives here; the owner retains the capture and save state. */
+/** The value as the camera box shows it: short enough for the pixel font. */
+export function measurementShort(result: PoseResultDto, metric: LiveMetric) {
+  return metric === 'shoulder_reach'
+    ? `L ${Math.round(result.left_value!)}°  R ${Math.round(
+        result.right_value!,
+      )}°`
+    : `${Math.round(result.value!)}°`;
+}
+
+/**
+ * Review navigation lives here; the owner retains the capture and save state.
+ * The page is three things: the camera box holding the captured reading, one
+ * Result tray with quality, the save and retry actions and the two detail
+ * links, and, after a save, what changed and where to go next.
+ */
 export function AssessmentReview({
   result,
   reading,
@@ -42,6 +61,8 @@ export function AssessmentReview({
   onSave,
   onCompletionChange,
   camera,
+  crumbs = [],
+  next = [],
 }: {
   result: PoseResultDto;
   reading?: PoseReading;
@@ -58,12 +79,24 @@ export function AssessmentReview({
   onSave: () => void;
   onCompletionChange?: (completion: AssessmentCompletion | undefined) => void;
   camera: ReactNode;
+  /**
+   * The page's own trail (Data > Leg spread > Record leg spread), so the
+   * review reads as one breadcrumb. Its last step goes back to capture.
+   */
+  crumbs?: readonly Crumb[];
+  /** Where to go after a save, e.g. the saved results. */
+  next?: readonly NextStep[];
 }) {
   const [details, setDetails] = useState<'measurement' | 'capture' | null>(
     null,
   );
+  const title = metric === 'shoulder_reach' ? 'Shoulder reach' : 'Leg spread';
   const incompleteRaise =
     metric === 'shoulder_reach' && ['baseline', 'raise'].includes(phase);
+  const steady = phase === 'complete';
+  const confidence = `Pose found with ${Math.round(
+    result.confidence * 100,
+  )}% confidence`;
   const complete = useCallback(() => {
     if (details) {
       setDetails(null);
@@ -74,15 +107,16 @@ export function AssessmentReview({
   useEffect(() => {
     onCompletionChange?.({ onPress: complete, disabled: !details && saving });
   }, [complete, details, saving, onCompletionChange]);
+  const page = crumbs.length
+    ? crumbs
+        .slice(0, -1)
+        .concat({ ...crumbs[crumbs.length - 1], onPress: onReset })
+    : [{ label: title, onPress: onReset }];
   return (
-    <View style={{ gap: spacing.md }}>
+    <View style={styles.stack}>
       <Breadcrumbs
         crumbs={[
-          {
-            label:
-              metric === 'shoulder_reach' ? 'Shoulder reach' : 'Leg spread',
-            onPress: onReset,
-          },
+          ...page,
           {
             label: 'Review',
             ...(details ? { onPress: () => setDetails(null) } : {}),
@@ -99,10 +133,13 @@ export function AssessmentReview({
             : []),
         ]}
       />
-      {camera}
+      {/* Wide screens: the captured reading on the left, the result beside it. */}
+      <Columns>
+        <Column>{camera}</Column>
+        <Column>
       {details === 'measurement' ? (
         <Panel title="Measurement details" variant="quiet">
-          <AppText>{measurementText(result, metric)}</AppText>
+          <AppText variant="heading">{measurementText(result, metric)}</AppText>
           <AppText>
             A projected angle from the camera, not a validated flexibility test.
           </AppText>
@@ -112,8 +149,8 @@ export function AssessmentReview({
               : 'This estimates the angle between your legs in a front-facing view.'}
           </AppText>
           <AppText variant="caption" muted>
-            Camera framing and clothing affect the estimate. Compare results
-            with similar positioning.
+            Framing and clothing change the estimate. Compare results taken in
+            the same spot.
           </AppText>
           <CameraReadingHelp
             reading={
@@ -129,14 +166,12 @@ export function AssessmentReview({
       ) : details === 'capture' ? (
         <Panel title="Capture details" variant="quiet">
           <AppText>
-            {phase === 'complete'
+            {steady
               ? 'Steady hold completed.'
               : 'Stopped before a steady hold completed.'}
           </AppText>
           <AppText variant="caption">
-            {`Pose confidence ${Math.round(
-              result.confidence * 100,
-            )}%. This describes pose detection, not measurement accuracy.`}
+            {`${confidence}. This describes pose detection, not measurement accuracy.`}
           </AppText>
           <AppText variant="caption">
             {simulated
@@ -146,79 +181,65 @@ export function AssessmentReview({
           <AppText
             variant="caption"
             muted
-          >{`Measurement protocol: ${result.protocol}`}</AppText>
+          >{`Method version: ${result.protocol}`}</AppText>
         </Panel>
       ) : (
-        <>
-          <Panel
-            title="Measurement"
-            badge={
-              <Tag
-                text={simulated ? 'Simulated' : 'Camera'}
-                tone={simulated ? 'example' : 'muted'}
-              />
-            }
-          >
-            <AppText>{`Review your result: ${measurementText(
-              result,
-              metric,
-            )}`}</AppText>
-            {incompleteRaise ? (
-              <AppText variant="caption">
-                No clear raising movement was detected. Retry from resting arms
-                to measure overhead reach.
-              </AppText>
-            ) : null}
-            <Button
-              title="Measurement details"
-              variant="secondary"
-              small
-              onPress={() => setDetails('measurement')}
-            />
-          </Panel>
-          <Panel title="Capture quality" variant="quiet">
+        <Panel
+          title="Result"
+          variant={saved ? 'sign' : 'banana'}
+          badge={simulated ? <Tag text="Simulated" /> : undefined}
+        >
+          <AppText style={styles.lead}>{`${
+            saved ? 'Your result' : 'Review your result'
+          }: ${measurementText(result, metric)}`}</AppText>
+          <AppText variant="caption">
+            {steady ? 'Steady hold completed. ' : 'Stopped before a steady hold. '}
+            {`${confidence}.`}
+          </AppText>
+          {incompleteRaise ? (
             <AppText variant="caption">
-              {phase === 'complete'
-                ? 'Steady hold completed.'
-                : 'Stopped before a steady hold completed.'}
-              {` Pose confidence ${Math.round(result.confidence * 100)}%.`}
+              No clear raising movement was detected. Retry from resting arms
+              to measure overhead reach.
             </AppText>
-            <AppText variant="caption" muted>
-              {simulated
-                ? 'Simulated on this device. Results stay in your separate demo profile.'
-                : `Live camera analysis at ${server}. Sampled frames are discarded after analysis.`}
+          ) : null}
+          {saving ? (
+            <AppText accessibilityLiveRegion="polite">
+              Saving reviewed result…
             </AppText>
-            <Button
-              title="Capture details"
-              variant="secondary"
-              small
-              onPress={() => setDetails('capture')}
+          ) : saved ? (
+            <SavedNote
+              title={
+                simulated
+                  ? 'Saved simulated result to your demo profile'
+                  : 'Saved to your profile'
+              }
+              lines={[
+                `${title} now shows ${measurementText(
+                  result,
+                  metric,
+                )} with your earlier results.`,
+              ]}
+              next={next}
             />
-          </Panel>
-          <Panel title="Actions" variant={saved ? 'quiet' : 'banana'}>
-            {saving ? (
-              <AppText accessibilityLiveRegion="polite">
-                Saving reviewed result…
-              </AppText>
-            ) : saved ? (
-              <AppText accessibilityLiveRegion="polite">
-                {simulated
-                  ? 'Saved simulated result to your demo profile.'
-                  : 'Saved to your profile.'}
-              </AppText>
-            ) : (
-              <AppText variant="caption">
-                Save this reviewed measurement to your profile or try again.
-              </AppText>
-            )}
-            {error ? (
-              <AppText accessibilityRole="alert">{error}</AppText>
-            ) : null}
+          ) : (
+            <AppText variant="caption" muted>
+              Nothing is saved until you choose Save result.
+            </AppText>
+          )}
+          {error ? (
+            <AppText accessibilityRole="alert">{error}</AppText>
+          ) : null}
+          {/* Once saved, the note above carries the next step. */}
+          {saved ? null : (
             <Button
               title="Save result"
-              disabled={saving || saved}
+              icon="check"
+              disabled={saving}
               onPress={onSave}
             />
+          )}
+          <Divider />
+          <View style={styles.links}>
             <Button
               title="Retry"
               variant="secondary"
@@ -226,9 +247,29 @@ export function AssessmentReview({
               disabled={retryDisabled}
               onPress={onRetry}
             />
-          </Panel>
-        </>
+            <Button
+              title="Measurement details"
+              variant="secondary"
+              small
+              onPress={() => setDetails('measurement')}
+            />
+            <Button
+              title="Capture details"
+              variant="secondary"
+              small
+              onPress={() => setDetails('capture')}
+            />
+          </View>
+        </Panel>
       )}
+        </Column>
+      </Columns>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  stack: { gap: spacing.md },
+  lead: { fontWeight: '800' },
+  links: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+});

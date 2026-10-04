@@ -1,20 +1,17 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { ageLabel, shortDate } from '@hackyeah/core';
-import {
-  AppText,
-  Button,
-  Icon,
-  PX,
-  Panel,
-  PixelText,
-  useTheme,
-} from '@hackyeah/ui';
+import { AppText, Button, PX, Panel, PixelText, useTheme } from '@hackyeah/ui';
+import { nextHomeTest, reachSaved } from '../afterSave';
 import { DecisionHelp } from '../components/DecisionHelp';
 import { explainReach } from '../components/resultExplanations';
 import { Crumbs } from '../components/Crumbs';
 import { PageHeader } from '../components/PageHeader';
+import { SavedNote } from '../components/SavedNote';
 import { TabScreen } from '../components/TabScreen';
+import { useNavigation } from '../navigation/Navigator';
+import type { RouteName } from '../navigation/routes';
+import { trailFor } from '../navigation/trail';
 import { useGame } from '../state/GameProvider';
 const MIN_CM = 100;
 const MAX_CM = 250;
@@ -45,9 +42,14 @@ function signedCm(cm: number): string {
 export function BodyReachScreen() {
   return (
     <TabScreen>
-      <Crumbs />
-      <PageHeader title="Body & reach" />
-      <ReachPanel />
+      <View style={styles.column}>
+        <Crumbs />
+        <PageHeader
+          title="Body & reach"
+          subtitle="Arm span and height describe your reach. They are never scored as a weakness."
+        />
+        <ReachPanel />
+      </View>
     </TabScreen>
   );
 }
@@ -55,6 +57,7 @@ export function BodyReachScreen() {
 /** Manual arm span and height. */
 function ReachPanel() {
   const { state, today, saveReach, syncError } = useGame();
+  const navigation = useNavigation<RouteName>();
   const reach = state.reach;
   const { colors: c } = useTheme();
   const [arm, setArm] = useState(reach ? String(reach.armSpanCm) : '');
@@ -81,12 +84,21 @@ function ReachPanel() {
     setTried(false);
     setSaved(true);
   };
+  const toData = () => {
+    const trail = trailFor(navigation.route, navigation.params);
+    if (trail.length > 1) {
+      navigation.backTo(trail.slice(0, -1));
+    } else {
+      navigation.reset('Data');
+    }
+  };
+  const message = reach ? reachSaved(reach.armSpanCm, reach.heightCm) : null;
+  const nextTest = nextHomeTest(state.baseline);
 
   return (
-    <Panel title="Body & reach">
+    <Panel title="Measure">
       <AppText>
-        Stand with your arms out wide and measure fingertip to fingertip. Then
-        measure your height without shoes.
+        Arms out wide, fingertip to fingertip. Then your height, without shoes.
       </AppText>
 
       <View style={styles.fields}>
@@ -115,13 +127,13 @@ function ReachPanel() {
           <View
             style={[
               styles.input,
-              { backgroundColor: c.surfaceLight, borderColor: c.outline },
+              { backgroundColor: c.surfaceShade, borderColor: c.outline },
             ]}
           >
             <AppText style={styles.derivedValue}>
               {parseCm(arm) !== null && parseCm(height) !== null
                 ? signedCm(Number(arm) - Number(height))
-                : 'Enter valid values'}
+                : 'None yet'}
             </AppText>
           </View>
           <AppText variant="caption" muted>
@@ -131,33 +143,39 @@ function ReachPanel() {
       </View>
 
       {reach ? (
-        <AppText variant="caption" muted>
-          Manual · {ageLabel(reach.date, today)} ({shortDate(reach.date)})
-        </AppText>
+        <View style={styles.saved}>
+          <AppText variant="caption" muted style={styles.grow}>
+            Saved {ageLabel(reach.date, today)} ({shortDate(reach.date)})
+          </AppText>
+          <DecisionHelp
+            label="reach difference"
+            explanation={explainReach(reach)}
+          />
+        </View>
       ) : null}
-      {reach ? (
-        <DecisionHelp
-          label="reach difference"
-          explanation={explainReach(reach)}
+      <Button title="Save reach" icon="check" onPress={save} />
+      {/* If the save fails, the app's sync notice shows instead. */}
+      {saved && message && !syncError ? (
+        <SavedNote
+          title={message.title}
+          lines={message.lines}
+          next={[
+            ...(nextTest
+              ? [
+                  {
+                    title: `Next: ${nextTest.name}`,
+                    onPress: () => navigation.navigate('Test', { id: nextTest.id }),
+                  },
+                ]
+              : []),
+            {
+              title: 'Done',
+              accessibilityLabel: 'Done, return to Data',
+              onPress: toData,
+            },
+          ]}
         />
       ) : null}
-      <Button
-        title="Save reach"
-        variant="secondary"
-        small
-        icon="check"
-        onPress={save}
-      />
-      {/* Screen readers announce the confirmation when it appears. If the
-          save fails, the app's sync notice shows instead. */}
-      <View accessibilityLiveRegion="polite">
-        {saved && reach && !syncError ? (
-          <View style={styles.inline}>
-            <Icon name="check" />
-            <AppText variant="caption">Saved.</AppText>
-          </View>
-        ) : null}
-      </View>
     </Panel>
   );
 }
@@ -214,6 +232,8 @@ function CmField({
 }
 
 const styles = StyleSheet.create({
+  // A short form reads best as a phone-width column, even on a wide screen.
+  column: { width: '100%', maxWidth: 640, alignSelf: 'center', gap: 24 },
   fields: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   field: { flex: 1, minWidth: 120, gap: 6 },
   input: {
@@ -225,6 +245,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '800',
   },
-  inline: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  saved: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  grow: { flex: 1 },
   derivedValue: { fontSize: 20, fontWeight: '800' },
 });

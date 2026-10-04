@@ -8,6 +8,7 @@ import {
   type AssessmentUnit,
 } from '@hackyeah/core';
 import { AppText, Button, Panel, spacing } from '@hackyeah/ui';
+import { canStart, type Readiness } from '../readiness';
 import { DecisionHelp } from './DecisionHelp';
 import { DataRow } from './DataRow';
 
@@ -17,6 +18,15 @@ export type AssessmentSummaryProps = {
   title?: string;
   compact?: boolean;
   onOpen?: (metric: string) => void;
+  /**
+   * Compact rows only: whether a new reading can be taken here. A row that
+   * cannot take one and has nothing saved does not open.
+   */
+  state?: Readiness;
+  /** Compact rows only: the subtitle before anything is saved. */
+  emptyText?: string;
+  /** Compact rows only: a line under the last row. */
+  lastDivider?: boolean;
 };
 const NAMES: Record<AssessmentMetric, string> = {
   finger_force: 'Finger force',
@@ -102,6 +112,9 @@ export function AssessmentSummary({
   title = 'Assessment history',
   compact = false,
   onOpen,
+  state,
+  emptyText = 'No measurements saved yet.',
+  lastDivider = true,
 }: AssessmentSummaryProps) {
   const [history, setHistory] = useState(false);
   const selected = records.filter(
@@ -122,40 +135,47 @@ export function AssessmentSummary({
         metrics: ['finger_force'],
       },
     ];
+    const shown = groups.filter(
+      group =>
+        !metrics ||
+        group.metrics.some(metric =>
+          metrics.includes(metric as AssessmentMetric),
+        ),
+    );
+    // Without a way to take a reading here, an empty row has nothing to open.
+    const unusable = state !== undefined && !canStart(state);
     return (
       <>
-        {groups
-          .filter(
-            group =>
-              !metrics ||
-              group.metrics.some(metric =>
-                metrics.includes(metric as AssessmentMetric),
-              ),
-          )
-          .map(group => {
-            const latest = [...selected]
-              .filter(record => group.metrics.includes(record.metric))
-              .sort(
-                (a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt),
-              )[0];
-            return (
-              <DataRow
-                key={group.metric}
-                title={group.title}
-                subtitle={
-                  group.metric === 'shoulder_reach'
-                    ? shoulderText(selected)
-                    : latest
-                    ? `${compactValueText(latest)}${
-                        latest.side ? ` · ${latest.side}` : ''
-                      } · ${sourceText(latest)} · ${dateText(latest)}`
-                    : 'No measurements saved yet.'
-                }
-                accessibilityLabel={`Open ${group.title.toLowerCase()}`}
-                onPress={() => onOpen?.(group.metric)}
-              />
-            );
-          })}
+        {shown.map((group, i) => {
+          const latest = [...selected]
+            .filter(record => group.metrics.includes(record.metric))
+            .sort(
+              (a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt),
+            )[0];
+          return (
+            <DataRow
+              key={group.metric}
+              title={group.title}
+              subtitle={
+                !latest && unusable
+                  ? 'Nothing saved yet.'
+                  : group.metric === 'shoulder_reach'
+                  ? shoulderText(selected)
+                  : latest
+                  ? `${compactValueText(latest)}${
+                      latest.side ? ` · ${latest.side}` : ''
+                    } · ${sourceText(latest)} · ${dateText(latest)}`
+                  : emptyText
+              }
+              accessibilityLabel={`Open ${group.title.toLowerCase()}`}
+              onPress={
+                latest || !unusable ? () => onOpen?.(group.metric) : undefined
+              }
+              state={state}
+              divider={lastDivider || i < shown.length - 1}
+            />
+          );
+        })}
       </>
     );
   }
@@ -186,9 +206,6 @@ export function AssessmentSummary({
               latest.setup.effort_seconds
             } seconds`}</AppText>
           ) : null}
-          <AppText variant="caption" muted>
-            {latest.protocol}
-          </AppText>
           {latest.decision ? (
             <DecisionHelp
               label={`${NAMES[latest.metric]} measurement`}
@@ -239,9 +256,6 @@ export function AssessmentSummary({
                     record.setup.effort_seconds
                   } seconds`}</AppText>
                 ) : null}
-                <AppText variant="caption" muted>
-                  {record.protocol}
-                </AppText>
                 {record.decision ? (
                   <DecisionHelp
                     label={`saved measurement ${record.id}`}

@@ -4,6 +4,7 @@
  * the on-device demo says so and offers nothing that would fake a result.
  */
 import { act } from 'react-test-renderer';
+import { sampleGame } from '@hackyeah/core';
 import {
   control,
   has,
@@ -47,15 +48,38 @@ describe('Data tab', () => {
     await act(async () => screen.unmount());
   });
 
-  it('keeps the camera placeholder when opening a measurement without a server', async () => {
+  it('without a server, says so on Data and offers no recording that cannot run', async () => {
     const fixture = setup({ media: false });
     const screen = await render(fixture, 'Tests');
-    await press(screen, 'Open leg spread', 'Leg spread assessment');
-    expect(text(screen)).toContain('Connect the analysis service');
-    expect(text(screen)).toContain('Camera off');
-    expect(control(screen, 'Record').props.accessibilityState.disabled).toBe(
-      true,
-    );
+    expect(text(screen)).toContain('Needs the server');
+    // Nothing saved and nothing to record: the row does not open.
+    expect(control(screen, 'Open leg spread')).toBeUndefined();
+    await act(async () => screen.unmount());
+  });
+
+  it('without a server, a measurement with saved results opens its history but not a recording', async () => {
+    const fixture = setup({
+      media: false,
+      state: {
+        ...sampleGame,
+        onboardingSkipped: true,
+        assessments: [
+          {
+            id: 'leg',
+            metric: 'leg_spread',
+            value: 120,
+            unit: 'degrees',
+            method: 'camera',
+            protocol: 'front-facing-leg-spread-v1',
+            occurredAt: '2026-10-03T10:00:00Z',
+          },
+        ],
+      },
+    });
+    const screen = await render(fixture, 'Tests');
+    await press(screen, 'Open leg spread');
+    expect(text(screen)).toContain('120 degrees');
+    expect(text(screen)).toContain('Needs the server');
     expect(control(screen, 'Leg spread assessment')).toBeUndefined();
     await act(async () => screen.unmount());
   });
@@ -106,7 +130,9 @@ describe('Hands tab', () => {
   it('says it needs the server in the on-device demo', async () => {
     const fixture = setup({ media: false });
     const screen = await render(fixture, 'Hands');
-    expect(text(screen)).toContain('This needs the Climbing Monkey server');
+    expect(text(screen)).toContain('Needs the server');
+    expect(text(screen)).toContain('The server keeps the photos');
+    expect(text(screen)).not.toContain('VITE_MONKEY_API_URL');
     expect(control(screen, 'Add a photo')).toBeUndefined();
     await press(screen, 'Right ring finger');
     expect(

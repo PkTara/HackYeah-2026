@@ -24,6 +24,8 @@ import { fingerLabel, spotsText } from '../labels';
 import { useNavigation } from '../navigation/Navigator';
 import type { RouteName } from '../navigation/routes';
 import { useMedia } from '../media';
+import { canStart, useInputReadiness } from '../readiness';
+import { StateLabel } from '../components/StateLabel';
 import { useGame } from '../state/GameProvider';
 import { SavedMedia } from '../demo/SavedMedia';
 
@@ -44,14 +46,11 @@ export function HandsScreen() {
     <TabScreen>
       <PageHeader
         title="Hands"
-        subtitle="Mark where a finger hurts. Quests that load your fingers wait until you clear it."
+        subtitle="Mark a sore finger and finger-loading quests wait until you clear it. Optional, private and not a diagnosis."
       />
 
       <Panel variant="quiet" title="Choose a finger">
-        <AppText>
-          Palms face you. Tap a finger on the diagram to mark where it hurts.
-          Spot selections in the close-up save immediately.
-        </AppText>
+        <AppText>Palms face you. Tap the finger that hurts.</AppText>
         <View style={styles.hands}>
           {SIDES.map(side => (
             <HandDiagram
@@ -63,7 +62,7 @@ export function HandsScreen() {
           ))}
         </View>
         <AppText variant="caption" muted>
-          Red fingers with ! are flagged. Use Tab and Enter with a keyboard.
+          Flagged fingers are red with a !.
         </AppText>
       </Panel>
       <Columns>
@@ -158,10 +157,9 @@ export function HandsScreen() {
             <View style={styles.note}>
               <WarningSign />
               <AppText variant="caption" style={styles.grow}>
-                This is your own note, not a diagnosis. The app cannot tell when
-                a finger is ready for climbing. If the pain is sharp, you felt a
-                pop, there is swelling, or it keeps hurting, stop climbing and
-                see a physio or doctor.
+                Your own note, not a diagnosis. The app cannot tell when a
+                finger is ready for climbing. Sharp pain, a pop, swelling or pain
+                that keeps going: stop climbing and see a physio or doctor.
               </AppText>
             </View>
           </Panel>
@@ -179,13 +177,16 @@ export function HandsScreen() {
 function PhotoPanel() {
   const { navigate } = useNavigation<RouteName>();
   const media = useMedia();
+  const state = useInputReadiness().handPhotos;
   return (
-    <Panel variant="quiet" title="Hand photos">
-      <AppText>
-        Add a photo of a sore spot to your private journal, with how it feels
-        today.
-      </AppText>
-      {media ? (
+    <Panel variant="quiet" title="Hand photos" icon="camera">
+      <View style={styles.row}>
+        <AppText style={styles.grow}>
+          A private photo of a sore spot, with how it feels today.
+        </AppText>
+        <StateLabel state={state} />
+      </View>
+      {media && canStart(state) ? (
         <Button
           title="Add a photo"
           variant="secondary"
@@ -195,10 +196,9 @@ function PhotoPanel() {
         />
       ) : (
         <AppText variant="caption" muted>
-          This needs the Climbing Monkey server, which keeps the photos. This
-          build keeps everything on this device. Start the server with npm run
-          backend:start and open the app with VITE_MONKEY_API_URL set
-          (API_BASE_URL on a phone).
+          {state === 'device'
+            ? 'This device has no camera.'
+            : 'The server keeps the photos, and this build is not connected to one. Marking fingers above still works.'}
         </AppText>
       )}
     </Panel>

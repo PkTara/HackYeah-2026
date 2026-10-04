@@ -2,7 +2,7 @@ import ReactTestRenderer, { act } from 'react-test-renderer';
 import { emptyGame } from '@hackyeah/core';
 import { createLocalBackend, LOCAL_STORAGE_KEY } from '@hackyeah/data';
 import { createMemoryStore, type Capabilities } from '@hackyeah/platform';
-import { AppText } from '@hackyeah/ui';
+import { Panel } from '@hackyeah/ui';
 import { App } from '../App';
 import type { RouteName } from '../navigation/routes';
 
@@ -182,19 +182,19 @@ it('groups Data by purpose and opens Settings with a working breadcrumb and pers
   expect(
     s.root.findAll(n => n.props.accessibilityLabel === 'Data').length,
   ).toBeGreaterThan(0);
+  // One titled group per kind of input, in the order a climber meets them.
   const headings = s.root
-    .findAllByType(AppText)
-    .filter(node => node.props.variant === 'caption')
-    .map(node => node.props.children);
-  for (const section of [
-    'Body & reach',
-    'Strength',
-    'Flexibility',
-    'Finger strength',
-    'Activity & recovery',
-  ]) {
-    expect(headings).toContain(section);
-  }
+    .findAllByType(Panel)
+    .map(node => node.props.title)
+    .filter(Boolean);
+  expect(headings).toEqual([
+    'Climbs and hands',
+    'Home tests',
+    'Body and reach',
+    'Camera',
+    'Activity',
+    'App',
+  ]);
   await press(s, 'Settings');
   expect(find(s, 'Back to Data')).toBeDefined();
   await press(

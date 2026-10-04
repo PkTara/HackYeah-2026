@@ -203,9 +203,7 @@ export function NeedsServer({ what }: { what: string }) {
         on this device. Nothing is faked here.
       </AppText>
       <AppText variant="caption" muted>
-        To try it, start the server with npm run backend:start and open the app
-        with VITE_MONKEY_API_URL set to its address (API_BASE_URL in
-        packages/data on a phone). See docs/camera-video.md.
+        Demo mode can simulate it for a presentation.
       </AppText>
     </Panel>
   );

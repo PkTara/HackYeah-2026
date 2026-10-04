@@ -34,6 +34,9 @@ it('reset also clears an edited non-sample demo profile and survives reopening',
   await press(screen, 'Do dead hang');
   await press(screen, 'Use demo result');
   await press(screen, 'Save result');
+  // The test page stays to say what was saved; Done returns to Data.
+  expect(text(screen)).toContain('Saved 35 s');
+  await press(screen, 'Done, return to Data');
   expect(text(screen)).toContain('35 s');
   await press(screen, 'Demo controls');
   await press(screen, 'Reset demo');
@@ -371,6 +374,6 @@ it('can enter demo mode on first launch before doing onboarding', async () => {
   await press(screen, 'Back to Setup');
   expect(text(screen)).toContain('A few quick questions');
   await press(screen, 'Skip setup');
-  expect(text(screen)).toContain('Strength');
+  expect(text(screen)).toContain('Home tests');
   await act(async () => screen.unmount());
 });

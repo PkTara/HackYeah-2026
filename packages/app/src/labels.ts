@@ -35,6 +35,18 @@ export const MOVEMENT_NAME: Record<Movement, string> = {
   endurance: 'Endurance',
 };
 
+/** One short line on each style, shown under the chips as you pick. */
+export const MOVEMENT_HINT: Record<Movement, string> = {
+  controlled: 'Controlled: steady moves, no momentum.',
+  dynamic: 'Dynamic: you used momentum or jumped.',
+  technical: 'Technical: precise feet and body position.',
+  powerful: 'Powerful: hard pulls that need strength.',
+  balance: 'Balance: staying on by body position.',
+  coordination: 'Coordination: timed moves linked together.',
+  compression: 'Compression: squeezing holds that face each other.',
+  endurance: 'Endurance: long, sustained effort.',
+};
+
 /** A readable list, e.g. "controlled, dynamic and technical". */
 export function styleText(movements: readonly Movement[]): string {
   const names = movements.map(m => MOVEMENT_NAME[m].toLowerCase());

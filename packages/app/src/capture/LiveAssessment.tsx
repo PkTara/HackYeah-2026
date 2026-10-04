@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
 import type { AssessmentRecord } from '@hackyeah/core';
 import type {
@@ -9,8 +15,19 @@ import type {
 } from '@hackyeah/data';
 import { fromDecisionDto } from '@hackyeah/data';
 import type { CameraSession } from '@hackyeah/platform';
-import { AppText, Button, Panel, Tag, spacing } from '@hackyeah/ui';
+import {
+  AppText,
+  Button,
+  Column,
+  Columns,
+  Divider,
+  Panel,
+  spacing,
+  type Crumb,
+} from '@hackyeah/ui';
 import { useCapabilities } from '../capabilities';
+import type { NextStep } from '../components/SavedNote';
+import { NumberedList } from '../onboarding/bits';
 import {
   initialStability,
   advanceStability,
@@ -23,9 +40,25 @@ import { Markings } from './Markings';
 import { AssessmentCameraTray } from './AssessmentCameraTray';
 import {
   AssessmentReview,
+  measurementShort,
   measurementText,
   type AssessmentCompletion,
 } from './AssessmentReview';
+
+/** Three short steps per measurement, shown beside the camera. */
+const HOW_TO: Readonly<Record<LiveMetric, readonly string[]>> = {
+  leg_spread: [
+    'Face the camera with your whole body in view.',
+    'Spread your feet as wide as is comfortable.',
+    'Hold still. Two steady seconds finish on their own.',
+  ],
+  shoulder_reach: [
+    'Face the camera with hips, shoulders, elbows and wrists in view.',
+    'Begin with arms resting at your sides.',
+    'Raise one or both arms overhead with straight elbows, then hold.',
+  ],
+};
+
 export type LiveAssessmentProps = {
   media: MediaClient;
   consent: boolean;
@@ -34,6 +67,10 @@ export type LiveAssessmentProps = {
   onSettings: () => void;
   onSave: (records: readonly AssessmentRecord[]) => Promise<void>;
   onCompletionChange?: (completion: AssessmentCompletion | undefined) => void;
+  /** The page's breadcrumb trail, continued by the review's own steps. */
+  crumbs?: readonly Crumb[];
+  /** Where to go after a save. */
+  next?: readonly NextStep[];
   now?: () => number;
 };
 export function LiveAssessment({
@@ -44,6 +81,8 @@ export function LiveAssessment({
   onSave,
   onCompletionChange,
   simulated,
+  crumbs,
+  next,
   now = Date.now,
 }: LiveAssessmentProps) {
   const capability = useCapabilities().camera;
@@ -345,7 +384,7 @@ export function LiveAssessment({
       setActive(true);
     }
   };
-  const cameraTray = (
+  const tray = (below?: ReactNode) => (
     <AssessmentCameraTray
       active={active}
       ready={Boolean(camera)}
@@ -353,7 +392,25 @@ export function LiveAssessment({
       consent={consent}
       reviewing={Boolean(review)}
       error={review ? '' : error}
+      simulated={simulated}
+      reading={
+        reading && active
+          ? {
+              value: measurementShort(reading, metric),
+              label: `Live reading: ${measurementText(reading, metric)}`,
+            }
+          : undefined
+      }
+      captured={
+        review
+          ? {
+              value: measurementShort(review, metric),
+              label: `Review your result: ${measurementText(review, metric)}`,
+            }
+          : undefined
+      }
       onLayout={event => setWidth(event.nativeEvent.layout.width)}
+      below={below}
     >
       {capability ? (
         <capability.Preview
@@ -388,7 +445,9 @@ export function LiveAssessment({
         onRetry={record}
         onSave={save}
         onCompletionChange={onCompletionChange}
-        camera={cameraTray}
+        camera={tray()}
+        crumbs={crumbs}
+        next={next}
       />
     );
   }
@@ -411,61 +470,80 @@ export function LiveAssessment({
     : stability.current.phase === 'raise'
     ? 'Raise either arm overhead, keeping elbows straight.'
     : 'Hold steady for two seconds. Stop is always available.';
-  return (
-    <View style={{ gap: spacing.md }}>
-      {cameraTray}
-      <Panel
-        title="Recording"
-        badge={simulated ? <Tag text="Simulated analysis" /> : undefined}
+  // An invalid pose's correction gets the same weight as the guidance.
+  const correcting = active && Boolean(overlayFrame?.reason);
+  const controls = (
+    <View style={styles.controls}>
+      <AppText
+        testID="assessment-live-status"
+        accessibilityLiveRegion="polite"
+        style={correcting ? styles.correction : styles.status}
       >
-        <AppText
-          testID="assessment-live-status"
-          accessibilityLiveRegion="polite"
-        >
-          {status}
-        </AppText>
-        {reading && active ? (
-          <AppText variant="caption">
-            {measurementText(reading, metric)}
-          </AppText>
-        ) : null}
-        {error ? <AppText accessibilityRole="alert">{error}</AppText> : null}
-        {active ? (
-          <Button title="Stop" variant="danger" onPress={finish} />
-        ) : (
-          <Button
-            title="Record"
-            disabled={saving || !consent || !capability}
-            onPress={record}
-          />
-        )}
-        {!consent ? (
-          <Button
-            title="Settings"
-            variant="secondary"
-            small
-            onPress={onSettings}
-          />
-        ) : null}
-        <AppText variant="caption" muted>
-          {simulated
-            ? 'Example analysis runs on this device. Saved results stay in your separate demo profile.'
-            : `Sampled frames go to ${media.server} while recording and are discarded after analysis. Stop or leave to end uploads.`}
-        </AppText>
-        {sampleReading && (!active || sampleReading.total > 0) ? (
-          <CameraReadingHelp reading={sampleReading} />
-        ) : null}
-      </Panel>
-      <Panel title="How to measure" variant="quiet">
+        {status}
+      </AppText>
+      {reading && active ? (
         <AppText variant="caption">
-          {metric === 'shoulder_reach'
-            ? 'Face the camera with hips, shoulders, elbows and wrists visible. Begin with arms resting at your sides, then raise overhead with straight elbows.'
-            : 'Face the camera with your full body visible. Keep hips and ankles clear, spread your feet comfortably and hold steady.'}
+          {`Live reading: ${measurementText(reading, metric)}`}
         </AppText>
-        <AppText variant="caption" muted>
-          A projected angle from the camera, not a validated flexibility test.
-        </AppText>
-      </Panel>
+      ) : null}
+      {error ? <AppText accessibilityRole="alert">{error}</AppText> : null}
+      {active ? (
+        <Button title="Stop" variant="danger" onPress={finish} />
+      ) : (
+        <View style={styles.actions}>
+          <View style={styles.grow}>
+            <Button
+              title="Record"
+              icon="camera"
+              disabled={saving || !consent || !capability}
+              onPress={record}
+            />
+          </View>
+          {!consent ? (
+            <View style={styles.grow}>
+              <Button title="Settings" variant="secondary" onPress={onSettings} />
+            </View>
+          ) : null}
+        </View>
+      )}
+      <AppText variant="caption" muted>
+        {simulated
+          ? 'Simulated analysis runs on this device. Saved results stay in your separate demo profile.'
+          : `While recording, sampled frames go to ${media.server} and are discarded after analysis. Stop or leave to end uploads.`}
+      </AppText>
+      {sampleReading && (!active || sampleReading.total > 0) ? (
+        <CameraReadingHelp reading={sampleReading} />
+      ) : null}
     </View>
   );
+  // Wide screens: the camera on the left, the steps beside it.
+  return (
+    <Columns>
+      <Column>{tray(controls)}</Column>
+      <Column>
+        <HowToMeasure metric={metric} />
+      </Column>
+    </Columns>
+  );
 }
+
+/** The three steps, then the one caveat that matters. */
+export function HowToMeasure({ metric }: { metric: LiveMetric }) {
+  return (
+    <Panel title="How to measure" variant="quiet">
+      <NumberedList items={HOW_TO[metric]} />
+      <Divider />
+      <AppText variant="caption" muted>
+        A projected angle from the camera, not a validated flexibility test.
+      </AppText>
+    </Panel>
+  );
+}
+
+const styles = StyleSheet.create({
+  controls: { gap: spacing.sm + 2 },
+  status: { fontWeight: '700' },
+  correction: { fontWeight: '800' },
+  actions: { flexDirection: 'row', gap: spacing.sm },
+  grow: { flex: 1 },
+});

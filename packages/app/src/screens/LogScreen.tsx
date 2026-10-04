@@ -1,10 +1,11 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import {
   HOLD_TYPES,
   MOVEMENTS,
   TERRAINS,
   type ClimbLog,
+  type Focus,
   type HoldType,
   type Movement,
   type Terrain,
@@ -23,34 +24,33 @@ import {
   Tag,
   useTheme,
 } from '@hackyeah/ui';
+import { climbSaved } from '../afterSave';
 import { useCapabilities } from '../capabilities';
 import { PageHeader } from '../components/PageHeader';
+import { SavedNote } from '../components/SavedNote';
 import { TabScreen } from '../components/TabScreen';
 import {
   GRADES,
   HOLD_ICON,
   HOLD_NAME,
+  MOVEMENT_HINT,
   MOVEMENT_NAME,
   TERRAIN_ICON,
   TERRAIN_NAME,
   holdsText,
   styleText,
 } from '../labels';
+import { useNavigation } from '../navigation/Navigator';
+import type { RouteName } from '../navigation/routes';
 import { useGame } from '../state/GameProvider';
-
-/** How long "Saved: ..." stays under the button. */
-const CONFIRM_MS = 2500;
 
 type Draft = Omit<ClimbLog, 'id' | 'date'>;
 
-/** "V3 vertical" */
-function climbName(log: Pick<ClimbLog, 'grade' | 'terrain'>) {
-  return `${log.grade} ${TERRAIN_NAME[log.terrain].toLowerCase()}`;
-}
-
 /** "V3 vertical, controlled and dynamic" */
 function describe(log: ClimbLog) {
-  return `${climbName(log)}, ${styleText(log.movements)}`;
+  return `${log.grade} ${TERRAIN_NAME[log.terrain].toLowerCase()}, ${styleText(
+    log.movements,
+  )}`;
 }
 
 /** Adds the item if missing, removes it if present. */
@@ -61,26 +61,26 @@ function toggle<T>(list: readonly T[], item: T): T[] {
 /**
  * Post-session check-in: pick wall, style, holds, grade and result, then
  * save. The profile builds the terrain triangle and style tallies from these.
+ * After a save, a note says what changed and points to the profile; it stays
+ * until the next climb is started.
  */
 export function LogScreen() {
   const { haptics } = useCapabilities();
-  const { state, today, logClimb, removeClimb } = useGame();
+  const { reset } = useNavigation<RouteName>();
+  const { state, today, focus, logClimb, removeClimb } = useGame();
 
   const [terrain, setTerrain] = useState<Terrain | null>(null);
   const [movements, setMovements] = useState<Movement[]>([]);
+  const [lastStyle, setLastStyle] = useState<Movement | null>(null);
   const [holds, setHolds] = useState<HoldType[]>([]);
   const [grade, setGrade] = useState<string | null>(null);
   const [sent, setSent] = useState<boolean | null>(null);
-  const [saved, setSaved] = useState<Draft | null>(null);
-
-  // Hide the "Saved" line after a moment. Each save restarts the timer.
-  useEffect(() => {
-    if (!saved) {
-      return;
-    }
-    const timer = setTimeout(() => setSaved(null), CONFIRM_MS);
-    return () => clearTimeout(timer);
-  }, [saved]);
+  // The last save and the focus before it, until the next climb starts.
+  const [saved, setSaved] = useState<{ draft: Draft; before: Focus } | null>(
+    null,
+  );
+  // Your own records start folded away.
+  const [showToday, setShowToday] = useState(false);
 
   const draft: Draft | null =
     terrain && movements.length > 0 && grade && sent !== null
@@ -93,63 +93,78 @@ export function LogScreen() {
     sent === null && 'result',
   ].filter(Boolean);
 
+  /** Any change starts the next climb, so the last save's note goes. */
+  const change = (apply: () => void) => {
+    setSaved(null);
+    apply();
+  };
+
   const save = () => {
     if (!draft) {
       return;
     }
     logClimb(draft);
     haptics.tap();
-    setSaved(draft);
+    setSaved({ draft, before: focus });
     // Everything but the result stays picked: the next climb is often similar.
     setSent(null);
   };
 
   const todays = state.logs.filter(log => log.date === today).reverse();
+  const message = saved
+    ? climbSaved(saved.draft, state.logs, saved.before, focus)
+    : null;
 
   return (
     <TabScreen>
-      <PageHeader title="Log" subtitle="Tap through it between climbs." />
+      <PageHeader
+        title="Log"
+        subtitle="One climb at a time. Each one updates your walls, styles and focus."
+      />
 
       {/* Wide screens: the form on the left, today's climbs next to it. */}
       <Columns>
         <Column>
           <Panel title="Log a climb">
             <View style={styles.form}>
-              <Group label="Wall">
+              <Group label="Wall" need="Pick one">
                 <View style={styles.row}>
                   {TERRAINS.map(t => (
                     <WallTile
                       key={t}
                       terrain={t}
                       selected={terrain === t}
-                      onPress={() => setTerrain(t)}
+                      onPress={() => change(() => setTerrain(t))}
                     />
                   ))}
                 </View>
               </Group>
 
-              <Group label="Style">
+              <Group label="Style" need="Pick all that apply">
                 <View style={[styles.row, styles.wrap]}>
                   {MOVEMENTS.map(m => (
                     <View key={m} style={styles.styleCell}>
                       <Chip
                         label={MOVEMENT_NAME[m]}
                         selected={movements.includes(m)}
-                        onPress={() => setMovements(list => toggle(list, m))}
+                        onPress={() =>
+                          change(() => {
+                            setLastStyle(m);
+                            setMovements(list => toggle(list, m));
+                          })
+                        }
                       />
                     </View>
                   ))}
                 </View>
                 <AppText variant="caption" muted>
-                  Pick every style the climb used. Controlled is steady; dynamic
-                  uses momentum. Technical needs precise moves; powerful needs
-                  strength. Balance uses body position; coordination links timed
-                  moves. Compression squeezes opposing holds; endurance means
-                  sustained effort.
+                  {lastStyle
+                    ? MOVEMENT_HINT[lastStyle]
+                    : 'Tap a style to see what it means.'}
                 </AppText>
               </Group>
 
-              <Group label="Holds">
+              <Group label="Holds" need="Optional">
                 <View style={[styles.row, styles.wrap]}>
                   {HOLD_TYPES.map(h => (
                     <View key={h} style={styles.holdCell}>
@@ -157,44 +172,43 @@ export function LogScreen() {
                         label={HOLD_NAME[h]}
                         icon={HOLD_ICON[h]}
                         selected={holds.includes(h)}
-                        onPress={() => setHolds(list => toggle(list, h))}
+                        onPress={() =>
+                          change(() => setHolds(list => toggle(list, h)))
+                        }
                       />
                     </View>
                   ))}
                 </View>
-                <AppText variant="caption" muted>
-                  Optional. Pick every type the climb used.
-                </AppText>
               </Group>
 
-              <Group label="Grade">
+              <Group label="Grade" need="Pick one">
                 <View style={[styles.row, styles.wrap]}>
                   {GRADES.map(g => (
                     <View key={g} style={styles.gradeCell}>
                       <Chip
                         label={g}
                         selected={grade === g}
-                        onPress={() => setGrade(g)}
+                        onPress={() => change(() => setGrade(g))}
                       />
                     </View>
                   ))}
                 </View>
               </Group>
 
-              <Group label="Result">
+              <Group label="Result" need="Pick one">
                 <View style={styles.row}>
                   <View style={styles.cell}>
                     <Chip
                       label="Sent"
                       selected={sent === true}
-                      onPress={() => setSent(true)}
+                      onPress={() => change(() => setSent(true))}
                     />
                   </View>
                   <View style={styles.cell}>
                     <Chip
                       label="Not yet"
                       selected={sent === false}
-                      onPress={() => setSent(false)}
+                      onPress={() => change(() => setSent(false))}
                     />
                   </View>
                 </View>
@@ -210,59 +224,80 @@ export function LogScreen() {
                 draft ? undefined : `Still to pick: ${missing.join(', ')}`
               }
             />
-            {/* Fixed height, so the list below does not jump as this changes. */}
-            <View style={styles.status}>
-              {/* Screen readers announce the confirmation when it appears. */}
-              <View accessibilityLiveRegion="polite">
-                {saved ? (
-                  <View style={styles.inline}>
-                    <Icon name="check" />
-                    <AppText variant="caption">
-                      Saved: {climbName(saved)},{' '}
-                      {saved.sent ? 'sent' : 'not sent yet'}.
-                    </AppText>
-                  </View>
-                ) : null}
-              </View>
-              {!saved && missing.length > 0 ? (
-                <AppText variant="caption" muted>
-                  Still to pick: {missing.join(', ')}.
-                </AppText>
-              ) : null}
-            </View>
+            {message ? (
+              <SavedNote
+                title={message.title}
+                lines={message.lines}
+                next={[
+                  {
+                    title: 'See profile',
+                    accessibilityLabel: 'See your profile',
+                    onPress: () => reset('Profile'),
+                  },
+                ]}
+              />
+            ) : (
+              <AppText variant="caption" muted>
+                {missing.length > 0
+                  ? `Still to pick: ${missing.join(', ')}.`
+                  : 'Ready to save.'}
+              </AppText>
+            )}
           </Panel>
         </Column>
 
         <Column>
           <Panel title="Today" icon="log">
-            {todays.length === 0 ? (
-              <AppText>No climbs logged today yet.</AppText>
-            ) : (
-              todays.map(log => (
-                <View key={log.id} style={styles.inline}>
-                  <Icon name={TERRAIN_ICON[log.terrain]} />
-                  <View style={styles.rowText}>
-                    <AppText>{describe(log)}</AppText>
-                    {log.holds.length > 0 ? (
-                      <AppText variant="caption" muted>
-                        {holdsText(log.holds)}
-                      </AppText>
-                    ) : null}
-                    <Tag
-                      text={log.sent ? 'Sent' : 'Not yet'}
-                      tone={log.sent ? 'new' : 'muted'}
+            <View style={styles.inline}>
+              <AppText style={styles.grow}>
+                {todays.length === 0
+                  ? 'No climbs logged today yet.'
+                  : `${todays.length} ${
+                      todays.length === 1 ? 'climb' : 'climbs'
+                    } logged today.`}
+              </AppText>
+              {todays.length > 0 ? (
+                <Button
+                  title={showToday ? 'Hide' : 'Show'}
+                  variant="secondary"
+                  small
+                  accessibilityLabel={
+                    showToday ? "Hide today's climbs" : "Show today's climbs"
+                  }
+                  onPress={() => setShowToday(!showToday)}
+                />
+              ) : null}
+            </View>
+            {showToday
+              ? todays.map(log => (
+                  <View key={log.id} style={styles.inline}>
+                    <Icon name={TERRAIN_ICON[log.terrain]} />
+                    <View style={styles.rowText}>
+                      <AppText>{describe(log)}</AppText>
+                      {log.holds.length > 0 ? (
+                        <AppText variant="caption" muted>
+                          {holdsText(log.holds)}
+                        </AppText>
+                      ) : null}
+                      <Tag
+                        text={log.sent ? 'Sent' : 'Not yet'}
+                        tone={log.sent ? 'new' : 'muted'}
+                      />
+                    </View>
+                    <Button
+                      title="Remove"
+                      variant="secondary"
+                      small
+                      accessibilityLabel={`Remove ${describe(log)}`}
+                      onPress={() => change(() => removeClimb(log.id))}
                     />
                   </View>
-                  <Button
-                    title="Remove"
-                    variant="secondary"
-                    small
-                    accessibilityLabel={`Remove ${describe(log)}`}
-                    onPress={() => removeClimb(log.id)}
-                  />
-                </View>
-              ))
-            )}
+                ))
+              : null}
+            <AppText variant="caption" muted>
+              {state.logs.length} {state.logs.length === 1 ? 'climb' : 'climbs'}{' '}
+              in total. Sore fingers go on the Hands tab.
+            </AppText>
           </Panel>
         </Column>
       </Columns>
@@ -270,11 +305,24 @@ export function LogScreen() {
   );
 }
 
-/** A labelled set of chips inside the form. */
-function Group({ label, children }: { label: string; children: ReactNode }) {
+/** A labelled set of chips inside the form, with how many to pick. */
+function Group({
+  label,
+  need,
+  children,
+}: {
+  label: string;
+  need: string;
+  children: ReactNode;
+}) {
   return (
     <View style={styles.group}>
-      <PixelText text={label} />
+      <View style={styles.groupHead}>
+        <PixelText text={label} />
+        <AppText variant="caption" muted>
+          {need}
+        </AppText>
+      </View>
       {children}
     </View>
   );
@@ -338,6 +386,12 @@ function WallTile({
 const styles = StyleSheet.create({
   form: { gap: 18 },
   group: { gap: 8 },
+  groupHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
   row: { flexDirection: 'row', gap: 8 },
   wrap: { flexWrap: 'wrap' },
   cell: { flex: 1 },
@@ -352,7 +406,6 @@ const styles = StyleSheet.create({
   // Pressed or picked: the box drops onto its shadow, like Chip.
   tileDown: { marginTop: PX },
   tileLabel: { alignSelf: 'center' },
-  status: { minHeight: 24, justifyContent: 'center' },
   inline: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   rowText: { flex: 1, gap: 4 },
   grow: { flex: 1 },

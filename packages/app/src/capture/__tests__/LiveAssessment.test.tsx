@@ -118,16 +118,16 @@ test('the Camera tray keeps the same dedicated box before, during and after reco
   expect(JSON.stringify(f.screen.toJSON())).toContain('Camera off');
   await f.unmount();
 });
-test('recording controls, live status and setup guidance have coherent titled trays', async () => {
+test('the Camera tray holds the box, the live status and Record or Stop, with setup steps beside it', async () => {
   const f = fixture();
   await f.mount();
   const tray = (title: string) =>
     f.screen.root
       .findAllByType(Panel)
       .find(node => node.props.title === title)!;
-  expect(tray('Recording')).toBeDefined();
+  expect(tray('Camera')).toBeDefined();
   expect(
-    tray('Recording').findAll(
+    tray('Camera').findAll(
       node => node.props.accessibilityLabel === 'Record',
     ).length,
   ).toBeGreaterThan(0);
@@ -144,23 +144,23 @@ test('recording controls, live status and setup guidance have coherent titled tr
     }),
   );
   expect(
-    tray('Recording').findAll(node => node.props.accessibilityLabel === 'Stop')
+    tray('Camera').findAll(node => node.props.accessibilityLabel === 'Stop')
       .length,
   ).toBeGreaterThan(0);
   expect(
-    tray('Recording').findAll(
+    tray('Camera').findAll(
       node => node.props.accessibilityLiveRegion === 'polite',
     ).length,
   ).toBeGreaterThan(0);
   expect(
     JSON.stringify(
-      tray('Recording').findByProps({ testID: 'assessment-live-status' }).props
+      tray('Camera').findByProps({ testID: 'assessment-live-status' }).props
         .children,
     ),
   ).toContain('Keep both elbows straight.');
   await f.unmount();
 });
-test('review separates measurements, capture quality and actions, with a detail breadcrumb that preserves the result', async () => {
+test('review keeps the captured reading in the camera box, one Result tray with the actions, and detail breadcrumbs that preserve the result', async () => {
   const f = fixture();
   await f.mount();
   await f.press('Record');
@@ -168,20 +168,38 @@ test('review separates measurements, capture quality and actions, with a detail 
   await f.press('Stop');
   const titles = () =>
     f.screen.root.findAllByType(Panel).map(node => node.props.title);
-  expect(titles()).toEqual([
-    'Camera',
-    'Measurement',
-    'Capture quality',
-    'Actions',
-  ]);
+  expect(titles()).toEqual(['Camera', 'Result']);
+  const result = f.screen.root
+    .findAllByType(Panel)
+    .find(node => node.props.title === 'Result')!;
+  // Quality, the save and retry actions and both detail links share one tray.
+  for (const label of [
+    'Save result',
+    'Retry',
+    'Measurement details',
+    'Capture details',
+  ]) {
+    expect(
+      result.findAll(node => node.props.accessibilityLabel === label).length,
+    ).toBeGreaterThan(0);
+  }
   expect(text(f.screen)).toContain('Left 12°');
+  expect(text(f.screen)).toContain('confidence');
+  // The camera box holds the captured reading instead of an empty preview.
+  expect(
+    f.screen.root.findAll(
+      node =>
+        node.props.accessibilityLabel ===
+        'Review your result: Left 12° · Right 12°',
+    ).length,
+  ).toBeGreaterThan(0);
   await f.press('Measurement details');
   expect(titles()).toEqual(['Camera', 'Measurement details']);
   expect(text(f.screen)).toContain('projected angle');
   expect(f.preview.active).toBe(false);
   expect(f.media.startLive).toHaveBeenCalledTimes(1);
   await f.press('Back to Review');
-  expect(titles()).toContain('Actions');
+  expect(titles()).toContain('Result');
   expect(text(f.screen)).toContain('Left 12°');
   await f.press('Save result');
   expect(f.save).toHaveBeenCalledTimes(1);

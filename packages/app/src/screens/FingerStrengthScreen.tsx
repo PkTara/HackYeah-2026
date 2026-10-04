@@ -7,6 +7,8 @@ import {
   Chip,
   Panel,
   PX,
+  PixelText,
+  Tag,
   spacing,
   useTheme,
 } from '@hackyeah/ui';
@@ -19,6 +21,7 @@ import {
 } from '@hackyeah/core';
 import { Crumbs } from '../components/Crumbs';
 import { PageHeader } from '../components/PageHeader';
+import { SavedNote } from '../components/SavedNote';
 import { TabScreen } from '../components/TabScreen';
 import { useDemo } from '../demo/DemoProvider';
 import { useGame } from '../state/GameProvider';
@@ -132,7 +135,7 @@ export function FingerStrengthScreen() {
         )}
         <PageHeader
           title="Finger strength"
-          subtitle="Record force measured by an external instrument."
+          subtitle="The force your fingers hold on an edge, read from a gauge."
         />
         {simulated && !review ? (
           <AppText>
@@ -141,34 +144,57 @@ export function FingerStrengthScreen() {
           </AppText>
         ) : null}
         {review ? (
-          <Panel title="Review your reading">
+          <Panel
+            title="Review your reading"
+            badge={review.simulated ? <Tag text="Simulated" /> : undefined}
+          >
+            <PixelText
+              text={`${review.value} ${review.unit}`}
+              scale={4}
+              heading
+              accessible={false}
+            />
             <AppText>{`${review.value} ${
               review.unit === 'N' ? 'newtons' : 'kilogram-force'
             } · ${
               review.side === 'both' ? 'Both hands' : `${review.side} hand`
             }`}</AppText>
             {review.simulated ? (
-              <AppText>Simulated instrument reading</AppText>
+              <AppText variant="caption">Simulated instrument reading</AppText>
             ) : null}
-            <AppText>{review.setup!.instrument}</AppText>
-            <AppText>{`${review.setup!.grip.replace('_', ' ')} · ${
+            <AppText variant="caption" muted>{`${
+              review.setup!.instrument
+            } · ${review.setup!.grip.replace('_', ' ')} · ${
               review.setup!.edge_mm
             } mm edge · ${review.setup!.arm_position} arm · ${
               review.setup!.effort_seconds
             } seconds`}</AppText>
-            <AppText variant="caption" muted>
-              Self-reported external instrument reading. Confirm the force and
-              setup before saving.
-            </AppText>
+            {saved ? null : (
+              <AppText variant="caption" muted>
+                Check the number and the setup. You typed them in, so the app
+                cannot check them for you.
+              </AppText>
+            )}
             <Button
-              title={saving ? 'Saving…' : 'Save result'}
+              title={saving ? 'Saving…' : saved ? 'Saved' : 'Save result'}
               disabled={saving || saved}
               onPress={saveResult}
             />
             {saved ? (
-              <AppText accessibilityLiveRegion="polite">
-                Saved to your profile
-              </AppText>
+              <SavedNote
+                title="Saved to your profile"
+                lines={[
+                  'Finger strength shows it next to your earlier readings. Compare readings taken with the same setup.',
+                ]}
+                next={[
+                  {
+                    title: 'See results',
+                    accessibilityLabel: 'See finger strength results',
+                    onPress: () =>
+                      backTo(trail.slice(0, Math.max(1, trail.length - 1))),
+                  },
+                ]}
+              />
             ) : null}
             {error ? (
               <AppText accessibilityRole="alert">{error}</AppText>
@@ -183,8 +209,8 @@ export function FingerStrengthScreen() {
         ) : (
           <Panel title="Instrument reading">
             <AppText>
-              Use a force gauge or load cell. Stop if you feel pain. A dead hang
-              measures endurance; this reading measures force.
+              Pull on a force gauge or load cell for a few seconds, then type in
+              what it read. Stop if it hurts.
             </AppText>
             <NumberField
               label="Force"
@@ -206,7 +232,7 @@ export function FingerStrengthScreen() {
                 onPress={() => setUnit('kgf')}
               />
             </View>
-            <AppText>Instrument</AppText>
+            <PixelText text="Instrument" />
             <TextInput
               value={instrument}
               onChangeText={setInstrument}
@@ -221,7 +247,7 @@ export function FingerStrengthScreen() {
                 },
               ]}
             />
-            <AppText>Measured side</AppText>
+            <PixelText text="Measured side" />
             <View style={styles.choices}>
               {(['left', 'right', 'both'] as const).map(choice => (
                 <Chip
@@ -236,7 +262,7 @@ export function FingerStrengthScreen() {
                 />
               ))}
             </View>
-            <AppText>Grip</AppText>
+            <PixelText text="Grip" />
             <View style={styles.choices}>
               {(['open_hand', 'half_crimp', 'full_crimp'] as const).map(
                 (choice, i) => (
@@ -257,7 +283,7 @@ export function FingerStrengthScreen() {
               accessibilityLabel="Edge depth in millimetres"
               maxLength={8}
             />
-            <AppText>Arm position</AppText>
+            <PixelText text="Arm position" />
             <View style={styles.choices}>
               <Chip
                 label="Straight arm"
@@ -279,8 +305,8 @@ export function FingerStrengthScreen() {
               maxLength={8}
             />
             <AppText variant="caption" muted>
-              Enter positive force, edge depth and duration, and select every
-              setup condition before reviewing.
+              Fill in every field to review. Nothing is saved until you
+              confirm the review.
             </AppText>
             {demo.settings.enabled && demo.settings.testResults ? (
               <Button

@@ -140,6 +140,9 @@ describe('App', () => {
       grade: 'V3',
       sent: true,
     });
+    // Today's climbs start folded away; the count is always there.
+    expect(screenText(renderer)).toContain('1 climb logged today.');
+    press(renderer, "Show today's climbs");
     expect(screenText(renderer)).toContain(
       'V3 vertical, technical, balance, coordination, compression and endurance',
     );
