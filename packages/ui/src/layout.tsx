@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { View, useWindowDimensions } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { spacing } from './theme';
 
 /**
@@ -16,6 +16,7 @@ export const RAIL_WIDTH = 216;
 const COLUMN_MIN = 360;
 /** Widest the content gets; beyond this it is centred. */
 export const CONTENT_MAX = 1180;
+/** Widest a single reading column gets on any screen. */
 const SINGLE_MAX = 640;
 
 export type Layout = Readonly<{
@@ -88,3 +89,20 @@ export function Column({ children }: { children: ReactNode }) {
     </View>
   );
 }
+
+/**
+ * One centred column at every width, for pages read top to bottom such as
+ * the evidence behind a decision. Wide screens get margins, not columns.
+ */
+export function SingleColumn({ children }: { children: ReactNode }) {
+  return <View style={styles.single}>{children}</View>;
+}
+
+const styles = StyleSheet.create({
+  single: {
+    width: '100%',
+    maxWidth: SINGLE_MAX,
+    alignSelf: 'center',
+    gap: spacing.lg,
+  },
+});

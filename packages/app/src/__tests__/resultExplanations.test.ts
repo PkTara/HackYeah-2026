@@ -1,4 +1,4 @@
-import { BASELINE_TESTS } from '@hackyeah/core';
+import { BASELINE_TESTS, isDecisionFlow } from '@hackyeah/core';
 import {
   explainXP,
   explainReach,
@@ -17,6 +17,26 @@ it('explains XP from unique completion records with the actual product arithmeti
   expect(result.summary).toContain('20 XP');
   expect(result.sourceIds).toEqual([]);
   expect(result.limitations.join(' ')).toContain('climbing ability');
+});
+
+it('draws XP as a flow from completed quests to the level', () => {
+  const result = explainXP(['quiet-feet', 'preview', 'quiet-feet']);
+  expect(isDecisionFlow(result.flow)).toBe(true);
+  expect(result.inputSummary).toBe('2 completed quests.');
+  expect(result.flow?.inputs).toEqual([
+    { label: 'Quests done', value: '2', icon: 'check' },
+  ]);
+  expect(result.flow?.nodes[0]).toMatchObject({
+    label: '10 XP per quest, once each',
+    detail: '2 x 10 = 20 XP',
+    team: true,
+  });
+  expect(result.flow?.result).toEqual({
+    label: 'Level',
+    value: '1, 20 XP',
+    icon: 'banana',
+  });
+  expect(explainXP([]).inputSummary).toBe('0 completed quests.');
 });
 
 it('explains the reach difference using both measured values and their date', () => {

@@ -12,8 +12,6 @@ import {
   AppText,
   Button,
   Chip,
-  Column,
-  Columns,
   Icon,
   PX,
   Panel,
@@ -53,7 +51,7 @@ export function SportEvidenceScreen() {
     .sort((a, b) => b.date.localeCompare(a.date));
 
   return (
-    <TabScreen>
+    <TabScreen single>
       <Crumbs />
       <PageHeader
         title="Evidence"
@@ -74,97 +72,87 @@ export function SportEvidenceScreen() {
         ))}
       </View>
 
-      <Columns>
-        <Column>
-          <Panel
-            title={name}
-            icon={view.kindIcon[kind]}
-            badge={isFocus ? <Tag text="Your focus" tone="focus" /> : undefined}
-          >
-            <PixelText
-              text={
-                tally.logged === 0
-                  ? 'None logged'
-                  : `${tally.finished} of ${tally.logged} finished`
-              }
-              scale={4}
-            />
-            {tally.rate === null ? (
-              <AppText>
-                Needs {toGo} more logged{' '}
-                {toGo === 1 ? view.session : view.sessions} before it is
-                compared with the other {view.kindPlural}.
-              </AppText>
-            ) : null}
-            {isFocus ? (
-              <DecisionHelp
-                label="Focus"
-                explanation={explainSportFocus(
-                  focus,
-                  state.logs,
-                  sport.kinds,
-                  view,
-                )}
-              >
-                <AppText>
-                  {focus.kind === 'practice'
-                    ? `This is your focus: the lowest share of ${view.sessions} finished as planned.`
-                    : `This is your focus: it has the fewest logged ${view.sessions}, so the ${view.pet} asks for more here first.`}
-                </AppText>
-              </DecisionHelp>
-            ) : null}
-            {logs.length > 0 ? (
-              <AppText variant="caption" muted>
-                {tally.distance} {view.unit} in total. Last logged{' '}
-                {ageLabel(logs[0].date, today)}, {shortDate(logs[0].date)}.
-              </AppText>
-            ) : null}
-            <AppText variant="caption" muted>
-              The focus goes to the lowest share finished once each of the three
-              has at least {MIN_SESSIONS} logged {view.sessions}.
-            </AppText>
-          </Panel>
-
-          <Panel title={view.placeLabel}>
-            {sport.places.map(p => (
-              <View key={p} style={styles.inline}>
-                <Icon name={view.placeIcon[p]} />
-                <AppText style={styles.grow}>{view.placeName[p]}</AppText>
-                <AppText variant="caption" muted>
-                  {places[p].logged === 0
-                    ? 'none yet'
-                    : `${places[p].finished} of ${places[p].logged} finished`}
-                </AppText>
-              </View>
-            ))}
-          </Panel>
-        </Column>
-
-        <Column>
-          <Panel
-            title={
-              view.sessions.charAt(0).toUpperCase() + view.sessions.slice(1)
-            }
-            icon="log"
-          >
-            {logs.some(l => l.sample) ? (
-              <SampleMark text={`Includes sample ${view.sessions}.`} />
-            ) : null}
-            {logs.length === 0 ? (
-              <AppText>
-                No {name.toLowerCase()} {view.sessions} logged yet.
-              </AppText>
-            ) : (
-              logs.map(log => <SessionRow key={log.id} log={log} />)
+      <Panel
+        title={name}
+        icon={view.kindIcon[kind]}
+        badge={isFocus ? <Tag text="Your focus" tone="focus" /> : undefined}
+      >
+        <PixelText
+          text={
+            tally.logged === 0
+              ? 'None logged'
+              : `${tally.finished} of ${tally.logged} finished`
+          }
+          scale={4}
+        />
+        {tally.rate === null ? (
+          <AppText>
+            Needs {toGo} more logged {toGo === 1 ? view.session : view.sessions}{' '}
+            before it is compared with the other {view.kindPlural}.
+          </AppText>
+        ) : null}
+        {isFocus ? (
+          <DecisionHelp
+            label="Focus"
+            explanation={explainSportFocus(
+              focus,
+              state.logs,
+              sport.kinds,
+              view,
             )}
-            <Button
-              title={`Log a ${view.session}`}
-              icon="log"
-              onPress={() => reset('SportLog')}
-            />
-          </Panel>
-        </Column>
-      </Columns>
+          >
+            <AppText>
+              {focus.kind === 'practice'
+                ? `This is your focus: the lowest share of ${view.sessions} finished as planned.`
+                : `This is your focus: it has the fewest logged ${view.sessions}, so the ${view.pet} asks for more here first.`}
+            </AppText>
+          </DecisionHelp>
+        ) : null}
+        {logs.length > 0 ? (
+          <AppText variant="caption" muted>
+            {tally.distance} {view.unit} in total. Last logged{' '}
+            {ageLabel(logs[0].date, today)}, {shortDate(logs[0].date)}.
+          </AppText>
+        ) : null}
+        <AppText variant="caption" muted>
+          The focus goes to the lowest share finished once each of the three has
+          at least {MIN_SESSIONS} logged {view.sessions}.
+        </AppText>
+      </Panel>
+
+      <Panel title={view.placeLabel}>
+        {sport.places.map(p => (
+          <View key={p} style={styles.inline}>
+            <Icon name={view.placeIcon[p]} />
+            <AppText style={styles.grow}>{view.placeName[p]}</AppText>
+            <AppText variant="caption" muted>
+              {places[p].logged === 0
+                ? 'none yet'
+                : `${places[p].finished} of ${places[p].logged} finished`}
+            </AppText>
+          </View>
+        ))}
+      </Panel>
+      <Panel
+        title={view.sessions.charAt(0).toUpperCase() + view.sessions.slice(1)}
+        icon="log"
+      >
+        {logs.some(l => l.sample) ? (
+          <SampleMark text={`Includes sample ${view.sessions}.`} />
+        ) : null}
+        {logs.length === 0 ? (
+          <AppText>
+            No {name.toLowerCase()} {view.sessions} logged yet.
+          </AppText>
+        ) : (
+          logs.map(log => <SessionRow key={log.id} log={log} />)
+        )}
+        <Button
+          title={`Log a ${view.session}`}
+          icon="log"
+          onPress={() => reset('SportLog')}
+        />
+      </Panel>
     </TabScreen>
   );
 }
@@ -194,7 +182,6 @@ function SessionRow({ log }: { log: SessionLog }) {
         <AppText variant="caption" muted>
           {shortDate(log.date)}
           {pace ? `, ${pace}` : ''}
-          {log.sample ? ' (example)' : ''}
         </AppText>
       </View>
       <View>

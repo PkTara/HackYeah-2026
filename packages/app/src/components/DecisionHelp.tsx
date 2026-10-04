@@ -2,7 +2,9 @@ import { useState, type ReactNode } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   RESEARCH_SOURCES,
+  isDecisionFlow,
   type DecisionExplanation,
+  type EvidenceRecord,
   type ResearchSource,
 } from '@hackyeah/core';
 import {
@@ -10,12 +12,20 @@ import {
   Disclosure,
   Divider,
   HelpMark,
+  Icon,
+  PX,
+  PixelBox,
   PixelText,
   SampleMark,
   Sheet,
+  Tag,
+  isIconName,
+  useTheme,
+  useUiSound,
 } from '@hackyeah/ui';
+import { DecisionFlow, TeamStamp } from './DecisionFlow';
 
-/** Above this many records, "Your inputs" starts folded away. */
+/** Above this many records, only the first few show until asked. */
 const SHORT_INPUTS = 3;
 
 const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
@@ -99,7 +109,11 @@ function ExplanationBody({
   title,
   sources = RESEARCH_SOURCES,
 }: HelpProps) {
-  const { evidence, rule, sourceIds, limitations, status } = explanation;
+  const { rule, sourceIds, limitations, status, flow } = explanation;
+  const origin =
+    status === 'estimate'
+      ? "The formula is the app's own. It has not been checked against a lab measurement."
+      : 'Chosen by the team, not taken from a study.';
   return (
     <>
       <PixelText text={capital(title ?? label)} scale={3} heading wrap />
@@ -113,41 +127,33 @@ function ExplanationBody({
       ) : null}
 
       <Divider />
-      {evidence.length > SHORT_INPUTS ? (
-        <Disclosure
-          title="Your inputs"
-          note={`${evidence.length} records`}
-          accessibilityLabel={`Your inputs, ${evidence.length} records`}
-        >
-          <Records evidence={evidence} />
-        </Disclosure>
-      ) : (
-        <Section title="Your inputs">
-          {evidence.length === 0 ? (
-            <AppText variant="caption">
-              No records were saved with this result, so they cannot be shown.
-            </AppText>
-          ) : (
-            <Records evidence={evidence} />
-          )}
-        </Section>
-      )}
+      <Section title="Your inputs">
+        <Inputs explanation={explanation} />
+      </Section>
 
       <Divider />
       <Section title="How it works">
-        {rule
-          .split('\n')
-          .filter(line => line.trim())
-          .map((line, index) => (
-            <AppText key={index} variant="caption">
-              {line}
+        {isDecisionFlow(flow) ? (
+          <>
+            <DecisionFlow flow={flow} />
+            <View style={styles.legend}>
+              {flow.nodes.some(node => node.team) ? <TeamStamp /> : null}
+              <AppText variant="caption" muted style={styles.anchor}>
+                {origin}
+              </AppText>
+            </View>
+            <Disclosure title="Rule in words">
+              <RuleLines rule={rule} />
+            </Disclosure>
+          </>
+        ) : (
+          <>
+            <RuleLines rule={rule} />
+            <AppText variant="caption" muted>
+              {origin}
             </AppText>
-          ))}
-        <AppText variant="caption" muted>
-          {status === 'estimate'
-            ? "The formula is the app's own. It has not been checked against a lab measurement."
-            : 'Chosen by the team, not taken from a study.'}
-        </AppText>
+          </>
+        )}
       </Section>
 
       {sourceIds.length > 0 ? (
@@ -187,24 +193,205 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function Records({ evidence }: { evidence: DecisionExplanation['evidence'] }) {
+function RuleLines({ rule }: { rule: string }) {
   return (
-    <View style={styles.records}>
-      {evidence.map((record, index) => (
-        <View key={`${record.id}-${index}`} style={styles.record}>
-          <View style={styles.recordHead}>
-            <AppText variant="caption" style={styles.strong}>
-              {record.label}
-            </AppText>
-            <AppText variant="caption" muted>
-              Ref {record.id}
-            </AppText>
-          </View>
-          {record.detail ? (
-            <AppText variant="caption">{record.detail}</AppText>
-          ) : null}
+    <>
+      {rule
+        .split('\n')
+        .filter(line => line.trim())
+        .map((line, index) => (
+          <AppText key={index} variant="caption">
+            {line}
+          </AppText>
+        ))}
+    </>
+  );
+}
+
+/**
+ * What fed the decision: one plain line first, then the records as short
+ * rows. Long lists show the first few until "Show all" is pressed.
+ */
+function Inputs({ explanation }: { explanation: DecisionExplanation }) {
+  const { evidence, status, inputSummary } = explanation;
+  const [all, setAll] = useState(false);
+  if (evidence.length === 0) {
+    return (
+      <AppText variant="caption">
+        {inputSummary ? `${inputSummary} ` : ''}No records were saved with this
+        result, so they cannot be shown.
+      </AppText>
+    );
+  }
+  const shown =
+    all || evidence.length <= SHORT_INPUTS
+      ? evidence
+      : evidence.slice(0, SHORT_INPUTS);
+  const samples = evidence.filter(record => record.view?.sample).length;
+  return (
+    <>
+      <AppText>
+        {inputSummary ??
+          (evidence.length === 1 ? '1 record.' : `${evidence.length} records.`)}
+      </AppText>
+      {/* The sheet already says when the whole result is built from
+          examples; mark a mix of example and own records once here. */}
+      {samples > 0 && status !== 'example' ? (
+        <SampleMark
+          text={
+            samples === evidence.length
+              ? 'Example records, not your own.'
+              : 'Includes example records.'
+          }
+        />
+      ) : null}
+      <View style={styles.records}>
+        {shown.map((record, index) => (
+          <Record key={`${record.id}-${index}`} record={record} />
+        ))}
+      </View>
+      {evidence.length > SHORT_INPUTS ? (
+        <MoreKey
+          open={all}
+          total={evidence.length}
+          onPress={() => setAll(value => !value)}
+        />
+      ) : null}
+    </>
+  );
+}
+
+/** "Show all 6" under a folded list, "Show fewer" once it is open. */
+function MoreKey({
+  open,
+  total,
+  onPress,
+}: {
+  open: boolean;
+  total: number;
+  onPress: () => void;
+}) {
+  const c = useTheme().colors;
+  const playSound = useUiSound();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Show all ${total} records`}
+      accessibilityState={{ expanded: open }}
+      aria-expanded={open}
+      onPress={() => {
+        playSound('tap');
+        onPress();
+      }}
+      style={styles.more}
+    >
+      {({ pressed }) => (
+        <>
+          <PixelBox
+            fill={c.surface}
+            outline={c.outline}
+            shade={c.surfaceShade}
+            shadow={c.backgroundDeep}
+            lift={pressed ? 0 : PX}
+            style={pressed ? styles.sunk : null}
+            contentStyle={styles.key}
+          >
+            <PixelText
+              text={open ? '-' : '+'}
+              color={c.text}
+              accessible={false}
+            />
+          </PixelBox>
+          <PixelText
+            text={open ? 'Show fewer' : `Show all ${total}`}
+            accessible={false}
+          />
+        </>
+      )}
+    </Pressable>
+  );
+}
+
+/**
+ * One record as a short row: a badge (grade, distance) or an icon, two lines
+ * of words, the date and an outcome stamp. Records without a drawn form,
+ * such as server snapshots, show their label and detail. Either way a
+ * screen reader hears the full label and detail.
+ */
+function Record({ record }: { record: EvidenceRecord }) {
+  const c = useTheme().colors;
+  const { view } = record;
+  const spoken = `${record.label}. ${record.detail}`;
+  if (!view) {
+    return (
+      <View
+        accessible
+        accessibilityLabel={spoken}
+        testID={`record-${record.id}`}
+        style={styles.plain}
+      >
+        <AppText variant="caption" style={styles.strong}>
+          {record.label}
+        </AppText>
+        {record.detail ? (
+          <AppText variant="caption">{record.detail}</AppText>
+        ) : null}
+      </View>
+    );
+  }
+  const icon = isIconName(view.icon) ? view.icon : undefined;
+  return (
+    <View
+      accessible
+      accessibilityLabel={spoken}
+      testID={`record-${record.id}`}
+      style={styles.record}
+    >
+      <View
+        style={[
+          styles.badge,
+          { backgroundColor: c.surfaceShade, borderColor: c.outline },
+        ]}
+      >
+        {view.badge ? (
+          <>
+            <PixelText
+              text={view.badge}
+              scale={view.badge.length > 2 ? 2 : 3}
+              accessible={false}
+            />
+            {view.badgeNote ? (
+              <AppText variant="caption" style={styles.badgeNote}>
+                {view.badgeNote}
+              </AppText>
+            ) : null}
+          </>
+        ) : icon ? (
+          <Icon name={icon} scale={3} />
+        ) : null}
+      </View>
+      <View style={styles.grow}>
+        <View style={styles.titleRow}>
+          {view.badge && icon ? <Icon name={icon} /> : null}
+          <AppText variant="caption" style={[styles.strong, styles.anchor]}>
+            {view.title}
+          </AppText>
         </View>
-      ))}
+        {view.note ? <AppText variant="caption">{view.note}</AppText> : null}
+        {view.when ? (
+          <AppText variant="caption" muted>
+            {view.when}
+          </AppText>
+        ) : null}
+      </View>
+      {view.outcome ? (
+        <View>
+          <Tag
+            text={view.outcome.text}
+            tone={view.outcome.done ? 'new' : 'muted'}
+          />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -316,15 +503,35 @@ function StudyDetails({ source }: { source: ResearchSource }) {
 const styles = StyleSheet.create({
   anchorRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 4 },
   anchor: { flexShrink: 1 },
+  grow: { flex: 1 },
   section: { gap: 8 },
-  records: { gap: 12 },
-  record: { gap: 2 },
-  recordHead: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    columnGap: 12,
+  records: { gap: 10 },
+  plain: { gap: 2 },
+  record: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  badge: {
+    width: 46,
+    minHeight: 46,
+    borderWidth: PX,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  badgeNote: { lineHeight: 14 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legend: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  more: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    minHeight: 44,
+  },
+  key: {
+    width: 26,
+    height: 26,
+    padding: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sunk: { marginTop: PX },
   strong: { fontWeight: '800' },
   citation: { gap: 4 },
   link: { textDecorationLine: 'underline' },

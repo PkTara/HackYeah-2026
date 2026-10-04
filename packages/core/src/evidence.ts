@@ -27,6 +27,8 @@ import {
   type SportFocus,
   type SportQuest,
 } from './sport';
+import { shortDate } from './dates';
+import type { DecisionFlow, FlowIcon, FlowInput, FlowNode } from './flow';
 import { spotsFor } from './spots';
 
 /** Personal record evidence and published research have separate identifiers. */
@@ -47,14 +49,47 @@ export type ResearchSource = Readonly<{
   verifiedAt: string;
 }>;
 
+/**
+ * One record drawn as a short row: a date, a badge, an icon, two lines of
+ * words and an outcome stamp. The row's `label` and `detail` stay the
+ * spoken version, so nothing here needs to be read out.
+ */
+export type RecordView = Readonly<{
+  /** Date words: "30 Sep", "Since 2 Oct". */
+  when?: string;
+  /** A few characters in a box: a grade "V3", a distance "5". */
+  badge?: string;
+  /** Small unit under the badge: "km". */
+  badgeNote?: string;
+  icon?: FlowIcon;
+  /** Bold first line: "Vertical", "Left ring". */
+  title: string;
+  /** Second line: "Controlled, crimps". */
+  note?: string;
+  /** The stamp at the end: "Sent" (done) or "Not yet". */
+  outcome?: Readonly<{ text: string; done: boolean }>;
+  sample?: boolean;
+}>;
+
+export type EvidenceRecord = Readonly<{
+  id: string;
+  label: string;
+  detail: string;
+  view?: RecordView;
+}>;
+
 export type DecisionExplanation = Readonly<{
   summary: string;
   status: 'app_rule' | 'draft' | 'estimate' | 'example';
   /** The rule in plain words. Each line is one step. */
   rule: string;
-  evidence: readonly Readonly<{ id: string; label: string; detail: string }>[];
+  evidence: readonly EvidenceRecord[];
   sourceIds: readonly string[];
   limitations: readonly string[];
+  /** One plain line on what fed it: "6 vertical climbs: 2 sent, 4 not yet." */
+  inputSummary?: string;
+  /** The same rule as a flow chart. Left out where there is no rule to draw. */
+  flow?: DecisionFlow;
 }>;
 
 /** Validate persisted disclosure shape and bound its size like the API. */
@@ -98,6 +133,11 @@ const list = (items: readonly string[]) =>
   items.length <= 1
     ? items.join('')
     : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+/** "1 slab climb", "6 slab climbs". `noun` is a plural ending in s. */
+const count = (n: number, noun: string) =>
+  `${n} ${n === 1 ? noun.replace(/s$/, '') : noun}`;
+const holdPlural = (hold: string) =>
+  hold === 'pinch' ? 'pinches' : `${hold}s`;
 
 /** A server quest saved before decisions were recorded. */
 const unavailable: DecisionExplanation = {
@@ -109,10 +149,15 @@ const unavailable: DecisionExplanation = {
   limitations: ['Your current climbs cannot show why it was picked back then.'],
 };
 
-function climbEvidence(
-  logs: readonly ClimbLog[],
-): DecisionExplanation['evidence'] {
-  return logs.map(log => ({
+/** Newest first, as the Evidence page lists them; same-day logs by entry. */
+function newestFirst<T extends Readonly<{ date: string }>>(
+  logs: readonly T[],
+): T[] {
+  return [...logs].reverse().sort((a, b) => b.date.localeCompare(a.date));
+}
+
+function climbEvidence(logs: readonly ClimbLog[]): EvidenceRecord[] {
+  return newestFirst(logs).map(log => ({
     id: log.id,
     label: `Climb, ${log.date}${log.sample ? ' (example)' : ''}`,
     detail: `${capital(log.terrain)}, ${
@@ -120,7 +165,115 @@ function climbEvidence(
     }, ${log.holds.join(' and ') || 'holds not recorded'}, ${
       log.grade || 'grade not recorded'
     }. ${log.sent ? 'Sent' : 'Not sent'}.`,
+    view: {
+      when: shortDate(log.date),
+      badge: log.grade || '-',
+      icon: log.terrain,
+      title: capital(log.terrain),
+      note: `${
+        log.movements.length
+          ? capital(list(log.movements))
+          : 'Style not recorded'
+      }, ${
+        log.holds.length
+          ? list(log.holds.map(holdPlural))
+          : 'holds not recorded'
+      }`,
+      outcome: { text: log.sent ? 'Sent' : 'Not yet', done: log.sent },
+      ...(log.sample ? { sample: true } : {}),
+    },
   }));
+}
+
+/** "6 vertical climbs: 2 sent, 4 not yet." */
+function climbSummary(logs: readonly ClimbLog[], noun = 'climbs'): string {
+  const sent = logs.filter(log => log.sent).length;
+  return logs.length === 0
+    ? `No ${noun} logged yet.`
+    : `${capital(count(logs.length, noun))}: ${sent} sent, ${
+        logs.length - sent
+      } not yet.`;
+}
+
+/** One chip per wall, with the wall the result is about marked. */
+function wallInputs(logs: readonly ClimbLog[], key?: Terrain): FlowInput[] {
+  const tallies = terrainTallies(logs);
+  return TERRAINS.map(terrain => ({
+    label: capital(terrain),
+    value: `${tallies[terrain].sent} of ${tallies[terrain].logged} sent`,
+    icon: terrain,
+    ...(terrain === key ? { key: true } : {}),
+  }));
+}
+
+type GroupRow = Readonly<{ name: string; logged: number; done: number }>;
+
+/**
+ * The focus rule as a flow, shared by the walls and the sport kinds: count,
+ * check every group has enough logs, pick, then break a tie. The branch
+ * taken follows the focus that was actually chosen.
+ */
+function focusNodes(
+  rows: readonly GroupRow[],
+  picked: string,
+  practice: boolean,
+  words: Readonly<{
+    /** "wall", "run type" */
+    group: string;
+    /** "climbs", "runs" */
+    things: string;
+    /** "sent", "finished" */
+    done: string;
+    /** "sends", "finishes" */
+    dones: string;
+    min: number;
+  }>,
+): FlowNode[] {
+  const share = (row: GroupRow) => row.done / row.logged;
+  const chosen = rows.find(row => row.name === picked);
+  const thin = rows.filter(row => row.logged < words.min);
+  const tied = chosen
+    ? practice
+      ? rows.filter(
+          row => row.logged >= words.min && share(row) === share(chosen),
+        )
+      : thin.filter(row => row.logged === chosen.logged)
+    : [];
+  const percentOf = (row: GroupRow) =>
+    `${row.name.toLowerCase()} ${percent(row.done, row.logged)}`;
+  return [
+    {
+      type: 'step',
+      label: `Count ${words.things} and ${words.dones} per ${words.group}`,
+    },
+    {
+      type: 'check',
+      label: `Every ${words.group} has ${words.min}+ ${words.things}?`,
+      taken: practice ? 'yes' : 'no',
+      yes: `Pick the lowest share ${words.done}`,
+      no: `Pick the fewest ${words.things}`,
+      detail: practice
+        ? capital(rows.map(percentOf).join(', '))
+        : thin.length
+        ? `Under ${words.min}: ${thin
+            .map(row => `${row.name.toLowerCase()} ${row.logged}`)
+            .join(', ')}`
+        : undefined,
+      team: true,
+    },
+    {
+      type: 'check',
+      label: 'A tie?',
+      taken: tied.length > 1 ? 'yes' : 'no',
+      yes: capital(rows.map(row => row.name.toLowerCase()).join(', then ')),
+      no: 'No tie',
+      detail:
+        tied.length > 1
+          ? capital(`${list(tied.map(row => row.name.toLowerCase()))} tie`)
+          : undefined,
+      team: true,
+    },
+  ];
 }
 
 /** "slab 2 of 4 (50%), vertical 1 of 2, ..." */
@@ -163,12 +316,42 @@ export function explainFocus(
     evidence: climbEvidence(logs),
     sourceIds: [],
     limitations: LOG_LIMITS,
+    inputSummary: climbSummary(logs),
+    flow: {
+      inputs: wallInputs(logs, focus.terrain),
+      nodes: focusNodes(
+        wallRows(logs),
+        capital(focus.terrain),
+        focus.kind === 'practice',
+        CLIMB_WORDS,
+      ),
+      result: {
+        label: 'Focus',
+        value: capital(focus.terrain),
+        icon: focus.terrain,
+      },
+    },
   };
 }
 
-function fingerFlagEvidence(
-  flags: readonly HandFlag[],
-): DecisionExplanation['evidence'] {
+const CLIMB_WORDS = {
+  group: 'wall',
+  things: 'climbs',
+  done: 'sent',
+  dones: 'sends',
+  min: MIN_LOGS,
+} as const;
+
+function wallRows(logs: readonly ClimbLog[]): GroupRow[] {
+  const tallies = terrainTallies(logs);
+  return TERRAINS.map(terrain => ({
+    name: capital(terrain),
+    logged: tallies[terrain].logged,
+    done: tallies[terrain].sent,
+  }));
+}
+
+function fingerFlagEvidence(flags: readonly HandFlag[]): EvidenceRecord[] {
   return flags.map(flag => {
     const spots = flag.spots.map(
       id => spotsFor(flag.finger).find(spot => spot.id === id)?.name ?? id,
@@ -179,8 +362,31 @@ function fingerFlagEvidence(
       detail: `${capital(flag.side)} ${flag.finger}, sore ${
         spots.length ? `at ${list(spots)}` : 'with no spot marked'
       }. Pain ratings are not kept with the flag.`,
+      view: {
+        when: `Since ${shortDate(flag.date)}`,
+        icon: 'flag',
+        title: `${capital(flag.side)} ${flag.finger}`,
+        note: spots.length ? `Sore at ${list(spots)}` : 'No spot marked',
+        outcome: { text: 'Flagged', done: false },
+      },
     };
   });
+}
+
+/** "1 flagged finger", "No finger flagged". */
+function flagCount(n: number): string {
+  return n === 0 ? 'No finger flagged' : count(n, 'flagged fingers');
+}
+
+/** The flags as one chip that joins the flow where they are checked. */
+function flagFeed(flags: readonly HandFlag[]): FlowInput {
+  return flags.length === 1
+    ? {
+        label: `${capital(flags[0].side)} ${flags[0].finger}`,
+        value: 'flagged',
+        icon: 'flag',
+      }
+    : { label: flagCount(flags.length), icon: 'flag' };
 }
 
 export function explainPause(flags: readonly HandFlag[]): DecisionExplanation {
@@ -200,12 +406,42 @@ export function explainPause(flags: readonly HandFlag[]): DecisionExplanation {
       'A flag or a photo cannot show what is wrong inside a finger. Pulley injuries are checked with scans.',
       'Clearing a flag is not a medical all-clear. No study has tested whether pausing quests prevents injury.',
     ],
+    inputSummary: `${flagCount(flags.length)}.`,
+    flow: {
+      inputs: flags.length
+        ? flags.map(flag => ({
+            label: `${capital(flag.side)} ${flag.finger}`,
+            value: 'flagged',
+            icon: 'flag',
+          }))
+        : [{ label: 'No finger flagged', icon: 'flag' }],
+      nodes: [
+        {
+          type: 'check',
+          label: 'A finger flagged sore?',
+          taken: flags.length ? 'yes' : 'no',
+          yes: 'Pause quests that load fingers',
+          no: 'Keep every quest',
+          team: true,
+        },
+        ...(flags.length
+          ? [
+              {
+                type: 'step' as const,
+                label: 'Other quests and a check-in stay open',
+                detail: 'Clear the flag on Hands to bring them back',
+                team: true,
+              },
+            ]
+          : []),
+      ],
+      result: {
+        label: 'Finger quests',
+        value: flags.length ? 'Paused' : 'Open',
+        icon: flags.length ? 'flag' : 'check',
+      },
+    },
   };
-}
-
-/** Plain titles for quest ids, so progress reads as words. */
-function questNames(ids: readonly string[]): string {
-  return ids.length ? list(ids.map(id => findQuest(id)?.title ?? id)) : 'none';
 }
 
 function quietLimits(quest: Quest): readonly string[] {
@@ -264,33 +500,169 @@ export function explainQuest(
           : 'It does not load your fingers.'
       }`,
     ),
+    // Flags and progress first: they are few and decide most quests.
     evidence: [
-      ...climbEvidence(logs),
       ...fingerFlagEvidence(flags),
       ...(selection
-        ? [
-            {
-              id: 'quest-progress',
-              label: 'Your quest progress',
-              detail: `Done: ${questNames(
-                selection.completed,
-              )}. Swapped, oldest first: ${questNames(selection.skipped)}.`,
-            },
-          ]
+        ? [progressEvidence(selection, id => findQuest(id)?.title)]
         : []),
+      ...climbEvidence(logs),
     ],
     sourceIds: quest.kind === 'plan' ? ['sanchez2012', 'seifert2017'] : [],
     limitations: quietLimits(quest),
+    inputSummary: questSummary(
+      count(logs.length, 'climbs'),
+      flagCount(flags.length).toLowerCase(),
+      !!selection,
+    ),
+    flow: {
+      inputs: wallInputs(logs, focus.terrain),
+      nodes: questNodes({
+        focus: capital(focus.terrain),
+        why: focus.kind === 'practice' ? 'Lowest share sent' : 'Fewest climbs',
+        practice: focus.kind === 'practice',
+        enough: `Every wall has ${MIN_LOGS}+ climbs?`,
+        logMore: 'Log more climbs there',
+        practise: 'Practise the focus wall',
+        flagged: flags.length > 0,
+        flagQuestion: 'A finger flagged sore?',
+        pause: 'Pause finger quests',
+        flagFeed: flagFeed(flags),
+        progress: selection && {
+          done: selection.completed.length,
+          swapped: selection.skipped.length,
+        },
+      }),
+      result: { label: 'Quest', value: quest.title, icon: 'banana' },
+    },
   };
+}
+
+/**
+ * Done and swapped quests. The spoken detail keeps every id it cannot name;
+ * the row shows titles and only counts the rest, so no ids are drawn.
+ */
+function progressEvidence(
+  progress: Readonly<{
+    completed: readonly string[];
+    skipped: readonly string[];
+  }>,
+  titleOf: (id: string) => string | undefined,
+): EvidenceRecord {
+  const spoken = (ids: readonly string[]) =>
+    ids.length ? list(ids.map(id => titleOf(id) ?? id)) : 'none';
+  const shown = (ids: readonly string[]) => {
+    const titles = ids
+      .map(titleOf)
+      .filter((title): title is string => title !== undefined);
+    const other = ids.length - titles.length;
+    const parts = [
+      ...titles,
+      ...(other
+        ? [count(other, titles.length ? 'other quests' : 'quests')]
+        : []),
+    ];
+    return parts.length ? list(parts) : 'none';
+  };
+  return {
+    id: 'quest-progress',
+    label: 'Your quest progress',
+    detail: `Done: ${spoken(
+      progress.completed,
+    )}. Swapped, oldest first: ${spoken(progress.skipped)}.`,
+    view: {
+      icon: 'banana',
+      title: 'Quest progress',
+      note: `Done: ${shown(progress.completed)}. Swapped: ${shown(
+        progress.skipped,
+      )}.`,
+    },
+  };
+}
+
+/** "17 climbs, 1 flagged finger and your quest progress." */
+function questSummary(
+  records: string,
+  flags: string,
+  progress: boolean,
+): string {
+  return `${capital(
+    progress
+      ? `${records}, ${flags} and your quest progress`
+      : `${records} and ${flags}`,
+  )}.`;
+}
+
+/**
+ * The quest rule as a flow, shared by the monkey and the sport modes: the
+ * focus, the log-or-practise gate, the flag pause, then done and swapped
+ * quests. Each check follows what was actually true.
+ */
+function questNodes(
+  q: Readonly<{
+    focus: string;
+    /** Why that focus, a few words. */
+    why: string;
+    practice: boolean;
+    enough: string;
+    logMore: string;
+    practise: string;
+    flagged: boolean;
+    flagQuestion: string;
+    pause: string;
+    flagFeed: FlowInput;
+    progress?: Readonly<{ done: number; swapped: number }>;
+  }>,
+): FlowNode[] {
+  return [
+    {
+      type: 'step',
+      label: `Focus: ${q.focus}`,
+      detail: q.why,
+    },
+    {
+      type: 'check',
+      label: q.enough,
+      taken: q.practice ? 'yes' : 'no',
+      yes: q.practise,
+      no: q.logMore,
+      team: true,
+    },
+    {
+      type: 'check',
+      label: q.flagQuestion,
+      taken: q.flagged ? 'yes' : 'no',
+      yes: q.practice ? `${q.pause}. Check-in first` : q.pause,
+      no: 'All quests open',
+      team: true,
+      feed: q.flagFeed,
+    },
+    {
+      type: 'step',
+      label: 'Leave out done quests. Swapped ones go last',
+      team: true,
+      ...(q.progress
+        ? {
+            feed: {
+              label: 'Your quests',
+              value: `${q.progress.done} done, ${q.progress.swapped} swapped`,
+              icon: 'banana',
+            },
+          }
+        : {}),
+    },
+  ];
 }
 
 function explainTally(
   what: string,
   logs: readonly ClimbLog[],
   extra?: string,
+  draw?: Readonly<{ icon?: FlowIcon; filter?: string }>,
 ): DecisionExplanation {
   const sent = logs.filter(log => log.sent).length;
   const logged = logs.length;
+  const enough = logged >= MIN_LOGS;
   return {
     summary:
       logged === 0
@@ -299,7 +671,7 @@ function explainTally(
     status: logs.some(log => log.sample) ? 'example' : 'app_rule',
     rule: lines(
       `Count the ${what} you logged: ${logged}. Count those marked sent: ${sent}.`,
-      logged >= MIN_LOGS
+      enough
         ? `${sent} of ${logged} is ${percent(sent, logged)}.`
         : `With fewer than ${MIN_LOGS} climbs the share is not shown or compared yet.`,
       extra ?? false,
@@ -307,6 +679,47 @@ function explainTally(
     evidence: climbEvidence(logs),
     sourceIds: [],
     limitations: LOG_LIMITS,
+    inputSummary: climbSummary(logs, what),
+    flow: {
+      inputs: [
+        {
+          label: capital(what),
+          value: `${logged} logged`,
+          ...(draw?.icon ? { icon: draw.icon } : {}),
+        },
+      ],
+      nodes: [
+        ...(draw?.filter
+          ? [{ type: 'step' as const, label: draw.filter }]
+          : []),
+        {
+          type: 'step',
+          label: 'Count the ones marked sent',
+          detail: `${sent} of ${logged}`,
+        },
+        {
+          type: 'check',
+          label: `${MIN_LOGS}+ climbs logged?`,
+          taken: enough ? 'yes' : 'no',
+          yes: 'Show the share sent',
+          no: 'Wait for more climbs',
+          detail: enough
+            ? `${sent} of ${logged} is ${percent(sent, logged)}`
+            : `${logged} of ${MIN_LOGS} so far`,
+          team: true,
+        },
+      ],
+      result: {
+        label: 'Tally',
+        value:
+          logged === 0
+            ? 'None logged'
+            : `${sent} of ${logged} sent${
+                enough ? `, ${percent(sent, logged)}` : ''
+              }`,
+        ...(draw?.icon ? { icon: draw.icon } : {}),
+      },
+    },
   };
 }
 
@@ -320,6 +733,8 @@ export function explainTerrain(
   return explainTally(
     `${terrain} climbs`,
     logs.filter(log => log.terrain === terrain),
+    undefined,
+    { icon: terrain },
   );
 }
 
@@ -331,6 +746,7 @@ export function explainMovement(
     `${movement} climbs`,
     logs.filter(log => log.movements.includes(movement)),
     BOTH_STYLES,
+    { filter: 'A climb with several styles counts in each' },
   );
 }
 
@@ -346,6 +762,7 @@ export function explainCell(
       log => log.terrain === terrain && log.movements.includes(movement),
     ),
     `Only ${terrain} climbs marked ${movement} count here. ${BOTH_STYLES}`,
+    { icon: terrain, filter: `Only ${terrain} climbs marked ${movement}` },
   );
 }
 
@@ -398,9 +815,76 @@ export function explainCamera(input: {
         }. Model: ${
           input.modelVersion ?? 'not recorded'
         }. The body point coordinates were not returned, so the angle cannot be recomputed here.`,
+        view: {
+          icon: 'camera',
+          title: `${value} degrees${
+            shoulder ? `, left ${left}, right ${right}` : ''
+          }`,
+          note: `Visibility ${input.confidence ?? 'unavailable'}. Model ${
+            input.modelVersion ?? 'not recorded'
+          }.`,
+        },
       },
     ],
     sourceIds: ['stenum2021', 'barzegar2024'],
+    inputSummary: 'One camera reading.',
+    flow: shoulder
+      ? {
+          inputs: [
+            {
+              label: 'Camera photo',
+              value: 'hips, shoulders, elbows, wrists',
+              icon: 'camera',
+            },
+          ],
+          nodes: [
+            {
+              type: 'check',
+              label: 'All points seen, arms straight?',
+              taken: input.value == null ? 'no' : 'yes',
+              yes: 'Measure both sides',
+              no: 'No reading',
+              detail: 'Straight means 160+ degrees at the elbow',
+              team: true,
+            },
+            {
+              type: 'step',
+              label: 'Angle at each shoulder, hip to elbow',
+              detail: `Left ${left}, right ${right}`,
+              team: true,
+            },
+            { type: 'step', label: 'Average left and right', team: true },
+          ],
+          result: {
+            label: 'Shoulder reach',
+            value: input.value == null ? 'Unavailable' : `${value} degrees`,
+            icon: 'ruler',
+          },
+        }
+      : {
+          inputs: [
+            { label: 'Camera photo', value: 'hips and ankles', icon: 'camera' },
+          ],
+          nodes: [
+            {
+              type: 'step',
+              label: 'Find the point between the hips',
+              team: true,
+            },
+            { type: 'step', label: 'Draw a line to each ankle', team: true },
+            {
+              type: 'step',
+              label: 'Measure the angle between the lines',
+              detail: 'Flat in the image',
+              team: true,
+            },
+          ],
+          result: {
+            label: 'Leg spread',
+            value: input.value == null ? 'Unavailable' : `${value} degrees`,
+            icon: 'ruler',
+          },
+        },
     limitations: [
       shoulder
         ? 'An angle in a flat image, not a measured joint range. Camera position, bent elbows and depth all change it.'
@@ -419,13 +903,15 @@ export type SportWords = Readonly<{
   kindName: Readonly<Record<string, string>>;
   placeName: Readonly<Record<string, string>>;
   bodyPartName: Readonly<Record<string, string>>;
+  /** "run types", "strokes". Defaults to "kinds". */
+  kindPlural?: string;
 }>;
 
 function sessionEvidence(
   logs: readonly SessionLog[],
   words: SportWords,
-): DecisionExplanation['evidence'] {
-  return logs.map(log => ({
+): EvidenceRecord[] {
+  return newestFirst(logs).map(log => ({
     id: log.id,
     label: `${capital(words.session)}, ${log.date}${
       log.sample ? ' (example)' : ''
@@ -435,7 +921,69 @@ function sessionEvidence(
     ).toLowerCase()}, ${log.distance} ${words.unit}, ${log.minutes} min. ${
       log.finished ? 'Finished as planned' : 'Cut short'
     }.`,
+    view: {
+      when: shortDate(log.date),
+      badge: `${Math.round(log.distance)}`,
+      badgeNote: words.unit,
+      icon: log.kind,
+      title: words.kindName[log.kind] ?? capital(log.kind),
+      note: `${words.placeName[log.place] ?? capital(log.place)}, ${
+        log.minutes
+      } min`,
+      outcome: {
+        text: log.finished ? 'Finished' : 'Cut short',
+        done: log.finished,
+      },
+      ...(log.sample ? { sample: true } : {}),
+    },
   }));
+}
+
+/** "9 runs: 6 finished, 3 cut short." */
+function sessionSummary(logs: readonly SessionLog[], words: SportWords) {
+  const done = logs.filter(log => log.finished).length;
+  return logs.length === 0
+    ? `No ${words.sessions} logged yet.`
+    : `${capital(count(logs.length, words.sessions))}: ${done} finished, ${
+        logs.length - done
+      } cut short.`;
+}
+
+function kindRows(
+  logs: readonly SessionLog[],
+  kinds: readonly string[],
+  words: SportWords,
+): GroupRow[] {
+  const tallies = talliesBy(logs, 'kind', kinds);
+  return kinds.map(kind => ({
+    name: words.kindName[kind] ?? capital(kind),
+    logged: tallies[kind].logged,
+    done: tallies[kind].finished,
+  }));
+}
+
+function kindInputs(
+  logs: readonly SessionLog[],
+  kinds: readonly string[],
+  words: SportWords,
+  key: string,
+): FlowInput[] {
+  return kindRows(logs, kinds, words).map((row, index) => ({
+    label: row.name,
+    value: `${row.done} of ${row.logged} finished`,
+    icon: kinds[index],
+    ...(kinds[index] === key ? { key: true } : {}),
+  }));
+}
+
+function sportFlowWords(words: SportWords) {
+  return {
+    group: (words.kindPlural ?? 'kinds').replace(/s$/, ''),
+    things: words.sessions,
+    done: 'finished',
+    dones: 'finishes',
+    min: MIN_SESSIONS,
+  };
 }
 
 function finishedSoFar(
@@ -486,6 +1034,17 @@ export function explainSportFocus(
     evidence: sessionEvidence(logs, words),
     sourceIds: [],
     limitations: sportLimits(words),
+    inputSummary: sessionSummary(logs, words),
+    flow: {
+      inputs: kindInputs(logs, kinds, words, focus.sessionKind),
+      nodes: focusNodes(
+        kindRows(logs, kinds, words),
+        name,
+        focus.kind === 'practice',
+        sportFlowWords(words),
+      ),
+      result: { label: 'Focus', value: name, icon: focus.sessionKind },
+    },
   };
 }
 
@@ -503,10 +1062,6 @@ export function explainSportQuest(
   words: SportWords,
 ): DecisionExplanation {
   const name = (words.kindName[focus.sessionKind] ?? '').toLowerCase();
-  const titles = (ids: readonly string[]) =>
-    ids.length
-      ? list(ids.map(id => library.find(q => q.id === id)?.title ?? id))
-      : 'none';
   const draft = quest.kind === 'practice' || quest.kind === 'plan';
   return {
     summary: quest.why,
@@ -526,21 +1081,24 @@ export function explainSportQuest(
       `This quest: ${quest.task} About ${quest.minutes} minutes.`,
     ),
     evidence: [
-      ...sessionEvidence(state.logs, words),
       ...state.flags.map(flag => ({
         id: `${flag.side}/${flag.part}`,
         label: `Flagged sore, since ${flag.date}`,
         detail: `${capital(flag.side)} ${(
           words.bodyPartName[flag.part] ?? flag.part
         ).toLowerCase()}.`,
+        view: {
+          when: `Since ${shortDate(flag.date)}`,
+          icon: 'flag',
+          title: `${capital(flag.side)} ${(
+            words.bodyPartName[flag.part] ?? flag.part
+          ).toLowerCase()}`,
+          note: 'Flagged sore',
+          outcome: { text: 'Flagged', done: false },
+        },
       })),
-      {
-        id: 'quest-progress',
-        label: 'Your quest progress',
-        detail: `Done: ${titles(
-          state.completed,
-        )}. Swapped, oldest first: ${titles(state.skipped)}.`,
-      },
+      progressEvidence(state, id => library.find(q => q.id === id)?.title),
+      ...sessionEvidence(state.logs, words),
     ],
     sourceIds: [],
     limitations: draft
@@ -549,6 +1107,53 @@ export function explainSportQuest(
           sportLimits(words)[1],
         ]
       : sportLimits(words),
+    inputSummary: questSummary(
+      count(state.logs.length, words.sessions),
+      state.flags.length === 0
+        ? 'nothing flagged'
+        : count(state.flags.length, 'sore spots'),
+      true,
+    ),
+    flow: {
+      inputs: kindInputs(state.logs, kinds, words, focus.sessionKind),
+      nodes: questNodes({
+        focus: words.kindName[focus.sessionKind] ?? capital(focus.sessionKind),
+        why:
+          focus.kind === 'practice'
+            ? 'Lowest share finished'
+            : `Fewest ${words.sessions}`,
+        practice: focus.kind === 'practice',
+        enough: `Every ${sportFlowWords(words).group} has ${MIN_SESSIONS}+ ${
+          words.sessions
+        }?`,
+        logMore: `Log more ${name} ${words.sessions}`,
+        practise: `Practise ${name}`,
+        flagged: state.flags.length > 0,
+        flagQuestion: 'Something flagged sore?',
+        pause: `Pause ${words.session} quests`,
+        flagFeed:
+          state.flags.length === 1
+            ? {
+                label: `${capital(state.flags[0].side)} ${(
+                  words.bodyPartName[state.flags[0].part] ?? state.flags[0].part
+                ).toLowerCase()}`,
+                value: 'flagged',
+                icon: 'flag',
+              }
+            : {
+                label:
+                  state.flags.length === 0
+                    ? 'Nothing flagged'
+                    : count(state.flags.length, 'sore spots'),
+                icon: 'flag',
+              },
+        progress: {
+          done: state.completed.length,
+          swapped: state.skipped.length,
+        },
+      }),
+      result: { label: 'Quest', value: quest.title },
+    },
   };
 }
 

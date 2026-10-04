@@ -10,6 +10,7 @@ import {
   XP_PER_QUEST,
   findQuest,
   petStatus,
+  shortDate,
   type BaselineTest,
   type DecisionExplanation,
   type Reach,
@@ -48,12 +49,58 @@ export function explainXP(completed: readonly string[]): DecisionExplanation {
             id,
             label: findQuest(id)?.title ?? 'Completed quest',
             detail: 'Completed. The date it was completed is not recorded.',
+            view: {
+              icon: 'check',
+              title: findQuest(id)?.title ?? 'Completed quest',
+              note: 'Date not recorded',
+              outcome: { text: 'Done', done: true },
+            },
           })),
     sourceIds: [],
     limitations: [
       'XP measures taking part, not climbing ability. Completing a quest does not change your wall or style counts.',
       'In the demo profile, example quests count towards XP.',
     ],
+    inputSummary:
+      unique.length === 1
+        ? '1 completed quest.'
+        : `${unique.length} completed quests.`,
+    flow: {
+      inputs: [
+        {
+          label: 'Quests done',
+          value: `${unique.length}`,
+          icon: 'check',
+        },
+      ],
+      nodes: [
+        {
+          type: 'step',
+          label: `${XP_PER_QUEST} XP per quest, once each`,
+          detail: `${unique.length} x ${XP_PER_QUEST} = ${pet.xp} XP`,
+          team: true,
+        },
+        {
+          type: 'step',
+          label: `New level every ${XP_PER_LEVEL} XP`,
+          detail: `${pet.xp} XP is level ${pet.level}`,
+          team: true,
+        },
+        {
+          type: 'step',
+          label: 'Unlock gear at set levels',
+          detail: `Unlocked: ${
+            unlocked.map(c => c.name).join(', ') || 'nothing yet'
+          }`,
+          team: true,
+        },
+      ],
+      result: {
+        label: 'Level',
+        value: `${pet.level}, ${pet.xp} XP`,
+        icon: 'banana',
+      },
+    },
   };
 }
 
@@ -79,8 +126,33 @@ export function explainReach(reach: Reach): DecisionExplanation {
         id: `reach-${reach.date}`,
         label: `Saved reach, ${reach.date}`,
         detail: `Arm span ${reach.armSpanCm} cm, height ${reach.heightCm} cm. No original record ID was kept, and when each was measured is not recorded.`,
+        view: {
+          when: shortDate(reach.date),
+          icon: 'ruler',
+          title: `Arm span ${reach.armSpanCm} cm, height ${reach.heightCm} cm`,
+          note: 'When each was measured is not recorded',
+        },
       },
     ],
+    inputSummary: 'Your saved arm span and height.',
+    flow: {
+      inputs: [
+        { label: 'Arm span', value: `${reach.armSpanCm} cm`, icon: 'ruler' },
+        { label: 'Height', value: `${reach.heightCm} cm`, icon: 'ruler' },
+      ],
+      nodes: [
+        {
+          type: 'step',
+          label: 'Arm span minus height',
+          detail: `${reach.armSpanCm} minus ${reach.heightCm} is ${difference} cm`,
+        },
+      ],
+      result: {
+        label: 'Difference',
+        value: `${difference > 0 ? '+' : ''}${difference} cm`,
+        icon: 'ruler',
+      },
+    },
     sourceIds: ['mermier2000'],
     limitations: [
       'A body measurement only. It does not change your focus or quests, and it is never scored as a weakness.',
@@ -118,6 +190,12 @@ export function explainHomeTest(
               ? `Saved result, ${result.date}`
               : 'Current reading, not saved',
             detail: `${result.value} ${unit}, method: ${result.method}. No original record ID was kept.`,
+            view: {
+              when: result.date ? shortDate(result.date) : 'Not saved yet',
+              icon: 'tests',
+              title: `${result.value} ${unit}`,
+              note: `${test.name}, ${result.method}`,
+            },
           },
         ]
       : [
@@ -125,8 +203,18 @@ export function explainHomeTest(
             id: test.id,
             label: 'No result yet',
             detail: 'Time it, count it or type your result.',
+            view: {
+              icon: 'tests',
+              title: 'No result yet',
+              note: 'Time it, count it or type your result',
+            },
           },
         ],
+    inputSummary: result
+      ? result.date
+        ? 'One saved result.'
+        : 'One reading, not saved yet.'
+      : 'No result yet.',
     sourceIds: [],
     limitations: [
       'A draft home test, not a calibrated score or a diagnosis. Technique, equipment and timing change the result.',

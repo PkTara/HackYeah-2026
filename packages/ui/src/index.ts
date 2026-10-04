@@ -31,7 +31,7 @@ export {
 } from './components/FingerMap';
 export { Dolphin } from './components/Dolphin';
 export { Gazelle } from './components/Gazelle';
-export { Icon } from './components/Icon';
+export { Icon, isIconName } from './components/Icon';
 export { IconButton, ICON_BUTTON_SIZE } from './components/IconButton';
 export { JungleHero } from './components/JungleHero';
 export { Meter, Pips } from './components/Meter';
@@ -57,6 +57,7 @@ export {
   Column,
   Columns,
   CONTENT_MAX,
+  SingleColumn,
   RAIL_WIDTH,
   layoutFor,
   useContentWidth,

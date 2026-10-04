@@ -16,9 +16,18 @@ type Props = {
   style?: StyleProp<ViewStyle>;
 };
 
+/** True for names the sprite sheet has, e.g. hints that come from core. */
+export function isIconName(name: string | undefined): name is IconName {
+  return (
+    name !== undefined && Object.prototype.hasOwnProperty.call(ICONS, name)
+  );
+}
+
 export function Icon({ name, scale = 2, color, style }: Props) {
   const tone = useTone();
   const ink = color ?? tone.text;
   const colors = useMemo(() => ({ ...SPRITE_COLORS, '#': ink, W: '' }), [ink]);
-  return <PixelArt rows={ICONS[name]} colors={colors} scale={scale} style={style} />;
+  return (
+    <PixelArt rows={ICONS[name]} colors={colors} scale={scale} style={style} />
+  );
 }

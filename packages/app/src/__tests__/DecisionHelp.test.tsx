@@ -33,6 +33,17 @@ const explanation = {
   sourceIds: ['original-paper'],
   limitations: ['Self-reported'],
 };
+/** Every accessibility label on screen: what a screen reader hears. */
+function spoken(screen: Renderer): string[] {
+  return screen.root
+    .findAll(
+      node =>
+        typeof node.type === 'string' &&
+        typeof node.props.accessibilityLabel === 'string',
+    )
+    .map(node => node.props.accessibilityLabel as string);
+}
+
 async function render(props: Partial<Parameters<typeof DecisionHelp>[0]> = {}) {
   let screen!: Renderer;
   await act(async () => {
@@ -57,7 +68,8 @@ it('opens one sheet with the sentence, inputs, rule, research and limits, and cl
     expect(content).toContain('A count from your climbs');
     expect(content).toContain('Climb on 2026-10-03');
     expect(content).toContain('Vertical; sent; V2');
-    expect(content).toContain('Ref log-7');
+    // Internal record ids are never drawn.
+    expect(content).not.toContain('log-7');
     // Each line of the rule is its own step.
     expect(content).toContain('Count matching records');
     expect(content).toContain('Show the share after three');
@@ -143,7 +155,7 @@ it('cites no research for an app rule without sources', async () => {
   }
 });
 
-it('folds a long list of input records away until requested', async () => {
+it('shows the first three input records and the rest on request', async () => {
   const many = Array.from({ length: 5 }, (_, i) => ({
     id: `log-${i}`,
     label: `Climb ${i}`,
@@ -154,15 +166,20 @@ it('folds a long list of input records away until requested', async () => {
   });
   try {
     await press(screen, 'Why: Focus');
-    expect(text(screen)).not.toContain('Ref log-3');
+    // A plain count leads when no summary line was supplied.
+    expect(text(screen)).toContain('5 records.');
+    expect(text(screen)).toContain('Climb 2');
+    expect(text(screen)).not.toContain('Climb 3');
     expect(
-      control(screen, 'Your inputs, 5 records')?.props.accessibilityState
-        .expanded,
+      control(screen, 'Show all 5 records')?.props.accessibilityState.expanded,
     ).toBe(false);
-    await press(screen, 'Your inputs, 5 records');
-    expect(text(screen)).toContain('Ref log-3');
-    await press(screen, 'Your inputs, 5 records');
-    expect(text(screen)).not.toContain('Ref log-3');
+    await press(screen, 'Show all 5 records');
+    expect(text(screen)).toContain('Climb 4');
+    expect(
+      control(screen, 'Show all 5 records')?.props.accessibilityState.expanded,
+    ).toBe(true);
+    await press(screen, 'Show all 5 records');
+    expect(text(screen)).not.toContain('Climb 3');
   } finally {
     await act(async () => screen.unmount());
   }
@@ -194,10 +211,11 @@ it('distinguishes generated local display references from unavailable original r
     const seen: string[] = [];
     for (let i = 0; i < cases.length; i++) {
       await press(screen, `Why: Case ${i}`);
-      seen.push(text(screen));
+      seen.push(`${text(screen)} ${spoken(screen).join(' ')}`);
       await press(screen, 'Close explanation');
     }
     const content = seen.join(' ');
+    // Screen readers hear the full record, provenance note included.
     expect(content.match(/No original record ID was kept/g) ?? []).toHaveLength(
       3,
     );
@@ -207,6 +225,10 @@ it('distinguishes generated local display references from unavailable original r
     expect(seen[1]).toContain('4 reps, method: typed');
     expect(seen[2]).toContain('Saved reach, 2026-10-02');
     expect(seen[2]).toContain('Arm span 182 cm, height 178 cm');
+    // On screen the same records are short rows with short dates.
+    expect(seen[0]).toContain('3 Oct');
+    expect(seen[1]).toContain('Not saved yet');
+    expect(seen[2]).toContain('2 Oct');
   } finally {
     await act(async () => screen.unmount());
   }
@@ -279,4 +301,127 @@ it('lists every library source with its finding and a link', async () => {
   } finally {
     await act(async () => screen.unmount());
   }
+});
+
+describe('decision flow', () => {
+  const flow = {
+    inputs: [
+      { label: 'Slab', value: '5 of 6 sent', icon: 'slab' },
+      { label: 'Vertical', value: '2 of 6 sent', icon: 'vertical', key: true },
+    ],
+    nodes: [
+      { type: 'step' as const, label: 'Count climbs and sends per wall' },
+      {
+        type: 'check' as const,
+        label: 'Every wall has 3+ climbs?',
+        taken: 'yes' as const,
+        yes: 'Pick the lowest share sent',
+        no: 'Pick the fewest climbs',
+        detail: 'Slab 83%, vertical 33%',
+        team: true,
+        feed: { label: 'Right ring', value: 'flagged', icon: 'flag' },
+      },
+    ],
+    result: { label: 'Focus', value: 'Vertical', icon: 'vertical' },
+  };
+
+  it('draws the rule as a flow with the rule in words one press away', async () => {
+    const screen = await render({ explanation: { ...explanation, flow } });
+    try {
+      await press(screen, 'Why: Focus');
+      const graph = screen.root.findAll(
+        node =>
+          typeof node.type === 'string' &&
+          node.props.accessibilityRole === 'image' &&
+          node.props.accessibilityLabel?.startsWith('Flow chart.'),
+      );
+      expect(graph).toHaveLength(1);
+      // One spoken version of the whole picture, in order.
+      expect(graph[0].props.accessibilityLabel).toBe(
+        'Flow chart. From your records: Slab, 5 of 6 sent; Vertical, 2 of 6 sent. ' +
+          'Step 1: Count climbs and sends per wall. ' +
+          'Also uses: Right ring, flagged. ' +
+          'Step 2: Every wall has 3+ climbs? Yes, so pick the lowest share sent. Slab 83%, vertical 33%. ' +
+          'Result: Focus, Vertical.',
+      );
+      const content = text(screen);
+      expect(content).toContain('Count climbs and sends per wall');
+      expect(content).toContain('Every wall has 3+ climbs?');
+      expect(content).toContain('Right ring');
+      // Both ways are written out; the one not taken says so in words.
+      expect(content).toContain('Pick the lowest share sent');
+      expect(content).toContain('Pick the fewest climbs');
+      expect(content.match(/not taken/g)).toHaveLength(2);
+      expect(content).toContain('Chosen by the team, not taken from a study.');
+      // The plain text rule is folded under the picture.
+      expect(content).not.toContain('Count matching records');
+      await press(screen, 'Rule in words');
+      expect(text(screen)).toContain('Count matching records');
+    } finally {
+      await act(async () => screen.unmount());
+    }
+  });
+
+  it('falls back to the text rule for a missing or broken flow', async () => {
+    const screen = await render({
+      explanation: { ...explanation, flow: { ...flow, nodes: [] } },
+    });
+    try {
+      await press(screen, 'Why: Focus');
+      expect(text(screen)).toContain('Count matching records');
+      expect(control(screen, 'Rule in words')).toBeUndefined();
+      expect(
+        screen.root.findAll(node => node.props.accessibilityRole === 'image'),
+      ).toHaveLength(0);
+    } finally {
+      await act(async () => screen.unmount());
+    }
+  });
+
+  it('leads the inputs with a summary and draws records as short rows', async () => {
+    const row = (id: string, sample: boolean, sent: boolean) => ({
+      id,
+      label: `Climb, 2026-09-30${sample ? ' (example)' : ''}`,
+      detail: 'Vertical, controlled, crimp, V3.',
+      view: {
+        when: '30 Sep',
+        badge: 'V3',
+        icon: 'vertical',
+        title: 'Vertical',
+        note: 'Controlled, crimps',
+        outcome: { text: sent ? 'Sent' : 'Not yet', done: sent },
+        ...(sample ? { sample: true } : {}),
+      },
+    });
+    const screen = await render({
+      explanation: {
+        ...explanation,
+        inputSummary: '2 vertical climbs: 1 sent, 1 not yet.',
+        evidence: [row('own-1', false, true), row('sample-9', true, false)],
+      },
+    });
+    try {
+      await press(screen, 'Why: Focus');
+      const content = text(screen);
+      expect(content).toContain('2 vertical climbs: 1 sent, 1 not yet.');
+      expect(content).toContain('Controlled, crimps');
+      expect(content).toContain('30 Sep');
+      // Example records are marked once, not on every row.
+      expect(content.match(/example/gi)).toHaveLength(1);
+      expect(content).toContain('Includes example records.');
+      expect(content).not.toContain('sample-9');
+      expect(content).not.toContain('2026-09-30');
+      // A screen reader hears each full record.
+      expect(
+        screen.root.findAll(
+          node =>
+            typeof node.type === 'string' &&
+            node.props.accessibilityLabel ===
+              'Climb, 2026-09-30 (example). Vertical, controlled, crimp, V3.',
+        ),
+      ).toHaveLength(1);
+    } finally {
+      await act(async () => screen.unmount());
+    }
+  });
 });

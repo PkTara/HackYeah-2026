@@ -239,12 +239,18 @@ describe('why explanations in sport modes', () => {
     press(renderer, 'Switch to gazelle mode', 'Why: Focus');
     let text = screenText(renderer);
     expect(text).toContain('Tempo is your focus');
+    // The rule is drawn as a flow in the gazelle's words, and the same rule
+    // stays readable as text one press away.
+    expect(text).toContain('Every run type has 3+ runs?');
+    expect(text).not.toContain('Finished so far: easy');
+    press(renderer, 'Rule in words');
+    text = screenText(renderer);
     expect(text).toContain('Finished so far: easy');
     expect(text).toContain('Built from sample data');
     press(renderer, 'Close explanation');
     expect(screenText(renderer)).not.toContain('Finished so far: easy');
 
-    press(renderer, 'Why: Quest');
+    press(renderer, 'Why: Quest', 'Rule in words');
     text = screenText(renderer);
     expect(text).toContain('Swapped quests go to the back');
     expect(text).toContain('Draft content from the team');
@@ -254,6 +260,8 @@ describe('why explanations in sport modes', () => {
   it('opens the dolphin focus explanation in its own words', async () => {
     const renderer = await renderApp();
     press(renderer, 'Switch to dolphin mode', 'Why: Focus');
+    expect(screenText(renderer)).toContain('Every stroke has 3+ swims?');
+    press(renderer, 'Rule in words');
     expect(screenText(renderer)).toContain('logged swims');
     act(() => renderer.unmount());
   });

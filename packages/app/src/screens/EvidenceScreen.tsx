@@ -19,12 +19,11 @@ import {
   AppText,
   Button,
   Chip,
-  Column,
-  Columns,
   Icon,
   PX,
   Panel,
   PixelText,
+  SampleMark,
   Tag,
   useTheme,
 } from '@hackyeah/ui';
@@ -69,7 +68,7 @@ export function EvidenceScreen() {
     .sort((a, b) => b.date.localeCompare(a.date));
 
   return (
-    <TabScreen>
+    <TabScreen single>
       <Crumbs />
       <PageHeader
         title="Evidence"
@@ -90,83 +89,74 @@ export function EvidenceScreen() {
         ))}
       </View>
 
-      {/* Wide screens: the numbers on the left, the climbs behind them on
-          the right. */}
-      <Columns>
-        <Column>
-          <Panel
-            title={name}
-            icon={TERRAIN_ICON[terrain]}
-            badge={isFocus ? <Tag text="Your focus" tone="focus" /> : undefined}
+      {/* One column at every width, read top to bottom: the wall, its
+          focus, the grid, then the climbs behind them. */}
+      <Panel
+        title={name}
+        icon={TERRAIN_ICON[terrain]}
+        badge={isFocus ? <Tag text="Your focus" tone="focus" /> : undefined}
+      >
+        <DecisionHelp
+          label={`${name} tally`}
+          explanation={explainTerrain(terrain, state.logs)}
+        >
+          <PixelText
+            text={
+              tally.logged === 0
+                ? 'None logged'
+                : `${tally.sent} of ${tally.logged} sent`
+            }
+            scale={4}
+          />
+        </DecisionHelp>
+        {tally.rate === null ? (
+          <AppText>
+            Needs {toGo} more logged {toGo === 1 ? 'climb' : 'climbs'} before it
+            is compared with the other walls.
+          </AppText>
+        ) : null}
+        {isFocus ? (
+          <DecisionHelp
+            label="Focus"
+            explanation={explainFocus(focus, state.logs)}
           >
-            <DecisionHelp
-              label={`${name} tally`}
-              explanation={explainTerrain(terrain, state.logs)}
-            >
-              <PixelText
-                text={
-                  tally.logged === 0
-                    ? 'None logged'
-                    : `${tally.sent} of ${tally.logged} sent`
-                }
-                scale={4}
-              />
-            </DecisionHelp>
-            {tally.rate === null ? (
-              <AppText>
-                Needs {toGo} more logged {toGo === 1 ? 'climb' : 'climbs'}{' '}
-                before it is compared with the other walls.
-              </AppText>
-            ) : null}
-            {isFocus ? (
-              <DecisionHelp
-                label="Focus"
-                explanation={explainFocus(focus, state.logs)}
-              >
-                <AppText>
-                  {focus.kind === 'practice'
-                    ? 'This is your focus: the lowest share of sends of the three walls.'
-                    : 'This is your focus: it has the fewest logged climbs, so the monkey asks for more here first.'}
-                </AppText>
-              </DecisionHelp>
-            ) : null}
-            {climbs.length > 0 ? (
-              <AppText variant="caption" muted>
-                Last logged {ageLabel(climbs[0].date, today)},{' '}
-                {shortDate(climbs[0].date)}.
-              </AppText>
-            ) : null}
-            <AppText variant="caption" muted>
-              The focus goes to the wall with the lowest share of sends once
-              every wall has at least {MIN_LOGS} logged climbs.
+            <AppText>
+              {focus.kind === 'practice'
+                ? 'This is your focus: the lowest share of sends of the three walls.'
+                : 'This is your focus: it has the fewest logged climbs, so the monkey asks for more here first.'}
             </AppText>
-          </Panel>
+          </DecisionHelp>
+        ) : null}
+        {climbs.length > 0 ? (
+          <AppText variant="caption" muted>
+            Last logged {ageLabel(climbs[0].date, today)},{' '}
+            {shortDate(climbs[0].date)}.
+          </AppText>
+        ) : null}
+        <AppText variant="caption" muted>
+          The focus goes to the wall with the lowest share of sends once every
+          wall has at least {MIN_LOGS} logged climbs.
+        </AppText>
+      </Panel>
 
-          <Panel title="Wall x style">
-            <StyleGrid logs={state.logs} selected={terrain} />
-            <AppText variant="caption" muted>
-              Each box shows sent / logged. A dash means none logged yet. The
-              framed column is {name.toLowerCase()}. Tap a box to see the climbs
-              behind it.
-            </AppText>
-          </Panel>
-        </Column>
-
-        <Column>
-          <Panel title="Climbs" icon="log">
-            {climbs.length === 0 ? (
-              <AppText>No {name.toLowerCase()} climbs logged yet.</AppText>
-            ) : (
-              climbs.map(log => <ClimbRow key={log.id} log={log} />)
-            )}
-            <Button
-              title="Log a climb"
-              icon="log"
-              onPress={() => reset('Log')}
-            />
-          </Panel>
-        </Column>
-      </Columns>
+      <Panel title="Wall x style">
+        <StyleGrid logs={state.logs} selected={terrain} />
+        <AppText variant="caption" muted>
+          Each box shows sent / logged. A dash means none logged yet. The framed
+          column is {name.toLowerCase()}. Tap a box to see the climbs behind it.
+        </AppText>
+      </Panel>
+      <Panel title="Climbs" icon="log">
+        {climbs.some(log => log.sample) ? (
+          <SampleMark text="Includes sample climbs." />
+        ) : null}
+        {climbs.length === 0 ? (
+          <AppText>No {name.toLowerCase()} climbs logged yet.</AppText>
+        ) : (
+          climbs.map(log => <ClimbRow key={log.id} log={log} />)
+        )}
+        <Button title="Log a climb" icon="log" onPress={() => reset('Log')} />
+      </Panel>
     </TabScreen>
   );
 }
@@ -365,7 +355,6 @@ function ClimbRow({ log }: { log: ClimbLog }) {
         ) : null}
         <AppText variant="caption" muted>
           {shortDate(log.date)}
-          {log.sample ? ', example' : ''}
         </AppText>
       </View>
       {/* Wrapped so the tag centres on the row instead of the top edge. */}

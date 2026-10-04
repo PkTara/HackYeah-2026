@@ -10,6 +10,7 @@ import {
   NavRail,
   PixelText,
   Screen,
+  SingleColumn,
   TabBar,
   type IconName,
   type Tab,
@@ -60,6 +61,8 @@ type Props = {
   hero?: ReactNode;
   /** Override a local detail stage, or false when it supplies its own completion. */
   completion?: SubpageCompletion | false;
+  /** One centred reading column at every width, footer included. */
+  single?: boolean;
 };
 
 const isTab = (route: RouteName | undefined): route is TabRoute =>
@@ -71,13 +74,22 @@ const isTab = (route: RouteName | undefined): route is TabRoute =>
  * on wide screens. The active tab is the root of the navigation stack, or the
  * tab a linked screen belongs to (a link to a finger close-up shows Hands).
  */
-export function TabScreen({ children, hero, completion }: Props) {
+export function TabScreen({ children, hero, completion, single }: Props) {
   const demo = useDemo();
   const { root, reset } = useNavigation<RouteName>();
   const { mode, view } = useSport();
   const tabs =
     mode === 'monkey' ? TABS : sportTabs(view.bodyTab, view.bodyIcon);
   const home = trailFor(root, {})[0]?.route;
+  // Sports are not part of the demo profile, so sport modes say nothing.
+  const note =
+    demo.settings.enabled && mode === 'monkey' ? (
+      <AppText variant="caption">
+        Demo: records stay in the separate demo profile.
+      </AppText>
+    ) : null;
+  const footer =
+    completion !== false ? <SubpageFooter {...completion} /> : null;
   const active: TabRoute = isTab(root)
     ? root
     : isTab(home)
@@ -97,14 +109,19 @@ export function TabScreen({ children, hero, completion }: Props) {
         />
       }
     >
-      {/* Sports are not part of the demo profile, so sport modes say nothing. */}
-      {demo.settings.enabled && mode === 'monkey' ? (
-        <AppText variant="caption">
-          Demo: records stay in the separate demo profile.
-        </AppText>
-      ) : null}
-      {children}
-      {completion !== false ? <SubpageFooter {...completion} /> : null}
+      {single ? (
+        <SingleColumn>
+          {note}
+          {children}
+          {footer}
+        </SingleColumn>
+      ) : (
+        <>
+          {note}
+          {children}
+          {footer}
+        </>
+      )}
     </Screen>
   );
 }

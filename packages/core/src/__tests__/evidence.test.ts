@@ -30,7 +30,7 @@ const logs: ClimbLog[] = [
 ];
 it('explains local focus using dated logs and all terrain comparisons', () => {
   const explanation = explainFocus(pickFocus(logs), logs);
-  expect(explanation.evidence).toEqual([
+  expect(explanation.evidence).toMatchObject([
     {
       id: 'climb-1',
       label: 'Climb, 2026-10-03',
@@ -51,7 +51,7 @@ it('explains finger-loading pauses from dated user flags without diagnosing safe
   const explanation = explainPause([
     { side: 'left', finger: 'ring', date: '2026-10-02', spots: ['a2'] },
   ]);
-  expect(explanation.evidence[0]).toEqual({
+  expect(explanation.evidence[0]).toMatchObject({
     id: 'left/ring',
     label: 'Flagged finger, since 2026-10-02',
     detail:
@@ -179,11 +179,13 @@ it('shows completed and skip-order inputs when supplied for local quest selectio
     [],
     { completed: ['done-id'], skipped: ['skip-first', 'skip-last'] },
   );
-  expect(explanation.evidence).toContainEqual({
-    id: 'quest-progress',
-    label: 'Your quest progress',
-    detail: 'Done: done-id. Swapped, oldest first: skip-first and skip-last.',
-  });
+  expect(explanation.evidence).toContainEqual(
+    expect.objectContaining({
+      id: 'quest-progress',
+      label: 'Your quest progress',
+      detail: 'Done: done-id. Swapped, oldest first: skip-first and skip-last.',
+    }),
+  );
 });
 
 it('uses authoritative camera landmark snapshots instead of reconstructing inputs from the result', () => {
@@ -247,28 +249,34 @@ it('explains the real flagged check-in priority, skip ordering and library ties'
   expect(initialExplanation.rule).toContain(
     'Other ties follow the order of the quest library',
   );
-  expect(initialExplanation.evidence).toContainEqual({
-    id: 'quest-progress',
-    label: 'Your quest progress',
-    detail: 'Done: none. Swapped, oldest first: none.',
-  });
-  expect(initialExplanation.evidence).toContainEqual({
-    id: 'left/ring',
-    label: 'Flagged finger, since 2026-10-03',
-    detail:
-      'Left ring, sore with no spot marked. Pain ratings are not kept with the flag.',
-  });
+  expect(initialExplanation.evidence).toContainEqual(
+    expect.objectContaining({
+      id: 'quest-progress',
+      label: 'Your quest progress',
+      detail: 'Done: none. Swapped, oldest first: none.',
+    }),
+  );
+  expect(initialExplanation.evidence).toContainEqual(
+    expect.objectContaining({
+      id: 'left/ring',
+      label: 'Flagged finger, since 2026-10-03',
+      detail:
+        'Left ring, sore with no spot marked. Pain ratings are not kept with the flag.',
+    }),
+  );
 
   const skippedCheckin = { completed: [], skipped: ['finger-checkin'] };
   const plan = pickQuest(focus, { ...skippedCheckin, hasFlag: true }).quest!;
   expect(plan.id).toBe('vertical-read');
   expect(
     explainQuest(plan, focus, comparisonLogs, flags, skippedCheckin).evidence,
-  ).toContainEqual({
-    id: 'quest-progress',
-    label: 'Your quest progress',
-    detail: 'Done: none. Swapped, oldest first: Finger check-in.',
-  });
+  ).toContainEqual(
+    expect.objectContaining({
+      id: 'quest-progress',
+      label: 'Your quest progress',
+      detail: 'Done: none. Swapped, oldest first: Finger check-in.',
+    }),
+  );
 
   expect(
     pickQuest(focus, {
@@ -403,7 +411,7 @@ it('explains a sport focus with the same three-log gate and tie order', () => {
   expect(explanation.status).toBe('example');
   expect(explanation.rule).toContain('tempo 1 of 1');
   expect(explanation.rule).toContain('needs 3 logged runs');
-  expect(explanation.evidence[0]).toEqual({
+  expect(explanation.evidence[0]).toMatchObject({
     id: 'run-1',
     label: 'Run, 2026-10-01 (example)',
     detail: 'Tempo, road, 5 km, 30 min. Finished as planned.',
@@ -434,14 +442,18 @@ it('explains a sport quest from its focus, flags and progress', () => {
   );
   expect(explanation.summary).toBe(quest.why);
   expect(explanation.rule).toContain(`About ${quest.minutes} minutes`);
-  expect(explanation.evidence).toContainEqual({
-    id: 'left/knee',
-    label: 'Flagged sore, since 2026-10-02',
-    detail: 'Left knee.',
-  });
-  expect(explanation.evidence).toContainEqual({
-    id: 'quest-progress',
-    label: 'Your quest progress',
-    detail: 'Done: none. Swapped, oldest first: none.',
-  });
+  expect(explanation.evidence).toContainEqual(
+    expect.objectContaining({
+      id: 'left/knee',
+      label: 'Flagged sore, since 2026-10-02',
+      detail: 'Left knee.',
+    }),
+  );
+  expect(explanation.evidence).toContainEqual(
+    expect.objectContaining({
+      id: 'quest-progress',
+      label: 'Your quest progress',
+      detail: 'Done: none. Swapped, oldest first: none.',
+    }),
+  );
 });
