@@ -8,6 +8,7 @@ import {
   explainCell,
   explainSportFocus,
   explainSportQuest,
+  EXPORT_SOURCE_IDS,
   RESEARCH_SOURCES,
   RUNNING,
   pickSportFocus,
@@ -157,10 +158,17 @@ it('explains camera geometry and visibility without claiming validated range or 
 });
 
 it('provides original research links and explicit reading depth and limitations for all scoped sources', () => {
-  expect(RESEARCH_SOURCES).toHaveLength(17);
-  expect(new Set(RESEARCH_SOURCES.map(source => source.id)).size).toBe(17);
+  expect(RESEARCH_SOURCES).toHaveLength(37);
+  expect(new Set(RESEARCH_SOURCES.map(source => source.id)).size).toBe(37);
+  // Where no DOI was confirmed, the link goes to a public record instead,
+  // and the limits say so. No DOI is made up.
+  const noConfirmedDoi = ['wolff2011', 'harkin2016', 'coleman2012', 'foster2001'];
   for (const source of RESEARCH_SOURCES) {
-    expect(source.url).toMatch(/^https:\/\/doi.org\//);
+    if (noConfirmedDoi.includes(source.id)) {
+      expect(source.url).toMatch(/^https:\/\/(pmc|pubmed|eprints)\./);
+    } else {
+      expect(source.url).toMatch(/^https:\/\/doi.org\//);
+    }
     expect(source.readingDepth).toBeTruthy();
     expect(source.limitations.length).toBeGreaterThan(0);
     expect(source.population).toBeTruthy();
@@ -169,6 +177,24 @@ it('provides original research links and explicit reading depth and limitations 
   expect(
     RESEARCH_SOURCES.find(source => source.id === 'paxton2012')?.population,
   ).toContain('no human');
+});
+
+it('marks every export layout source as read at abstract level and scoped to layout only', () => {
+  const ids = new Set(RESEARCH_SOURCES.map(source => source.id));
+  expect(EXPORT_SOURCE_IDS).toHaveLength(20);
+  for (const id of EXPORT_SOURCE_IDS) {
+    expect(ids.has(id)).toBe(true);
+    const source = RESEARCH_SOURCES.find(entry => entry.id === id)!;
+    expect(source.readingDepth).toMatch(/^abstract only/);
+    expect(source.verifiedAt).toBe('2026-10-04');
+    expect(source.limitations.length).toBeGreaterThan(0);
+    // A layout reason, never a claim about the app.
+    expect(
+      [source.finding, source.supports, ...source.limitations].join(' '),
+    ).not.toMatch(/validat(es|ed) (the|this) app|prevents? injur/i);
+  }
+  // Rejected in the design: never cited.
+  expect(ids.has('brandes2015')).toBe(false);
 });
 
 it('shows completed and skip-order inputs when supplied for local quest selection', () => {

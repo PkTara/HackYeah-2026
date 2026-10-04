@@ -1157,6 +1157,17 @@ export function explainSportQuest(
   };
 }
 
+/** A source behind an export layout: all were read at abstract level on one day. */
+function exportSource(
+  source: Omit<ResearchSource, 'readingDepth' | 'verifiedAt'>,
+): ResearchSource {
+  return {
+    ...source,
+    readingDepth: 'abstract only (bibliographic record and abstract)',
+    verifiedAt: '2026-10-04',
+  };
+}
+
 /**
  * Original studies the team read. Each `finding` is what the study found;
  * none of them tested this app, its camera or its quests.
@@ -1525,4 +1536,372 @@ export const RESEARCH_SOURCES: readonly ResearchSource[] = [
     ],
     verifiedAt: '2026-10-04',
   },
+
+  // Sources behind the layout of the export formats (export/). Each one
+  // supports only why a format is arranged as it is; none tested this app.
+  exportSource({
+    id: 'sansoni2015',
+    title: 'Question prompt lists in health consultations: a review',
+    authors: 'J. E. Sansoni, P. Grootemaat, C. Duncan',
+    year: 2015,
+    url: 'https://doi.org/10.1016/j.pec.2015.05.015',
+    finding:
+      'A question list endorsed by the doctor and given just before a visit can increase how many questions patients ask and how much information they get.',
+    studyType: 'Review',
+    population: '42 studies covering 50 question list interventions',
+    supports:
+      'A short list of questions to ask on the doctor, physio and nutrition sheets.',
+    limitations: [
+      'Mixed findings, with no consistent effect on recall, anxiety, satisfaction or visit length',
+      'Mostly clinic settings, often cancer care, not sport',
+    ],
+  }),
+  exportSource({
+    id: 'kinnersley2008',
+    title:
+      'Interventions before consultations to help patients address their information needs by encouraging question asking: systematic review',
+    authors: 'P. Kinnersley, A. Edwards, K. Hood, et al.',
+    year: 2008,
+    url: 'https://doi.org/10.1136/bmj.a485',
+    finding:
+      'Help given before a visit led to small increases in question asking and satisfaction, and written materials worked about as well as coaching.',
+    studyType: 'Systematic review and meta-analysis',
+    population: '33 randomised trials, 8244 patients',
+    supports:
+      'A written question list made before the visit, rather than coaching inside the app.',
+    limitations: [
+      'Small effects',
+      'No clear change in anxiety, knowledge or visit length',
+    ],
+  }),
+  exportSource({
+    id: 'muller2018',
+    title:
+      'Impact of the communication and patient hand-off tool SBAR on patient safety: a systematic review',
+    authors: 'M. Müller, J. Jürgens, M. Redaèlli, et al.',
+    year: 2018,
+    url: 'https://doi.org/10.1136/bmjopen-2018-022202',
+    finding:
+      'Studies of SBAR handovers (situation, background, assessment, recommendation) suggested better patient safety, but the evidence was moderate.',
+    studyType: 'Systematic review',
+    population: '8 before and after studies and 3 controlled trials',
+    supports:
+      'The doctor sheet order: why I am here, how active I am, what is sore, my questions.',
+    limitations: [
+      'About handovers between clinicians, not summaries written by patients',
+      'Moderate evidence, and only an indirect fit',
+    ],
+  }),
+  exportSource({
+    id: 'talevski2020',
+    title: 'Teach-back: a systematic review of implementation and impacts',
+    authors: 'J. Talevski, A. Wong Shee, B. Rasmussen, G. Kemp, A. Beauchamp',
+    year: 2020,
+    url: 'https://doi.org/10.1371/journal.pone.0231350',
+    finding:
+      'Asking patients to explain information back in their own words improved knowledge or other outcomes in 19 of 20 studies.',
+    studyType: 'Systematic review',
+    population: '20 studies',
+    supports:
+      'The lines for writing down, after the visit, what the doctor said in my own words.',
+    limitations: [
+      'Teach-back is led by clinicians; the blank lines are only inspired by it',
+      'Study quality was mixed',
+    ],
+  }),
+  exportSource({
+    id: 'berkman2011',
+    title:
+      'Low health literacy and health outcomes: an updated systematic review',
+    authors:
+      'N. D. Berkman, S. L. Sheridan, K. E. Donahue, D. J. Halpern, K. Crotty',
+    year: 2011,
+    url: 'https://doi.org/10.7326/0003-4819-155-2-201107190-00005',
+    finding:
+      'Low health literacy was linked to poorer understanding of health messages and poorer health outcomes.',
+    studyType: 'Systematic review',
+    population: '96 studies, mostly from the United States',
+    supports:
+      'Plain words and short sentences, most of all in the family update.',
+    limitations: [
+      'An association only; it does not show that a plainer export improves health',
+      'Mostly United States data',
+    ],
+  }),
+  exportSource({
+    id: 'wolff2011',
+    title:
+      'Family presence in routine medical visits: a meta-analytical review',
+    authors: 'J. L. Wolff, D. L. Roter',
+    year: 2011,
+    url: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC3070824/',
+    finding:
+      'About 38% of adult routine visits included a companion, and doctors gave more medical information when one was present.',
+    studyType: 'Meta-analysis of observational studies and surveys',
+    population: 'Adults in routine medical visits, mostly older and sicker',
+    supports:
+      'The family update asking someone to come along to an appointment.',
+    limitations: [
+      'Observational, mostly older adults with more health problems, not about sport or apps',
+      'DOI not confirmed, so the link goes to the open full text',
+    ],
+  }),
+  exportSource({
+    id: 'elwyn2012',
+    title: 'Shared decision making: a model for clinical practice',
+    authors: 'G. Elwyn, D. Frosch, R. Thomson, et al.',
+    year: 2012,
+    url: 'https://doi.org/10.1007/s11606-012-2077-6',
+    finding:
+      'Proposes a three step model for shared decisions: introduce the choice, describe the options, then explore preferences and decide.',
+    studyType: 'Conceptual model paper',
+    population: 'No participants; a model for clinical practice',
+    supports:
+      'Questions framed as options ("Which activities can I keep doing?") rather than asking for permission.',
+    limitations: ['A model, not a trial of outcomes'],
+  }),
+  exportSource({
+    id: 'delbanco2012',
+    title:
+      "Inviting patients to read their doctors' notes: a quasi-experimental study and a look ahead",
+    authors: 'T. Delbanco, J. Walker, S. K. Bell, et al.',
+    year: 2012,
+    url: 'https://doi.org/10.7326/0003-4819-157-7-201210020-00002',
+    finding:
+      "Most patients who read their doctors' notes reported feeling more in control of their care.",
+    studyType: 'Quasi-experimental study',
+    population: '105 primary care doctors and their patients',
+    supports: 'The format for you: your own full record, in readable words.',
+    limitations: [
+      'Notes written by clinicians, not records from an app',
+      'The benefits were reported by the patients themselves',
+    ],
+  }),
+  exportSource({
+    id: 'harkin2016',
+    title:
+      'Does monitoring goal progress promote goal attainment? A meta-analysis of the experimental evidence',
+    authors: 'B. Harkin, T. L. Webb, B. P. I. Chang, et al.',
+    year: 2016,
+    url: 'https://eprints.whiterose.ac.uk/91437/',
+    finding:
+      'Prompting people to monitor progress helped them reach goals, more so when progress was recorded or reported to others.',
+    studyType: 'Meta-analysis',
+    population: '138 randomised studies, 19,951 people',
+    supports:
+      'Keeping your own record, and sharing progress with a coach or family.',
+    limitations: [
+      'Many kinds of goals, mostly not sport, and effects varied',
+      'DOI reported by search but not confirmed in an index record, so the link goes to the repository copy',
+    ],
+  }),
+  exportSource({
+    id: 'coleman2012',
+    title:
+      'Initial validation of an exercise "vital sign" in electronic medical records',
+    authors: 'K. J. Coleman, E. Ngor, K. Reynolds, et al.',
+    year: 2012,
+    url: 'https://pubmed.ncbi.nlm.nih.gov/22688832/',
+    finding:
+      'Recording usual minutes of exercise per week in the medical record was feasible and had good face and discriminant validity.',
+    studyType: 'Study of health system records',
+    population: 'About 1.8 million adults in one United States health system',
+    supports: 'The doctor sheet showing minutes of activity per week.',
+    limitations: [
+      'Minutes answered to a clinic question, not logged in an app',
+      'One health system in the United States',
+    ],
+  }),
+  exportSource({
+    id: 'bull2020',
+    title:
+      'World Health Organization 2020 guidelines on physical activity and sedentary behaviour',
+    authors: 'F. C. Bull, S. S. Al-Ansari, S. Biddle, et al.',
+    year: 2020,
+    url: 'https://doi.org/10.1136/bjsports-2020-102955',
+    finding:
+      'Adults are advised to do 150 to 300 minutes of moderate or 75 to 150 minutes of vigorous activity a week.',
+    studyType: 'Guideline',
+    population: 'Adults; advice from a guideline group',
+    supports: 'Why minutes per week is the unit the doctor sheet shows.',
+    limitations: [
+      'The advice depends on intensity, which this app does not record',
+      'So no export compares your minutes with it',
+    ],
+  }),
+  exportSource({
+    id: 'foster2001',
+    title: 'A new approach to monitoring exercise training',
+    authors: 'C. Foster, J. A. Florhaug, J. Franklin, et al.',
+    year: 2001,
+    url: 'https://pubmed.ncbi.nlm.nih.gov/?term=Foster+2001+%22A+new+approach+to+monitoring+exercise+training%22',
+    finding:
+      'Rating how hard a whole session felt, times its minutes, tracked training load across many types of exercise.',
+    studyType: 'Validation study against a heart rate method',
+    population: 'People training in several types of exercise',
+    supports:
+      'The coach sheet saying effort is not recorded, and asking whether to start.',
+    limitations: [
+      'The app does not record session effort, so nothing is worked out from this paper',
+      'No DOI; the link searches for the bibliographic record',
+    ],
+  }),
+  exportSource({
+    id: 'impellizzeri2019',
+    title: 'Internal and external training load: 15 years on',
+    authors: 'F. M. Impellizzeri, S. M. Marcora, A. J. Coutts',
+    year: 2019,
+    url: 'https://doi.org/10.1123/ijspp.2018-0935',
+    finding:
+      'Training load has two parts: what you did (external) and how your body responded (internal).',
+    studyType: 'Commentary and framework',
+    population: 'No participants; a framework paper',
+    supports:
+      'The coach sheet keeping sessions, distance and time apart from effort and soreness.',
+    limitations: ['A framework paper, not a trial'],
+  }),
+  exportSource({
+    id: 'bourdon2017',
+    title: 'Monitoring athlete training loads: consensus statement',
+    authors: 'P. C. Bourdon, M. Cardinale, A. Murray, et al.',
+    year: 2017,
+    url: 'https://doi.org/10.1123/IJSPP.2017-0208',
+    finding:
+      'Experts recommend monitoring both external and internal load, chosen to fit the sport and the athlete.',
+    studyType: 'Expert consensus',
+    population: 'Expert group, mainly high performance sport',
+    supports:
+      'The weekly table, plus the line saying effort ratings are not recorded.',
+    limitations: ['Expert opinion', 'Mainly high performance sport'],
+  }),
+  exportSource({
+    id: 'soligard2016',
+    title:
+      'How much is too much? (Part 1) International Olympic Committee consensus statement on load in sport and risk of injury',
+    authors: 'T. Soligard, M. Schwellnus, J. M. Alonso, et al.',
+    year: 2016,
+    url: 'https://doi.org/10.1136/bjsports-2016-096581',
+    finding:
+      'Experts advise tracking training load, rapid changes in load and wellbeing alongside health problems.',
+    studyType: 'Expert consensus',
+    population: 'Expert group, focused on elite athletes',
+    supports:
+      'The physio sheet counting sessions before and since a sore spot, and the coach weekly table.',
+    limitations: [
+      'Expert consensus with an elite athlete focus',
+      'The export makes no risk claim from it',
+    ],
+  }),
+  exportSource({
+    id: 'impellizzeri2020',
+    title:
+      'Acute:chronic workload ratio: conceptual issues and fundamental pitfalls',
+    authors:
+      'F. M. Impellizzeri, M. S. Tenan, T. Kempton, A. Novak, A. J. Coutts',
+    year: 2020,
+    url: 'https://doi.org/10.1123/ijspp.2019-0864',
+    finding:
+      'The acute to chronic workload ratio has conceptual and statistical problems that undermine its use.',
+    studyType: 'Methodological critique',
+    population: 'No participants; a critique of a method',
+    supports:
+      'Why the export shows plain counts before and since, and never a ratio or a risk score.',
+    limitations: ['A critique, not a trial'],
+  }),
+  exportSource({
+    id: 'bahr2020',
+    title:
+      'International Olympic Committee consensus statement: methods for recording and reporting of epidemiological data on injury and illness in sport 2020 (including STROBE-SIIS)',
+    authors: 'R. Bahr, B. Clarsen, W. Derman, et al.',
+    year: 2020,
+    url: 'https://doi.org/10.1136/bjsports-2019-101969',
+    finding:
+      'Sets common fields for recording sports health problems, such as body area, side and date of onset.',
+    studyType: 'Expert consensus on research methods',
+    population: 'Expert group writing for sports research',
+    supports:
+      'The physio sheet giving side, place and first date for each sore spot.',
+    limitations: [
+      "Written for research surveillance, not for one person's care",
+      'The app records only some of the fields, with no cause or severity',
+    ],
+  }),
+  exportSource({
+    id: 'clarsen2013',
+    title:
+      'Development and validation of a new method for the registration of overuse injuries in sports injury epidemiology: the OSTRC Overuse Injury Questionnaire',
+    authors: 'B. Clarsen, G. Myklebust, R. Bahr',
+    year: 2013,
+    url: 'https://doi.org/10.1136/bjsports-2012-091524',
+    finding:
+      'Asking weekly about problems found more than ten times as many overuse problems as counting only time lost, because most did not stop training.',
+    studyType: 'Prospective validation study',
+    population: '313 athletes in 5 sports over 13 weeks',
+    supports:
+      'The physio sheet listing sore spots even when training carried on.',
+    limitations: [
+      'The app does not use these questions or their scoring',
+      'It only supports writing down problems that do not stop training',
+    ],
+  }),
+  exportSource({
+    id: 'thomas2016',
+    title:
+      'Position of the Academy of Nutrition and Dietetics, Dietitians of Canada, and the American College of Sports Medicine: nutrition and athletic performance',
+    authors: 'D. T. Thomas, K. A. Erdman, L. M. Burke',
+    year: 2016,
+    url: 'https://doi.org/10.1016/j.jand.2015.12.006',
+    finding:
+      'Well chosen nutrition strategies, planned around training, support performance and recovery.',
+    studyType: 'Joint position statement',
+    population: 'Expert position from three professional bodies',
+    supports:
+      'The nutrition sheet giving the training pattern a dietitian plans around.',
+    limitations: [
+      'A position statement',
+      'The export gives no nutrition advice from it',
+    ],
+  }),
+  exportSource({
+    id: 'mountjoy2023',
+    title:
+      "2023 International Olympic Committee's (IOC) consensus statement on Relative Energy Deficiency in Sport (REDs)",
+    authors: 'M. Mountjoy, K. E. Ackerman, D. M. Bailey, et al.',
+    year: 2023,
+    url: 'https://doi.org/10.1136/bjsports-2023-106994',
+    finding:
+      'Low energy availability can harm health and performance in athletes of any sex, and needs assessment by trained clinicians.',
+    studyType: 'Expert consensus',
+    population: 'Expert group writing about athletes of any sex',
+    supports:
+      'The nutrition sheet showing only training volume and timing, never food or energy estimates, and offering a question about being checked.',
+    limitations: [
+      'Expert consensus',
+      'The app cannot screen for low energy availability and does not try',
+    ],
+  }),
+];
+
+/** Ids of the sources behind the export layouts, in registry order. */
+export const EXPORT_SOURCE_IDS: readonly string[] = [
+  'sansoni2015',
+  'kinnersley2008',
+  'muller2018',
+  'talevski2020',
+  'berkman2011',
+  'wolff2011',
+  'elwyn2012',
+  'delbanco2012',
+  'harkin2016',
+  'coleman2012',
+  'bull2020',
+  'foster2001',
+  'impellizzeri2019',
+  'bourdon2017',
+  'soligard2016',
+  'impellizzeri2020',
+  'bahr2020',
+  'clarsen2013',
+  'thomas2016',
+  'mountjoy2023',
 ];
