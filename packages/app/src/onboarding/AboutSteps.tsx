@@ -15,6 +15,7 @@ import {
   type UsualGrade,
 } from '@hackyeah/core';
 import { AppText, Chip, Panel, Tag, type IconName } from '@hackyeah/ui';
+import { DecisionHelp } from '../components/DecisionHelp';
 import { NumberedList } from './bits';
 import { NumberField } from './NumberField';
 
@@ -197,6 +198,27 @@ export function BodyStep({
           accessibilityLabel="Arm span in cm"
         />
       </View>
+      <DecisionHelp
+        label="reach protocol"
+        explanation={{
+          summary: 'Manual height and arm span',
+          status: 'app_rule',
+          rule: 'Record the two measurements in whole centimetres. The Tests screen derives ape index as arm span minus height.',
+          evidence: [
+            {
+              id: 'reach-input',
+              label: 'Current unsaved fields',
+              detail: `Height: ${text.height || 'not entered'} cm; arm span: ${
+                text.arm || 'not entered'
+              } cm.`,
+            },
+          ],
+          sourceIds: [],
+          limitations: [
+            'Self-reported body measurements. No local focus or quest rule uses these values. No ability score is inferred.',
+          ],
+        }}
+      />
       <AppText variant="caption" muted>
         This only describes your reach. It is never scored as a weakness.
       </AppText>

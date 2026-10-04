@@ -22,6 +22,11 @@ import {
   Tag,
   useTheme,
 } from '@hackyeah/ui';
+import { DecisionHelp } from '../components/DecisionHelp';
+import {
+  explainReach,
+  explainHomeTest,
+} from '../components/resultExplanations';
 import { PageHeader } from '../components/PageHeader';
 import { TabScreen } from '../components/TabScreen';
 import { useNavigation } from '../navigation/Navigator';
@@ -221,23 +226,29 @@ function HomeTestRow({
 }) {
   const name = test.name.toLowerCase();
   return (
-    <View style={styles.testRow}>
-      <View style={styles.grow}>
-        <AppText>{test.name}</AppText>
-        <AppText variant="caption" muted>
-          {result
-            ? `${formatResult(result.unit, result.value)}, ${
-                METHOD_TEXT[result.method]
-              } ${ageLabel(result.date, today)}`
-            : `Not done yet. ${AREA_LABEL[test.area]}.`}
-        </AppText>
+    <View style={styles.resultHelp}>
+      <View style={styles.testRow}>
+        <View style={styles.grow}>
+          <AppText>{test.name}</AppText>
+          <AppText variant="caption" muted>
+            {result
+              ? `${formatResult(result.unit, result.value)}, ${
+                  METHOD_TEXT[result.method]
+                } ${ageLabel(result.date, today)}`
+              : `Not done yet. ${AREA_LABEL[test.area]}.`}
+          </AppText>
+        </View>
+        <Button
+          title={result ? 'Redo' : 'Do it'}
+          variant={result ? 'secondary' : 'primary'}
+          small
+          accessibilityLabel={`${result ? 'Redo' : 'Do'} ${name}`}
+          onPress={onPress}
+        />
       </View>
-      <Button
-        title={result ? 'Redo' : 'Do it'}
-        variant={result ? 'secondary' : 'primary'}
-        small
-        accessibilityLabel={`${result ? 'Redo' : 'Do'} ${name}`}
-        onPress={onPress}
+      <DecisionHelp
+        label={`${name} result`}
+        explanation={explainHomeTest(test, result)}
       />
     </View>
   );
@@ -345,8 +356,12 @@ function ReachResult({ reach, today }: { reach: Reach; today: string }) {
           />
         </View>
       </View>
+      <DecisionHelp
+        label="reach difference"
+        explanation={explainReach(reach)}
+      />
       <AppText variant="caption" muted>
-        You measured this {when}.
+        Stored reach dated {when}.
       </AppText>
       <AppText>
         This describes your body. It is not a strength or a weakness.
@@ -473,6 +488,7 @@ function ResetDemo() {
 }
 
 const styles = StyleSheet.create({
+  resultHelp: { gap: 8 },
   fields: { flexDirection: 'row', gap: 12 },
   field: { flex: 1, gap: 6 },
   input: {

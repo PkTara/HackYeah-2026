@@ -1,0 +1,341 @@
+import { act } from 'react-test-renderer';
+import { Linking } from 'react-native';
+import { RESEARCH_SOURCES, sampleGame } from '@hackyeah/core';
+import { press, render, setup, text } from '../testing/cameraFixture';
+
+it('opens local focus help with the actual current climb records on Profile', async () => {
+  const screen = await render(
+    setup({
+      state: {
+        ...sampleGame,
+        onboardingSkipped: true,
+        logs: sampleGame.logs.map(log => ({ ...log, sample: false })),
+      },
+    }),
+    'Profile',
+  );
+  try {
+    await press(screen, 'Why your focus?');
+    expect(text(screen)).toContain(sampleGame.logs[0].date);
+    expect(text(screen)).toContain(sampleGame.logs[0].id);
+    expect(JSON.stringify(screen.toJSON())).toContain('App rule');
+  } finally {
+    await act(async () => screen.unmount());
+  }
+});
+
+it('offers disclosures beside the profile quest and each calculated chart or reward', async () => {
+  const screen = await render(setup(), 'Profile');
+  try {
+    await press(screen, 'Why your quest?');
+    expect(JSON.stringify(screen.toJSON()).includes('Draft suggestion')).toBe(
+      true,
+    );
+    expect(text(screen)).toContain('Draft quest: Quiet feet');
+    await press(
+      screen,
+      'Why XP and level?',
+      'Why Slab tally?',
+      'Why Vertical tally?',
+      'Why Overhang tally?',
+      'Why Controlled tally?',
+      'Why Dynamic tally?',
+      'Why movement radar?',
+    );
+    expect(text(screen)).toContain('fixed demonstration');
+    expect(text(screen)).toContain('Completion ID stored');
+  } finally {
+    await act(async () => screen.unmount());
+  }
+});
+
+it('shows the actual dated finger flag behind pausing and the offered alternative on Hands', async () => {
+  const screen = await render(
+    setup({
+      state: {
+        ...sampleGame,
+        onboardingSkipped: true,
+        flags: [
+          { side: 'right', finger: 'ring', spots: ['a2'], date: '2026-10-01' },
+        ],
+      },
+    }),
+    'Hands',
+  );
+  try {
+    await press(screen, 'Why finger pause rule?', 'Why alternative quest?');
+    expect(text(screen)).toContain('2026-10-01');
+    expect(text(screen)).toContain('right ring');
+    expect(text(screen)).toContain('completed=');
+  } finally {
+    await act(async () => screen.unmount());
+  }
+});
+
+it('explains selected Evidence counts and each style cell with matching records', async () => {
+  const screen = await render(setup(), 'Evidence');
+  try {
+    await press(
+      screen,
+      'Why Vertical tally?',
+      'Why evidence focus?',
+      'Why Controlled Vertical cell?',
+    );
+    expect(text(screen)).toContain('sample-3');
+    expect(text(screen)).toContain('2026-09-21');
+    expect(text(screen)).toContain('filter records');
+  } finally {
+    await act(async () => screen.unmount());
+  }
+});
+
+it('reveals saved reach arithmetic and home-test protocol context from Tests', async () => {
+  const screen = await render(
+    setup({
+      state: {
+        ...sampleGame,
+        onboardingSkipped: true,
+        reach: { armSpanCm: 182, heightCm: 178, date: '2026-10-02' },
+        baseline: [
+          {
+            testId: 'pull-ups',
+            value: 7,
+            unit: 'reps',
+            method: 'counter',
+            date: '2026-10-01',
+          },
+        ],
+      },
+    }),
+    'Tests',
+  );
+  try {
+    await press(screen, 'Why reach difference?', 'Why pull-ups result?');
+    expect(text(screen)).toContain('arm span minus height');
+    expect(text(screen)).toContain('2026-10-02');
+    expect(text(screen)).toContain('2026-10-01');
+    expect(text(screen)).toContain('Count clean reps');
+  } finally {
+    await act(async () => screen.unmount());
+  }
+});
+
+it('opens the bundled original-source library from About with study details', async () => {
+  const screen = await render(setup(), 'About');
+  try {
+    expect(text(screen)).toContain('structured observation');
+    expect(text(screen)).toContain(RESEARCH_SOURCES[0].title);
+    expect(text(screen)).toContain(RESEARCH_SOURCES[0].readingDepth);
+    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+    await press(screen, `Open original paper: ${RESEARCH_SOURCES[0].title}`);
+    expect(open).toHaveBeenCalledWith(RESEARCH_SOURCES[0].url);
+    open.mockRestore();
+  } finally {
+    await act(async () => screen.unmount());
+  }
+});
+
+it('opens help on the actual analyzed camera reading including usable counts and protocol', async () => {
+  const screen = await render(setup(), 'Assessment');
+  try {
+    await press(
+      screen,
+      'Start camera',
+      'Take photo',
+      'Send for analysis, I consent to sending this capture to the server for analysis.',
+      'Analyse photo',
+      'Why camera reading?',
+    );
+    expect(text(screen)).toContain('front-facing-leg-spread-v1');
+    expect(text(screen)).toContain('92');
+    expect(text(screen)).toContain('1 of 1');
+    expect(text(screen)).toContain('0.9');
+  } finally {
+    await act(async () => screen.unmount());
+  }
+});
+
+it('explains an invalid camera capture using its actual rejection reason', async () => {
+  const screen = await render(
+    setup({
+      answer: () => ({
+        status: 200,
+        body: {
+          status: 'invalid_capture',
+          metric: 'leg_spread',
+          value: null,
+          unit: 'degrees',
+          confidence: 0.2,
+          reason: 'Both hips and ankles must be visible.',
+          protocol: 'front-facing-leg-spread-v1',
+          method: 'camera',
+        },
+      }),
+    }),
+    'Assessment',
+  );
+  try {
+    await press(
+      screen,
+      'Start camera',
+      'Take photo',
+      'Send for analysis, I consent to sending this capture to the server for analysis.',
+      'Analyse photo',
+      'Why camera reading?',
+    );
+    expect(text(screen)).toContain('Both hips and ankles must be visible.');
+    expect(text(screen)).toContain('0 of 1 usable');
+    expect(text(screen)).toContain('0.2');
+    expect(text(screen)).toContain('unavailable');
+  } finally {
+    await act(async () => screen.unmount());
+  }
+});
+
+it('names both filters for a style cell and excludes other terrains from its records', async () => {
+  const screen = await render(setup(), 'Evidence');
+  try {
+    await press(screen, 'Why Controlled Slab cell?');
+    expect(text(screen)).toContain('First filter terrain=slab');
+    expect(text(screen)).toContain('sample-1');
+    expect(text(screen)).not.toContain('(sample-3)');
+  } finally {
+    await act(async () => screen.unmount());
+  }
+});
+
+it('keeps a server quest snapshot separate from the current local focus', async () => {
+  const screen = await render(
+    setup({
+      state: {
+        ...sampleGame,
+        onboardingSkipped: true,
+        assigned: {
+          id: 'server-quest',
+          kind: 'plan',
+          title: 'Server plan',
+          task: 'Review a climb',
+          why: 'Saved server selection',
+          minutes: 4,
+          equipment: 'None',
+          loadsFingers: false,
+          decision: {
+            summary: 'Assigned from an earlier record',
+            status: 'app_rule',
+            rule: 'server-saved-rule',
+            evidence: [
+              {
+                id: 'earlier-report',
+                label: 'Recorded 2026-09-01',
+                detail: 'Earlier goal=technique',
+              },
+            ],
+            sourceIds: [],
+            limitations: ['Snapshot of assignment'],
+          },
+        },
+      },
+    }),
+    'Profile',
+  );
+  try {
+    await press(screen, 'Why your quest?');
+    expect(text(screen)).toContain('earlier-report');
+    expect(text(screen)).toContain('server-saved-rule');
+    expect(text(screen)).not.toContain('(sample-1)');
+    await press(screen, 'Why your focus?');
+    expect(text(screen)).toContain('(sample-1)');
+    expect(text(screen)).toContain('Independent of server quest selection');
+  } finally {
+    await act(async () => screen.unmount());
+  }
+});
+
+it('uses returned camera landmark snapshots and identifies relative clip offsets', async () => {
+  const sample = {
+    status: 'ok',
+    metric: 'leg_spread',
+    value: 92,
+    unit: 'degrees',
+    confidence: 0.9,
+    reason: null,
+    protocol: 'front-facing-leg-spread-v1',
+    method: 'camera',
+    timestamp_ms: 400,
+    decision: {
+      summary: 'Saved camera geometry',
+      status: 'estimate',
+      rule: 'Recorded four landmarks in image coordinates',
+      evidence: [
+        {
+          id: 'hip17',
+          label: 'Left hip',
+          detail: 'x=0.42; y=0.50; visibility=0.91',
+        },
+      ],
+      source_ids: [],
+      limitations: ['Image geometry estimate only'],
+    },
+  };
+  const screen = await render(
+    setup({
+      answer: () => ({
+        status: 200,
+        body: {
+          frames: [sample],
+          duration_ms: 500,
+          sampled_frame_count: 1,
+          valid_frame_count: 1,
+        },
+      }),
+    }),
+    'Assessment',
+  );
+  try {
+    await press(
+      screen,
+      'Start camera',
+      'Take photo',
+      'Send for analysis, I consent to sending this capture to the server for analysis.',
+      'Analyse photo',
+      'Why camera reading?',
+    );
+    expect(text(screen)).toContain('x=0.42; y=0.50; visibility=0.91');
+    expect(text(screen)).toContain('Relative sample offset: 400 ms');
+    expect(text(screen)).toContain('not an absolute capture date');
+  } finally {
+    await act(async () => screen.unmount());
+  }
+});
+
+it('describes an empty legacy camera response without inferring capture rejection', async () => {
+  const screen = await render(
+    setup({
+      answer: () => ({
+        status: 200,
+        body: {
+          frames: [],
+          duration_ms: 0,
+          sampled_frame_count: 0,
+          valid_frame_count: 0,
+        },
+      }),
+    }),
+    'Assessment',
+  );
+  try {
+    await press(
+      screen,
+      'Start camera',
+      'Take photo',
+      'Send for analysis, I consent to sending this capture to the server for analysis.',
+      'Analyse photo',
+      'Why camera reading?',
+    );
+    expect(text(screen)).toContain('No valid sample was returned');
+    expect(text(screen)).not.toContain('server rejected');
+    expect(text(screen)).toContain('0 of 0 usable');
+  } finally {
+    await act(async () => screen.unmount());
+  }
+});

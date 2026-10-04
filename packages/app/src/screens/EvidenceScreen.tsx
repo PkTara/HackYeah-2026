@@ -2,6 +2,9 @@ import { useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
   MIN_LOGS,
+  explainFocus,
+  explainTerrain,
+  explainMovement,
   MOVEMENTS,
   TERRAINS,
   ageLabel,
@@ -9,6 +12,7 @@ import {
   shortDate,
   terrainTallies,
   type ClimbLog,
+  type Movement,
   type Terrain,
 } from '@hackyeah/core';
 import {
@@ -24,6 +28,7 @@ import {
   Tag,
   useTheme,
 } from '@hackyeah/ui';
+import { DecisionHelp } from '../components/DecisionHelp';
 import { Crumbs } from '../components/Crumbs';
 import { PageHeader } from '../components/PageHeader';
 import { TabScreen } from '../components/TabScreen';
@@ -103,10 +108,20 @@ export function EvidenceScreen() {
               }
               scale={4}
             />
+            <DecisionHelp
+              label={`${name} tally`}
+              explanation={explainTerrain(terrain, state.logs)}
+            />
+            {isFocus ? (
+              <DecisionHelp
+                label="evidence focus"
+                explanation={explainFocus(focus, state.logs)}
+              />
+            ) : null}
             {tally.rate === null ? (
               <AppText>
-                Needs {toGo} more logged {toGo === 1 ? 'climb' : 'climbs'} before it
-                is compared with the other walls.
+                Needs {toGo} more logged {toGo === 1 ? 'climb' : 'climbs'}{' '}
+                before it is compared with the other walls.
               </AppText>
             ) : null}
             {isFocus ? (
@@ -123,8 +138,8 @@ export function EvidenceScreen() {
               </AppText>
             ) : null}
             <AppText variant="caption" muted>
-              The focus goes to the wall with the lowest share of sends once every
-              wall has at least {MIN_LOGS} logged climbs.
+              The focus goes to the wall with the lowest share of sends once
+              every wall has at least {MIN_LOGS} logged climbs.
             </AppText>
           </Panel>
 
@@ -133,9 +148,18 @@ export function EvidenceScreen() {
             badge={hasSample ? <Tag text="Example" /> : undefined}
           >
             <StyleGrid logs={state.logs} selected={terrain} />
+            {MOVEMENTS.flatMap(m =>
+              TERRAINS.map(t => (
+                <DecisionHelp
+                  key={`${m}-${t}`}
+                  label={`${MOVEMENT_NAME[m]} ${TERRAIN_NAME[t]} cell`}
+                  explanation={cellExplanation(t, m, state.logs)}
+                />
+              )),
+            )}
             <AppText variant="caption" muted>
-              Each box shows sent / logged. A dash means none logged yet. The framed
-              column is {name.toLowerCase()}.
+              Each box shows sent / logged. A dash means none logged yet. The
+              framed column is {name.toLowerCase()}.
             </AppText>
           </Panel>
         </Column>
@@ -145,7 +169,9 @@ export function EvidenceScreen() {
             title="Climbs"
             icon="log"
             badge={
-              climbs.some(log => log.sample) ? <Tag text="Example" /> : undefined
+              climbs.some(log => log.sample) ? (
+                <Tag text="Example" />
+              ) : undefined
             }
           >
             {climbs.length === 0 ? (
@@ -153,7 +179,11 @@ export function EvidenceScreen() {
             ) : (
               climbs.map(log => <ClimbRow key={log.id} log={log} />)
             )}
-            <Button title="Log a climb" icon="log" onPress={() => reset('Log')} />
+            <Button
+              title="Log a climb"
+              icon="log"
+              onPress={() => reset('Log')}
+            />
           </Panel>
         </Column>
       </Columns>
@@ -375,3 +405,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
+
+/** Both filters define a wall/style cell; keep the full matching records. */
+function cellExplanation(
+  terrain: Terrain,
+  movement: Movement,
+  logs: readonly ClimbLog[],
+) {
+  const explanation = explainMovement(
+    movement,
+    logs.filter(log => log.terrain === terrain),
+  );
+  return {
+    ...explanation,
+    summary: `${TERRAIN_NAME[terrain]} / ${MOVEMENT_NAME[movement]}: ${explanation.summary}`,
+    rule: `First filter terrain=${terrain}; then ${explanation.rule}`,
+  };
+}

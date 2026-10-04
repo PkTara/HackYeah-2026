@@ -16,6 +16,8 @@ import {
   type ResultMethod,
 } from '@hackyeah/core';
 import { AppText, Button, Panel, PixelText, Tag, useTheme } from '@hackyeah/ui';
+import { DecisionHelp } from '../components/DecisionHelp';
+import { explainHomeTest } from '../components/resultExplanations';
 import { Fact, NumberedList, SafetyLine } from './bits';
 import { RepCounter } from './RepCounter';
 import { Stopwatch } from './Stopwatch';
@@ -94,6 +96,10 @@ export function TestStep({
         <PixelText text="How to" />
         <NumberedList items={test.steps} />
         <SafetyLine text={test.safety} />
+        <DecisionHelp
+          label={`${test.name.toLowerCase()} protocol`}
+          explanation={explainHomeTest(test, result)}
+        />
       </Panel>
 
       <Panel
@@ -170,8 +176,9 @@ export function DoneStep({ result }: { result: OnboardingResult | null }) {
         )}
       </Fact>
       <AppText variant="caption" muted>
-        All of it is what you told the monkey. Your goal shapes the quests it
-        picks for you.
+        All of it is what you told the monkey. A connected server can use your
+        goal to prioritize quests. Local quests use climb logs, finger flags and
+        quest progress.
       </AppText>
     </Panel>
   );

@@ -18,6 +18,7 @@ import {
 } from '@hackyeah/ui';
 import {
   CameraTray,
+  CameraReadingHelp,
   NeedsServer,
   ReviewTray,
   ServerNote,
@@ -290,6 +291,7 @@ function ResultTray({
           in view.
         </AppText>
       )}
+      <CameraReadingHelp reading={reading} />
       <Status error="" notice={notice} />
     </Panel>
   );

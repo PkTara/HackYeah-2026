@@ -1,6 +1,13 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { FINGERS, ageLabel, type Finger, type Side } from '@hackyeah/core';
+import {
+  explainPause,
+  explainQuest,
+  FINGERS,
+  ageLabel,
+  type Finger,
+  type Side,
+} from '@hackyeah/core';
 import {
   AppText,
   Button,
@@ -22,6 +29,7 @@ import {
   useContentWidth,
   useLayout,
 } from '@hackyeah/ui';
+import { DecisionHelp } from '../components/DecisionHelp';
 import { PageHeader } from '../components/PageHeader';
 import { TabScreen } from '../components/TabScreen';
 import { FINGER_NAME, SIDE_NAME, fingerLabel, spotsText } from '../labels';
@@ -57,7 +65,7 @@ function fingerArea(side: Side, finger: Finger, scale: number) {
 }
 
 export function HandsScreen() {
-  const { state, today, quest, clearFinger } = useGame();
+  const { state, today, focus, quest, clearFinger } = useGame();
   const { navigate } = useNavigation<RouteName>();
   // Two hands at scale 6 take 256px of a 296px panel on a 360px screen.
   // Smaller screens get scale 5 so the hands keep some room.
@@ -115,6 +123,10 @@ export function HandsScreen() {
 
         <Column>
           <Panel variant={flags.length > 0 ? 'alert' : 'quiet'} title="Flagged">
+            <DecisionHelp
+              label="finger pause rule"
+              explanation={explainPause(flags)}
+            />
             {flags.length === 0 ? (
               <AppText>Nothing flagged. Quests run as normal.</AppText>
             ) : (
@@ -170,6 +182,16 @@ export function HandsScreen() {
               </AppText>
               {quest.quest ? (
                 <View style={styles.offer}>
+                  <DecisionHelp
+                    label="alternative quest"
+                    explanation={explainQuest(
+                      quest.quest,
+                      focus,
+                      state.logs,
+                      flags,
+                      { completed: state.completed, skipped: state.skipped },
+                    )}
+                  />
                   <AppText>
                     Offered instead:{' '}
                     <AppText style={styles.strong}>{quest.quest.title}</AppText>

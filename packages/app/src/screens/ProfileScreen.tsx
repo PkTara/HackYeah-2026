@@ -2,6 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, StyleSheet, View } from 'react-native';
 import {
   MOVEMENTS,
+  explainFocus,
+  explainQuest,
+  explainPause,
+  explainTerrain,
+  explainMovement,
+  TERRAINS,
   XP_PER_LEVEL,
   XP_PER_QUEST,
   movementTallies,
@@ -32,6 +38,11 @@ import {
   useTheme,
   type MovementAxis,
 } from '@hackyeah/ui';
+import {
+  explainXP,
+  explainExampleRadar,
+} from '../components/resultExplanations';
+import { DecisionHelp } from '../components/DecisionHelp';
 import { TabScreen } from '../components/TabScreen';
 import {
   MOVEMENT_NAME,
@@ -119,6 +130,10 @@ export function ProfileScreen() {
     >
       {/* Monkey level and XP */}
       <Panel variant="wood">
+        <DecisionHelp
+          label="XP and level"
+          explanation={explainXP(state.completed)}
+        />
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <PixelText text={`Lvl ${pet.level}`} scale={4} heading />
           <View style={{ flex: 1, gap: 6 }}>
@@ -152,6 +167,10 @@ export function ProfileScreen() {
         <Column>
           {/* The one thing to work on */}
           <Panel variant="banana" title="Your focus">
+            <DecisionHelp
+              label="your focus"
+              explanation={explainFocus(focus, state.logs)}
+            />
             <View
               style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
             >
@@ -173,7 +192,8 @@ export function ProfileScreen() {
               </AppText>
             )}
             <AppText variant="caption" muted>
-              From your logged climbs only. Not a grade prediction.
+              Local rule from logged climbs only. Independent of server quest
+              selection. Not a grade prediction.
             </AppText>
             <Button
               title="View evidence"
@@ -216,6 +236,21 @@ export function ProfileScreen() {
                 <AppText variant="caption" muted>
                   Why: {quest.quest.why}
                 </AppText>
+                <DecisionHelp
+                  label="your quest"
+                  explanation={explainQuest(
+                    quest.quest,
+                    focus,
+                    state.logs,
+                    state.flags,
+                    { completed: state.completed, skipped: state.skipped },
+                  )}
+                />
+                <AppText variant="caption" muted>
+                  {state.assigned !== undefined
+                    ? 'The server selected this quest. Its saved decision is separate from the local wall focus.'
+                    : 'Selected on this device from logged climbs, finger flags and quest progress.'}
+                </AppText>
               </>
             ) : (
               <AppText>
@@ -235,6 +270,10 @@ export function ProfileScreen() {
                 }}
               >
                 <Tag text="Paused" tone="paused" />
+                <DecisionHelp
+                  label="paused quests"
+                  explanation={explainPause(state.flags)}
+                />
                 <AppText variant="caption">
                   {quest.paused.map(q => q.title).join(', ')} waits until your
                   flagged finger is cleared. Climbing loads your fingers.
@@ -269,6 +308,10 @@ export function ProfileScreen() {
           {/* Active hand flags change what the monkey suggests */}
           {state.flags.length > 0 ? (
             <Panel variant="alert" title="Hands" icon="flag">
+              <DecisionHelp
+                label="finger pause rule"
+                explanation={explainPause(state.flags)}
+              />
               {state.flags.map(f => (
                 <View
                   key={`${f.side}-${f.finger}`}
@@ -315,6 +358,13 @@ export function ProfileScreen() {
             title="Walls"
             badge={hasSample ? <Tag text="Example" /> : undefined}
           >
+            {TERRAINS.map(t => (
+              <DecisionHelp
+                key={t}
+                label={`${TERRAIN_NAME[t]} tally`}
+                explanation={explainTerrain(t, state.logs)}
+              />
+            ))}
             <TerrainTriangle
               stats={terrain}
               focus={focus.terrain}
@@ -341,6 +391,10 @@ export function ProfileScreen() {
                     {moves[m].sent} of {moves[m].logged} sent
                   </AppText>
                 </View>
+                <DecisionHelp
+                  label={`${MOVEMENT_NAME[m]} tally`}
+                  explanation={explainMovement(m, state.logs)}
+                />
                 <Pips
                   results={state.logs
                     .filter(l => l.movements.includes(m))
@@ -350,7 +404,7 @@ export function ProfileScreen() {
               </View>
             ))}
             <AppText variant="caption" muted>
-              Two separate skills, not one slider. You can be good at both.
+              Styles can overlap. A climb can count in both.
             </AppText>
             <View
               style={{
@@ -365,6 +419,10 @@ export function ProfileScreen() {
               <PixelText text="Movement radar" />
               <Tag text="Example" />
             </View>
+            <DecisionHelp
+              label="movement radar"
+              explanation={explainExampleRadar(EXAMPLE_MOVES)}
+            />
             <MovementRadar axes={EXAMPLE_MOVES} example />
             <AppText variant="caption" muted>
               Not scored yet. These axes need movement evidence before they show

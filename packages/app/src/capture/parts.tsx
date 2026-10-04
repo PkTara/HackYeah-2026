@@ -1,3 +1,6 @@
+import { explainCamera, type DecisionExplanation } from '@hackyeah/core';
+import { fromDecisionDto, type PoseReading } from '@hackyeah/data';
+import { DecisionHelp } from '../components/DecisionHelp';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
@@ -236,3 +239,64 @@ const styles = StyleSheet.create({
   grow: { flex: 1 },
   strong: { fontWeight: '800' },
 });
+
+/** Explain only returned camera metadata; never reconstruct missing pose inputs. */
+export function CameraReadingHelp({ reading }: { reading: PoseReading }) {
+  const { result, last, valid, total } = reading;
+  const base: DecisionExplanation =
+    result && result.value !== null
+      ? explainCamera({
+          ...result,
+          value: result.value,
+          decision: fromDecisionDto(result.decision),
+        })
+      : fromDecisionDto(last?.decision) ?? {
+          summary: 'No valid camera reading returned',
+          status: 'estimate',
+          rule: 'No valid sample was returned for display or saving. The returned reason, when present, is shown below; detailed capture-quality criteria and landmark inputs are unavailable unless supplied by the server.',
+          evidence: [
+            {
+              id: 'camera-result',
+              label: 'Returned camera result',
+              detail: `Reason: ${last?.reason ?? 'unavailable'}; confidence: ${
+                last?.confidence ?? 'unavailable'
+              }; protocol: ${last?.protocol ?? 'unavailable'}; method: ${
+                last?.method ?? 'unavailable'
+              }.`,
+            },
+          ],
+          sourceIds: [],
+          limitations: [
+            'An unavailable reading does not assess flexibility. Capture date, model version and original landmark inputs are unavailable when the server does not supply them.',
+          ],
+        };
+  const offset =
+    result &&
+    'timestamp_ms' in result &&
+    typeof result.timestamp_ms === 'number'
+      ? result.timestamp_ms
+      : undefined;
+  return (
+    <DecisionHelp
+      label="camera reading"
+      explanation={{
+        ...base,
+        rule: `${base.rule} The displayed reading is the latest valid sample, not the average. Photo/live samples count as usable when status=ok and value is present; clip counts are the server-reported usable/sample totals.`,
+        evidence: [
+          ...base.evidence,
+          {
+            id: 'reading-samples',
+            label: 'Current analysis samples',
+            detail: `${valid} of ${total} usable. Latest sample status: ${
+              last?.status ?? 'unavailable'
+            }; rejection reason: ${last?.reason ?? 'none supplied'}.${
+              offset === undefined
+                ? ''
+                : ` Relative sample offset: ${offset} ms; this is not an absolute capture date.`
+            }`,
+          },
+        ],
+      }}
+    />
+  );
+}
