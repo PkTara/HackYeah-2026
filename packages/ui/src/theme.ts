@@ -1,3 +1,4 @@
+import { createContext, useContext } from 'react';
 import { useColorScheme } from 'react-native';
 
 /**
@@ -57,6 +58,50 @@ const palette = {
   },
 } as const;
 
+/**
+ * Savanna palette for gazelle mode. Same roles as the jungle: day is golden
+ * grass under a warm sky with cream signs, night is dusky earth with cream
+ * text. The key colour is sunset orange instead of banana.
+ */
+const savanna = {
+  light: {
+    ...palette.light,
+    background: '#7A4A22', // dry earth behind everything
+    backgroundDeep: '#4E2E14',
+    onBackground: '#FFF4DC',
+    onBackgroundMuted: '#EBCB95',
+    surfaceShade: '#EFD5A8',
+    textMuted: '#6E5232',
+    primary: '#FFA62B', // sunset
+    primaryShade: '#D97A0F',
+    leaf: '#8E9A2F', // dry grass
+    leafLight: '#C8C454',
+    chartEdge: '#7A4A22',
+  },
+  dark: {
+    ...palette.dark,
+    background: '#2A1A10',
+    backgroundDeep: '#140B06',
+    onBackground: '#F4E9CF',
+    onBackgroundMuted: '#C9AE84',
+    surface: '#3D2A1B',
+    surfaceLight: '#4D3624',
+    surfaceShade: '#2C1D12',
+    textMuted: '#CDB693',
+    primary: '#FFA62B',
+    primaryShade: '#C46F0C',
+    leaf: '#9AA53A',
+    leafLight: '#C8C454',
+    chartEdge: '#F5C98A',
+  },
+} as const;
+
+/** Which world the app is drawn in: the monkey's jungle or the gazelle's savanna. */
+export type World = 'jungle' | 'savanna';
+
+/** The app sets this from the pet mode; every themed component follows. */
+export const WorldContext = createContext<World>('jungle');
+
 /** One art pixel in device pixels. Borders, notches and shadows use it. */
 export const PX = 3;
 
@@ -81,11 +126,17 @@ export type Theme = {
   typography: typeof typography;
 };
 
-export function getTheme(scheme: ColorScheme): Theme {
-  return { scheme, colors: palette[scheme], spacing, radius, typography };
+export function getTheme(scheme: ColorScheme, world: World = 'jungle'): Theme {
+  const colors = world === 'savanna' ? savanna[scheme] : palette[scheme];
+  return { scheme, colors, spacing, radius, typography };
 }
 
-/** Follows the OS light/dark setting on every platform. */
+/** Follows the OS light/dark setting on every platform, in the current world. */
 export function useTheme(): Theme {
-  return getTheme(useColorScheme() === 'dark' ? 'dark' : 'light');
+  const world = useContext(WorldContext);
+  return getTheme(useColorScheme() === 'dark' ? 'dark' : 'light', world);
+}
+
+export function useWorld(): World {
+  return useContext(WorldContext);
 }

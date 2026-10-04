@@ -451,6 +451,108 @@ export const ICONS = {
     ............
     ............
   `),
+  // Gazelle mode. Run types: easy is a gentle rolling path under the sun,
+  // tempo a lightning bolt, long a road running to the horizon.
+  easy: art(`
+    ........###.
+    .......#YYY#
+    .......#YYY#
+    ........###.
+    ............
+    ............
+    ..###.......
+    .#GGG#...##.
+    #GGGGG#.#GG#
+    GGGGGGG#GGGG
+    ############
+    ............
+  `),
+  tempo: art(`
+    ......####..
+    .....#YYY#..
+    ....#YYY#...
+    ...#YYY#....
+    ..#YYYY####.
+    .#YYYYYYYY#.
+    .####YYYY#..
+    ....#YYY#...
+    ...#YY##....
+    ...#Y#......
+    ...##.......
+    ............
+  `),
+  long: art(`
+    ............
+    ..........Y.
+    .....##.....
+    ....#MM#....
+    ....#WW#....
+    ...#MMMM#...
+    ...#MMMM#...
+    ..#MMWWMM#..
+    ..#MMWWMM#..
+    .#MMMMMMMM#.
+    .#MMMMMMMM#.
+    ############
+  `),
+  // Running shoe, for the Legs tab.
+  shoe: art(`
+    ............
+    ............
+    ...####.....
+    ...#WW#.....
+    ...#WW##....
+    ...#WWWW#...
+    ..#RWWWWW##.
+    ..#RRWWWWWW#
+    .#RRRRRRRRR#
+    .#RRRRRRRRR#
+    ############
+    .#.#.#.#.#..
+  `),
+  // Surfaces.
+  road: art(`
+    ............
+    ............
+    ............
+    ############
+    #MMMMMMMMMM#
+    #MMMMMMMMMM#
+    #WW.WW.WW.W#
+    #MMMMMMMMMM#
+    #MMMMMMMMMM#
+    ############
+    ............
+    ............
+  `),
+  trail: art(`
+    ..........#.
+    .........#l#
+    ........#lVl
+    ...#.....#V#
+    ..#l#.....#.
+    ..#V#.......
+    ...#DDD.....
+    ....DDDD....
+    ......DDD...
+    ....DDDD....
+    ..DDDD......
+    ############
+  `),
+  track: art(`
+    ............
+    ............
+    ############
+    #RRRRRRRRRR#
+    #WWWWWWWWWW#
+    #RRRRRRRRRR#
+    #WWWWWWWWWW#
+    #RRRRRRRRRR#
+    ############
+    ............
+    ............
+    ............
+  `),
 } as const;
 
 export type IconName = keyof typeof ICONS;
@@ -582,6 +684,34 @@ const GAZELLE_RUN_B = art(`
 `);
 
 export const GAZELLE_FRAMES: readonly string[][] = [GAZELLE_RUN_A, GAZELLE_RUN_B];
+
+// Gazelle cosmetics, drawn over either gallop frame (the body does not move).
+const RACE_BIB = art(`
+  WWNWW
+  WWNWW
+`);
+
+const MEDAL = art(`
+  .RR.
+  .RR.
+  .YY.
+  .Yy.
+`);
+
+/** One gallop frame (0 or 1) with the unlocked cosmetics on. */
+export function gazelleRows(
+  frame: number,
+  cosmetics: readonly string[] = [],
+): string[] {
+  let rows = GAZELLE_FRAMES[frame % GAZELLE_FRAMES.length];
+  if (cosmetics.includes('race-bib')) {
+    rows = overlay(rows, RACE_BIB, 8, 18);
+  }
+  if (cosmetics.includes('medal')) {
+    rows = overlay(rows, MEDAL, 16, 15);
+  }
+  return rows;
+}
 
 // Warning sign for safety notes, 17 x 16 (bottom row is its shadow).
 export const WARNING_SIGN = art(`

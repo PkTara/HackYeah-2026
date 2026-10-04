@@ -30,4 +30,10 @@ export {
   type MediaClientOptions,
   type MediaFetch,
 } from './media';
+export {
+  createLocalRunBackend,
+  MODE_STORAGE_KEY,
+  RUN_STORAGE_KEY,
+  type RunBackend,
+} from './runs';
 export * from './wire';

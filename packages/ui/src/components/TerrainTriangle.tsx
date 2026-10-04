@@ -7,6 +7,7 @@ import { AppText } from './AppText';
 import { Icon } from './Icon';
 import { PixelArt } from './PixelArt';
 import { PixelText } from './PixelText';
+import type { IconName } from '../pixel/sprites';
 
 export type TerrainKey = 'slab' | 'vertical' | 'overhang';
 
@@ -22,22 +23,83 @@ type Props = {
   onSelect?: (terrain: TerrainKey) => void;
 };
 
+/** One corner of a RateTriangle. */
+export type TriangleCorner<K extends string> = Readonly<{
+  key: K;
+  name: string;
+  icon: IconName;
+}>;
+
+/** A stat for a RateTriangle corner: `done` of `logged`, e.g. runs finished. */
+export type TriangleStat = Readonly<{
+  logged: number;
+  done: number;
+  rate: number | null;
+}>;
+
 const SCALE = 4;
 const CHART_WIDTH = 61; // art pixels
 // Clockwise from the top, matching the design sketch.
-const AXES: readonly TerrainKey[] = ['vertical', 'overhang', 'slab'];
 const ANGLES = [-90, 30, 150].map(d => (d * Math.PI) / 180);
-const NAMES: Record<TerrainKey, string> = {
-  slab: 'Slab',
-  vertical: 'Vertical',
-  overhang: 'Overhang',
-};
+const TERRAIN_CORNERS: readonly [
+  TriangleCorner<TerrainKey>,
+  TriangleCorner<TerrainKey>,
+  TriangleCorner<TerrainKey>,
+] = [
+  { key: 'vertical', name: 'Vertical', icon: 'vertical' },
+  { key: 'overhang', name: 'Overhang', icon: 'overhang' },
+  { key: 'slab', name: 'Slab', icon: 'slab' },
+];
 
 /**
  * Terrain triangle: each corner grows on its own with the share of logged
  * climbs that were sent. Corners without enough logs stay dashed.
  */
 export function TerrainTriangle({ stats, focus, onSelect }: Props) {
+  const rated = useMemo(
+    () =>
+      Object.fromEntries(
+        TERRAIN_CORNERS.map(({ key }) => [
+          key,
+          { logged: stats[key].logged, done: stats[key].sent, rate: stats[key].rate },
+        ]),
+      ) as Record<TerrainKey, TriangleStat>,
+    [stats],
+  );
+  return (
+    <RateTriangle
+      corners={TERRAIN_CORNERS}
+      stats={rated}
+      verb="sent"
+      unit="climbs"
+      focus={focus}
+      onSelect={onSelect}
+    />
+  );
+}
+
+/**
+ * The triangle chart for any three things with a success rate: corners in
+ * clockwise order from the top. The gazelle uses it for easy, tempo and long
+ * runs ("finished"), the monkey for walls ("sent").
+ */
+export function RateTriangle<K extends string>({
+  corners,
+  stats,
+  verb,
+  unit,
+  focus,
+  onSelect,
+}: {
+  corners: readonly [TriangleCorner<K>, TriangleCorner<K>, TriangleCorner<K>];
+  stats: Readonly<Record<K, TriangleStat>>;
+  /** Past tense for `done`: "sent", "finished". */
+  verb: string;
+  /** What a corner counts, for the button hint: "climbs", "runs". */
+  unit: string;
+  focus?: K;
+  onSelect?: (key: K) => void;
+}) {
   const theme = useTheme();
   const tone = useTone();
   const chart = useMemo(
@@ -49,10 +111,10 @@ export function TerrainTriangle({ stats, focus, onSelect }: Props) {
         cy: 34,
         radius: 28,
         angles: ANGLES,
-        values: AXES.map(t => stats[t].rate),
-        focus: focus ? AXES.indexOf(focus) : undefined,
+        values: corners.map(c => stats[c.key].rate),
+        focus: focus ? corners.findIndex(c => c.key === focus) : undefined,
       }),
-    [stats, focus],
+    [corners, stats, focus],
   );
   const colors = useMemo(
     () => ({
@@ -68,19 +130,25 @@ export function TerrainTriangle({ stats, focus, onSelect }: Props) {
     [tone, theme],
   );
 
-  const label = (t: TerrainKey, align: 'flex-start' | 'center' | 'flex-end') => (
+  const label = (
+    corner: TriangleCorner<K>,
+    align: 'flex-start' | 'center' | 'flex-end',
+  ) => (
     <Corner
-      terrain={t}
-      stat={stats[t]}
-      focused={focus === t}
+      name={corner.name}
+      icon={corner.icon}
+      stat={stats[corner.key]}
+      verb={verb}
+      unit={unit}
+      focused={focus === corner.key}
       align={align}
-      onPress={onSelect ? () => onSelect(t) : undefined}
+      onPress={onSelect ? () => onSelect(corner.key) : undefined}
     />
   );
 
   return (
     <View style={{ alignItems: 'center', gap: 4 }}>
-      {label('vertical', 'center')}
+      {label(corners[0], 'center')}
       <PixelArt rows={chart.rows} colors={colors} scale={SCALE} />
       {/* Keeps the bottom labels near their corners on wide panels. */}
       <View
@@ -91,22 +159,28 @@ export function TerrainTriangle({ stats, focus, onSelect }: Props) {
           maxWidth: '100%',
         }}
       >
-        {label('slab', 'flex-start')}
-        {label('overhang', 'flex-end')}
+        {label(corners[2], 'flex-start')}
+        {label(corners[1], 'flex-end')}
       </View>
     </View>
   );
 }
 
 function Corner({
-  terrain,
+  name,
+  icon,
   stat,
+  verb,
+  unit,
   focused,
   align,
   onPress,
 }: {
-  terrain: TerrainKey;
-  stat: TerrainStat;
+  name: string;
+  icon: IconName;
+  stat: TriangleStat;
+  verb: string;
+  unit: string;
   focused: boolean;
   align: 'flex-start' | 'center' | 'flex-end';
   onPress?: () => void;
@@ -116,12 +190,12 @@ function Corner({
   const summary =
     stat.rate === null
       ? `${stat.logged} logged, need 3`
-      : `${stat.sent} of ${stat.logged} sent`;
+      : `${stat.done} of ${stat.logged} ${verb}`;
   return (
     <Pressable
       accessibilityRole={onPress ? 'button' : 'text'}
-      accessibilityLabel={`${NAMES[terrain]}: ${summary}${focused ? '. Current focus' : ''}`}
-      accessibilityHint={onPress ? 'Shows the climbs behind this corner' : undefined}
+      accessibilityLabel={`${name}: ${summary}${focused ? '. Current focus' : ''}`}
+      accessibilityHint={onPress ? `Shows the ${unit} behind this corner` : undefined}
       onPress={onPress}
       disabled={!onPress}
       hitSlop={6}
@@ -133,7 +207,7 @@ function Corner({
       })}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-        <Icon name={terrain} />
+        <Icon name={icon} />
         <View
           style={
             focused
@@ -142,7 +216,7 @@ function Corner({
           }
         >
           <PixelText
-            text={NAMES[terrain]}
+            text={name}
             color={focused ? theme.colors.onPrimary : tone.text}
             accessible={false}
           />

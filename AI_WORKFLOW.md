@@ -255,3 +255,21 @@ The Codex design-drafting step used the `superpowers:using-superpowers` and `sup
 
 **Not verified:** a real camera, Android or iOS native builds, and runtime permission dialogs on a phone.
 
+
+### 22. Gazelle mode (2026-10-04)
+
+**Prompt:** "Create gazelle mode, with the same stylisation and concepts as monkey mode. Use the context of the other convo if needed." Then: "Put this in another branch!" (branch `claude/gazelle-mode`).
+
+**Context:** A subagent read the earlier pets session's transcript. The user had asked for "different pets/modes for targeting different sports" and for a running gazelle, but never said what the mode should contain, so it mirrors the monkey loop.
+
+**Output:**
+- `packages/core`: `running.ts` (run log, easy/tempo/long tallies, the same focus rule as climbing, pace, weekly km, leg flags), `runQuests.ts` (draft gazelle quests, paused while a leg is flagged), `runGame.ts` (state, reducer, labelled sample runs). `petStatus` takes the unlock list, so the gazelle gets its own (race bib, gold medal).
+- `packages/data`: `runs.ts`, an on-device `RunBackend` for runs and the saved pet mode. The FastAPI backend was not changed.
+- `packages/ui`: a savanna palette behind `WorldContext`, a generated savanna scene and `SavannaHero` (the gazelle runs to a marker post per quest), gazelle cosmetics and leap animation, run type, surface and shoe icons, and `RateTriangle` (the terrain triangle made generic).
+- `packages/app`: `RunProvider` (`useRun()`), gazelle Profile, Log, Legs and Evidence screens, mode-aware tabs, rail, level-up banner and sync notice, and a pet switch on both profiles. Climbing setup only runs in monkey mode.
+
+**Tools:** Claude Code (Anthropic) wrote the code, tests and pixel art. Playwright with the preinstalled Chromium took screenshots of the web build for visual checks. No new libraries.
+
+**Validation:** `npm run check` passes (typecheck, lint with no errors, 725 Jest tests, including new core, data, scene and App-level gazelle tests). The production web build and the Android release bundle build. Checked visually at 390 px (day and night) and 1280 px.
+
+**Limits:** Gazelle quest text is draft and needs a coach's review. Leg flags are the runner's own notes, not a diagnosis. There is no running pose analysis, no Strava import and no server support for runs yet.

@@ -69,6 +69,11 @@ export function trailFor(route: RouteName, params: Params): Crumb[] {
         ? [tab('Hands'), fingerCrumb(params), here]
         : [tab('Hands'), here];
     }
+    case 'RunEvidence':
+      return [
+        { route: 'Run', label: 'Profile' },
+        { route, params, label: 'Evidence' },
+      ];
     case 'Test': {
       const test = BASELINE_TESTS.find(t => t.id === params.id) ?? BASELINE_TESTS[0];
       return [tab('Tests'), { route, params, label: test.name }];

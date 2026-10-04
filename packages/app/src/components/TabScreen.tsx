@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { XP_PER_LEVEL, XP_PER_QUEST } from '@hackyeah/core';
 import {
   AppText,
+  Gazelle,
   Meter,
   Monkey,
   NavRail,
@@ -15,8 +16,12 @@ import { useNavigation } from '../navigation/Navigator';
 import type { RouteName } from '../navigation/routes';
 import { trailFor } from '../navigation/trail';
 import { useGame } from '../state/GameProvider';
+import { useRun } from '../state/RunProvider';
 
-type TabRoute = Extract<RouteName, 'Profile' | 'Log' | 'Hands' | 'Tests'>;
+type TabRoute = Extract<
+  RouteName,
+  'Profile' | 'Log' | 'Hands' | 'Tests' | 'Run' | 'RunLog' | 'Legs'
+>;
 
 const TABS: readonly Tab<TabRoute>[] = [
   { key: 'Profile', label: 'Profile', icon: 'profile' },
@@ -25,13 +30,20 @@ const TABS: readonly Tab<TabRoute>[] = [
   { key: 'Tests', label: 'Tests', icon: 'tests' },
 ];
 
+/** Gazelle mode: same shape, with Legs in place of Hands and no Tests yet. */
+const GAZELLE_TABS: readonly Tab<TabRoute>[] = [
+  { key: 'Run', label: 'Profile', icon: 'profile' },
+  { key: 'RunLog', label: 'Log', icon: 'log' },
+  { key: 'Legs', label: 'Legs', icon: 'shoe' },
+];
+
 type Props = {
   children: ReactNode;
   hero?: ReactNode;
 };
 
 const isTab = (route: RouteName | undefined): route is TabRoute =>
-  TABS.some(t => t.key === route);
+  [...TABS, ...GAZELLE_TABS].some(t => t.key === route);
 
 /**
  * Screen with app navigation: a tab bar at the bottom on phones, a side rail
@@ -40,15 +52,21 @@ const isTab = (route: RouteName | undefined): route is TabRoute =>
  */
 export function TabScreen({ children, hero }: Props) {
   const { root, reset } = useNavigation<RouteName>();
+  const { mode } = useRun();
+  const tabs = mode === 'gazelle' ? GAZELLE_TABS : TABS;
   const home = trailFor(root, {})[0]?.route;
-  const active: TabRoute = isTab(root) ? root : isTab(home) ? home : 'Profile';
+  const active: TabRoute = isTab(root)
+    ? root
+    : isTab(home)
+      ? home
+      : tabs[0].key;
   return (
     <Screen
       hero={hero}
-      footer={<TabBar tabs={TABS} active={active} onSelect={reset} />}
+      footer={<TabBar tabs={tabs} active={active} onSelect={reset} />}
       rail={
         <NavRail
-          tabs={TABS}
+          tabs={tabs}
           active={active}
           onSelect={reset}
           header={<RailHeader />}
@@ -63,16 +81,29 @@ export function TabScreen({ children, hero }: Props) {
 
 function RailHeader() {
   const { pet } = useGame();
+  const { mode, pet: gazelle } = useRun();
   return (
     <View style={{ gap: 10 }}>
-      <Monkey scale={3} cosmetics={pet.cosmetics} />
-      <PixelText text={'Climbing\nMonkey'} heading scale={3} shadow="#22180F" />
+      {mode === 'gazelle' ? (
+        <Gazelle scale={3} cosmetics={gazelle.cosmetics} />
+      ) : (
+        <Monkey scale={3} cosmetics={pet.cosmetics} />
+      )}
+      <PixelText
+        text={mode === 'gazelle' ? 'Running\nGazelle' : 'Climbing\nMonkey'}
+        heading
+        scale={3}
+        shadow="#22180F"
+      />
     </View>
   );
 }
 
+/** The active pet's level, at the bottom of the rail. */
 function RailLevel() {
-  const { pet } = useGame();
+  const { pet: monkey } = useGame();
+  const { mode, pet: gazelle } = useRun();
+  const pet = mode === 'gazelle' ? gazelle : monkey;
   const steps = XP_PER_LEVEL / XP_PER_QUEST;
   return (
     <View style={{ gap: 6 }}>
