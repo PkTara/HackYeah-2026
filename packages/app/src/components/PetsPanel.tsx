@@ -8,8 +8,10 @@ import {
   Gazelle,
   Monkey,
   Panel,
+  PixelBox,
   PixelText,
-  Tag,
+  PX,
+  useTheme,
 } from '@hackyeah/ui';
 import { useGame } from '../state/GameProvider';
 import { useSport } from '../state/SportProvider';
@@ -52,8 +54,8 @@ const PETS: readonly PetEntry[] = [
 ];
 
 /**
- * One pet per sport, on every profile. The active pet is tagged; tapping
- * another switches the whole app to its sport and world.
+ * One pet per sport, on every profile. The active pet's key is held down;
+ * tapping another switches the whole app to its sport and world.
  */
 export function PetsPanel() {
   const { pet: monkey } = useGame();
@@ -77,10 +79,7 @@ export function PetsPanel() {
                 {'\n'}Level {status.level}
               </AppText>
               {m === mode ? (
-                // Wrapped so the tag centres like the rest of the column.
-                <View>
-                  <Tag text="Active" tone="new" />
-                </View>
+                <ActiveKey name={name} />
               ) : (
                 <Button
                   title={verb}
@@ -98,9 +97,48 @@ export function PetsPanel() {
   );
 }
 
+/** Same size as the small buttons beside it, so the row lines up. */
+const KEY_LIFT = PX * 2;
+
+/**
+ * The active pet's place in the row: a key held down in the world's accent
+ * colour, like a selected chip. It is a label, not a button.
+ */
+function ActiveKey({ name }: { name: string }) {
+  const { colors: c } = useTheme();
+  return (
+    <View
+      accessible
+      accessibilityLabel={`${name}, active pet`}
+      style={styles.key}
+    >
+      <PixelBox
+        fill={c.primary}
+        outline={c.outline}
+        shadow={c.backgroundDeep}
+        lift={0}
+        contentStyle={styles.keyContent}
+      >
+        <View>
+          <PixelText text="Active" color={c.onPrimary} accessible={false} />
+        </View>
+      </PixelBox>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 8 },
   pet: { flex: 1, alignItems: 'center', gap: 6 },
   art: { height: 60, justifyContent: 'flex-end' },
   center: { textAlign: 'center' },
+  // Held down by the lift a raised button stands on.
+  key: { marginTop: KEY_LIFT },
+  keyContent: {
+    minHeight: 40,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
