@@ -63,7 +63,7 @@ export function TestsScreen() {
     <Group
       title="Climbs and hands"
       icon="log"
-      purpose="What you climbed and what hurts. These shape your focus and quest."
+      purpose="What you climbed and what hurts. These shape your focus, quest and movement radar."
       state="ready"
     >
       <DataRow
@@ -130,7 +130,7 @@ export function TestsScreen() {
     <Group
       title="Home tests"
       icon="tests"
-      purpose={`A stopwatch or counter on this device. ${done} of ${tests.length} done.`}
+      purpose={`A stopwatch or counter on this device. ${done} of ${tests.length} done. Dead hang, plank and one-leg balance also count on the movement radar.`}
       state="ready"
     >
       {tests.map((test, i) => {

@@ -23,7 +23,6 @@ import {
   Icon,
   JungleHero,
   Meter,
-  MovementRadar,
   PX,
   Panel,
   Pips,
@@ -36,12 +35,9 @@ import {
   useContentWidth,
   useLayout,
   useTheme,
-  type MovementAxis,
 } from '@hackyeah/ui';
-import {
-  explainXP,
-  explainExampleRadar,
-} from '../components/resultExplanations';
+import { explainXP } from '../components/resultExplanations';
+import { MovementRadarPanel } from '../components/MovementRadarPanel';
 import { DecisionHelp } from '../components/DecisionHelp';
 import { DataRow } from '../components/DataRow';
 import { TabScreen } from '../components/TabScreen';
@@ -58,18 +54,8 @@ import { useGame } from '../state/GameProvider';
 import { ActivitySummary } from './ActivityScreen';
 import { AssessmentSummary } from '../components/AssessmentSummary';
 import { PetsPanel } from '../components/PetsPanel';
-import { StateLabel } from '../components/StateLabel';
 
 const STEPS = XP_PER_LEVEL / XP_PER_QUEST;
-
-// Illustrative values; their provenance is available in the radar explanation.
-const EXAMPLE_MOVES: readonly MovementAxis[] = [
-  { label: 'Footwork', value: 0.45 },
-  { label: 'Balance', value: 0.75 },
-  { label: 'Tension', value: 0.55 },
-  { label: 'Stamina', value: 0.6 },
-  { label: 'Dynos', value: 0.35 },
-];
 
 export function ProfileScreen() {
   const theme = useTheme();
@@ -457,28 +443,10 @@ export function ProfileScreen() {
             <AppText variant="caption" muted>
               A climb can use several styles. Each selected style counts here.
             </AppText>
-            <View
-              style={{
-                height: 3,
-                backgroundColor: theme.colors.surfaceShade,
-                marginVertical: 4,
-              }}
-            />
-            <View style={styles.radarHead}>
-              <DecisionHelp
-                label="Movement radar"
-                explanation={explainExampleRadar(EXAMPLE_MOVES)}
-              >
-                <PixelText text="Movement radar" />
-              </DecisionHelp>
-              <StateLabel state="later" />
-            </View>
-            <MovementRadar axes={EXAMPLE_MOVES} example />
-            <AppText variant="caption" muted>
-              Not scored yet. It needs movement evidence before it shows real
-              values.
-            </AppText>
           </Panel>
+
+          {/* Five axes from the climbs above plus three home tests. */}
+          <MovementRadarPanel />
 
           {wide ? null : recentPanel}
 
@@ -619,12 +587,6 @@ const styles = StyleSheet.create({
   grow: { flex: 1 },
   rule: { height: PX },
   tallyRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  radarHead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
   choices: { gap: spacing.sm + 2 },
   choicesSide: { flexDirection: 'row', gap: spacing.sm + 2 },
 });

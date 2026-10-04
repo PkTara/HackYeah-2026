@@ -13,6 +13,7 @@ export function demoSeed(today: string): GameState {
         unit: 'seconds',
         method: 'typed',
         date: today,
+        sample: true,
       },
       {
         testId: 'pull-ups',
@@ -20,6 +21,7 @@ export function demoSeed(today: string): GameState {
         unit: 'reps',
         method: 'typed',
         date: today,
+        sample: true,
       },
       {
         testId: 'sit-and-reach',
@@ -27,6 +29,7 @@ export function demoSeed(today: string): GameState {
         unit: 'cm',
         method: 'typed',
         date: today,
+        sample: true,
       },
       {
         testId: 'plank',
@@ -34,6 +37,7 @@ export function demoSeed(today: string): GameState {
         unit: 'seconds',
         method: 'typed',
         date: today,
+        sample: true,
       },
       {
         testId: 'one-leg-balance',
@@ -41,6 +45,7 @@ export function demoSeed(today: string): GameState {
         unit: 'seconds',
         method: 'typed',
         date: today,
+        sample: true,
       },
       {
         testId: 'push-ups',
@@ -48,6 +53,7 @@ export function demoSeed(today: string): GameState {
         unit: 'reps',
         method: 'typed',
         date: today,
+        sample: true,
       },
     ],
   };

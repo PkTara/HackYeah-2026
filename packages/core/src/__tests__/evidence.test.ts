@@ -157,8 +157,8 @@ it('explains camera geometry and visibility without claiming validated range or 
 });
 
 it('provides original research links and explicit reading depth and limitations for all scoped sources', () => {
-  expect(RESEARCH_SOURCES).toHaveLength(17);
-  expect(new Set(RESEARCH_SOURCES.map(source => source.id)).size).toBe(17);
+  expect(RESEARCH_SOURCES).toHaveLength(24);
+  expect(new Set(RESEARCH_SOURCES.map(source => source.id)).size).toBe(24);
   for (const source of RESEARCH_SOURCES) {
     expect(source.url).toMatch(/^https:\/\/doi.org\//);
     expect(source.readingDepth).toBeTruthy();

@@ -3,7 +3,6 @@ import {
   explainXP,
   explainReach,
   explainHomeTest,
-  explainExampleRadar,
 } from '../components/resultExplanations';
 
 it('explains XP from unique completion records with the actual product arithmetic', () => {
@@ -67,16 +66,6 @@ it('shows the actual home-test protocol, manual method, value and recorded date'
   expect(result.evidence[0].detail).toContain('counter');
   expect(result.evidence[0].label).toContain('2026-10-03');
   expect(result.limitations.join(' ')).toContain('not a calibrated score');
-});
-
-it('reports radar values as fixed examples without claiming a personal score', () => {
-  const result = explainExampleRadar([{ label: 'Footwork', value: 0.45 }]);
-  expect(result.status).toBe('example');
-  expect(result.evidence[0].detail).toContain('0.45');
-  expect(result.rule).toContain('fixed example values');
-  expect(result.limitations.join(' ')).toContain(
-    'Not calculated from your records',
-  );
 });
 
 it('explains an empty known completion list without presenting missing provenance', () => {

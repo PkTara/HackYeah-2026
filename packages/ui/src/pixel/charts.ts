@@ -25,6 +25,12 @@ export function radialChart(o: {
   focus?: number;
   /** Striped fill marks example data. */
   striped?: boolean;
+  /**
+   * With some values unknown, still fill the wedges between neighbouring
+   * known axes, closed along their spokes. The shape never passes through
+   * an unknown axis, so an unknown value is still never drawn as zero.
+   */
+  partial?: boolean;
 }): RadialChart {
   const c = new PixelCanvas(o.width, o.height);
   const n = o.angles.length;
@@ -49,8 +55,7 @@ export function radialChart(o: {
   // The climber's shape. Only closed when every axis is known.
   const pts = o.values.map((v, i) => point(i, Math.max(v ?? 0, 0.05)));
   const known = o.values.map(v => v !== null);
-  if (known.every(Boolean)) {
-    c.polygon(pts, 'F');
+  const stripe = () => {
     if (o.striped) {
       for (let y = 0; y < o.height; y++) {
         for (let x = 0; x < o.width; x++) {
@@ -60,7 +65,29 @@ export function radialChart(o: {
         }
       }
     }
+  };
+  if (known.every(Boolean)) {
+    c.polygon(pts, 'F');
+    stripe();
     c.outline(pts, 'E');
+  } else if (o.partial) {
+    const centre: [number, number] = [o.cx, o.cy];
+    const pairs = pts
+      .map((p, i) => [i, (i + 1) % n] as const)
+      .filter(([i, j]) => known[i] && known[j]);
+    pairs.forEach(([i, j]) => c.polygon([centre, pts[i], pts[j]], 'F'));
+    stripe();
+    pairs.forEach(([i, j]) =>
+      c.line(pts[i][0], pts[i][1], pts[j][0], pts[j][1], 'E'),
+    );
+    // Close each wedge along the spoke of a known axis next to an unknown.
+    pts.forEach((p, i) => {
+      const before = known[(i + n - 1) % n];
+      const after = known[(i + 1) % n];
+      if (known[i] && (!before || !after)) {
+        c.line(o.cx, o.cy, p[0], p[1], 'E');
+      }
+    });
   } else {
     pts.forEach((p, i) => {
       const j = (i + 1) % n;

@@ -89,7 +89,7 @@ Each evidence collection supports `GET` and `DELETE /v1/me/{collection}/{id}`. `
 `GET /v1/me/profile` returns:
 
 - Independent `terrain`, `movement` and `grid` summaries: counts, observed completion rate and evidence IDs. `ability_score` remains null. A climb with several styles counts under each of its movements in the `movement` and `grid` summaries, and once in `terrain`.
-- `radar` axes with null values until there are validated technique observations. Do not render null as zero.
+- `radar`: five axes (`precise_footwork`, `balance`, `body_tension`, `sustained_effort`, `dynamic_coordination`), the same team rule as the app's `packages/core/src/movement.ts`. An axis is `null` until it has 3 matching climbs or, for sustained effort, a manual `hang_duration` record; do not render null as zero. A scored axis is `{level, level_name, points, climb_count, sent_count, test_points, long_sessions, evidence_ids}`: 1 point per completed matching climb, 0 to 3 for the hang (marks 20, 40, 60 s) and 1 per UTC day with 5 or more climbs (sustained effort only); Started under 4 points, Building from 4, Established from 8. The plank and one-leg balance tests stay on the device, so the server scores tension and balance from climbs alone. A count of the climber's records, not a skill score; see `docs/decision-evidence.md`.
 - `assessment_trends` with latest result, comparable previous result and delta; comparisons require matching metric, unit, method, protocol, side, complete setup and simulation provenance. Legacy records without `simulated` are treated as real.
 - `active_hand_flags` from the latest report per side/region (active when `pain` is null or above 0), `activity_context`, and an evidence-linked `focus`.
 

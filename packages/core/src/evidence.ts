@@ -30,6 +30,17 @@ import {
 import { shortDate } from './dates';
 import type { DecisionFlow, FlowIcon, FlowInput, FlowNode } from './flow';
 import { spotsFor } from './spots';
+import {
+  AXIS_RULES,
+  LONG_SESSION_CLIMBS,
+  RADAR_LEVEL_NAME,
+  RADAR_LEVEL_POINTS,
+  RADAR_MIN_CLIMBS,
+  type AxisRule,
+  type AxisScore,
+  type AxisTest,
+  type MovementAxisId,
+} from './movement';
 
 /** Personal record evidence and published research have separate identifiers. */
 export type ResearchSource = Readonly<{
@@ -894,6 +905,342 @@ export function explainCamera(input: {
   };
 }
 
+// Movement radar
+
+const RADAR_LIMIT =
+  'A summary of your own logs and tests, not a skill test or a grade prediction. What counts, the marks and the levels are team rules.';
+
+const AXIS_LIMIT: Readonly<Record<MovementAxisId, string>> = {
+  footwork:
+    'Wall and style are your own tags, and a send also depends on the grade you picked.',
+  balance:
+    'The one-leg test is on the floor with your eyes closed, which is not the same as balancing on a wall.',
+  tension:
+    'A floor plank is not the same as holding your body in on a steep wall.',
+  stamina:
+    'A bar hang loads the whole arm, and a long day counts climbs, not how hard they were.',
+  dynos:
+    'No home test covers dynamic moves, so only the climbs you log count.',
+};
+
+const SOURCE_WORDS = {
+  measured: 'timed with the app stopwatch',
+  entered: 'typed in by you',
+} as const;
+
+/** "Plank 45 s, timed with the app stopwatch" */
+function testWords(test: AxisTest): string {
+  if (test.simulated) {
+    return `${capital(test.name)} ${test.value} s, an example result`;
+  }
+  return `${capital(test.name)} ${test.value} s, ${
+    test.from === 'assessment' ? 'a saved record ' : ''
+  }${SOURCE_WORDS[test.source]}`;
+}
+
+function testEvidence(rule: AxisRule, score: AxisScore): EvidenceRecord[] {
+  if (!rule.test) {
+    return [];
+  }
+  const { test } = score;
+  if (!test) {
+    return [
+      {
+        id: `radar-${rule.id}-no-test`,
+        label: `No ${rule.test.name} result`,
+        detail: `The ${rule.test.name} test has not been done yet.`,
+        view: {
+          icon: 'tests',
+          title: `No ${rule.test.name} result yet`,
+          note: 'Do it on the Data tab',
+        },
+      },
+    ];
+  }
+  const [a, b, c] = test.marks;
+  return [
+    {
+      id: `radar-${rule.id}-test-${test.date}`,
+      label: `${capital(test.name)} result, ${test.date}`,
+      detail: `${testWords(test)}. ${count(
+        test.points,
+        'points',
+      )} at the team marks of ${a}, ${b} and ${c} seconds.`,
+      view: {
+        when: shortDate(test.date),
+        icon: 'tests',
+        title: `${capital(test.name)} ${test.value} s`,
+        note: test.simulated
+          ? 'Example result'
+          : capital(SOURCE_WORDS[test.source]),
+        outcome: { text: `+${test.points}`, done: test.points > 0 },
+        ...(test.simulated ? { sample: true } : {}),
+      },
+    },
+  ];
+}
+
+function longSessionEvidence(
+  logs: readonly ClimbLog[],
+  days: readonly string[],
+): EvidenceRecord[] {
+  return [...days].reverse().map(day => {
+    const n = logs.filter(log => log.date === day).length;
+    const sample = logs.some(log => log.date === day && log.sample);
+    return {
+      id: `radar-long-${day}`,
+      label: `Long session, ${day}${sample ? ' (example)' : ''}`,
+      detail: `${n} climbs logged that day.`,
+      view: {
+        when: shortDate(day),
+        icon: 'clock',
+        title: `${n} climbs in one day`,
+        note: `A day with ${LONG_SESSION_CLIMBS} or more climbs`,
+        outcome: { text: '+1', done: true },
+        ...(sample ? { sample: true } : {}),
+      },
+    };
+  });
+}
+
+/**
+ * Why one radar axis shows what it shows: the matching climbs, its home
+ * test, the gate and how the points became a level.
+ */
+export function explainMovementAxis(
+  score: AxisScore,
+  logs: readonly ClimbLog[],
+): DecisionExplanation {
+  const rule = AXIS_RULES[score.axis];
+  const level = RADAR_LEVEL_NAME[score.level];
+  const logged = score.climbs.length;
+  const [a, b, c] = rule.test?.marks ?? [0, 0, 0];
+  const testShort = rule.test
+    ? score.test
+      ? `${rule.test.name} ${score.test.value} s`
+      : `no ${rule.test.name} result`
+    : undefined;
+  const long = score.longSessions.length;
+  return {
+    summary: score.scored
+      ? `${rule.name} is at ${level}: ${count(
+          score.points,
+          'points',
+        )} from your own ${rule.test ? 'climbs and test' : 'climbs'}.`
+      : `${rule.name} is not scored yet. ${score.next}`,
+    status:
+      score.sample || score.test?.simulated ? 'example' : 'app_rule',
+    rule: lines(
+      `${rule.name} counts ${rule.counts}.`,
+      `It is scored once you log ${RADAR_MIN_CLIMBS} matching climbs${
+        rule.test ? ` or do the ${rule.test.name} test` : ''
+      }. Before that it shows ${RADAR_LEVEL_NAME[0]}, never zero.`,
+      'Each matching climb you sent adds 1 point.',
+      !!rule.test &&
+        `${capital(rule.test.name)} test: ${a} s adds 1 point, ${b} s adds 2, ${c} s adds 3.`,
+      !!rule.longSessions &&
+        `Each day with ${LONG_SESSION_CLIMBS} or more logged climbs adds 1 point.`,
+      `${RADAR_LEVEL_NAME[1]} below ${RADAR_LEVEL_POINTS.building} points, ${
+        RADAR_LEVEL_NAME[2]
+      } from ${RADAR_LEVEL_POINTS.building}, ${RADAR_LEVEL_NAME[3]} from ${
+        RADAR_LEVEL_POINTS.established
+      }.`,
+      `Why these: ${rule.why}`,
+      'What counts, the gate, the marks and the levels are team rules, not taken from a study.',
+      `You have ${score.sent} sent of ${count(logged, 'matching climbs')}${
+        testShort ? `, ${testShort}` : ''
+      }${rule.longSessions ? `, ${count(long, 'long sessions')}` : ''}. ${
+        score.scored ? `That is ${count(score.points, 'points')}.` : ''
+      }`.trim(),
+    ),
+    evidence: [
+      ...testEvidence(rule, score),
+      ...longSessionEvidence(logs, score.longSessions),
+      ...climbEvidence(score.climbs),
+    ],
+    sourceIds: rule.sourceIds,
+    limitations: [RADAR_LIMIT, AXIS_LIMIT[score.axis]],
+    inputSummary: `${
+      logged === 0
+        ? 'No matching climbs yet.'
+        : `${capital(count(logged, 'matching climbs'))} you logged: ${
+            score.sent
+          } sent.`
+    }${
+      rule.test
+        ? score.test
+          ? ` ${testWords(score.test)}.`
+          : ` No ${rule.test.name} result yet.`
+        : ''
+    }${rule.longSessions ? ` ${capital(count(long, 'long sessions'))}.` : ''}`,
+    flow: {
+      inputs: [
+        {
+          label: 'Matching climbs',
+          value: `${score.sent} of ${logged} sent`,
+          icon: rule.icon,
+          key: true,
+        },
+        ...(rule.test
+          ? [
+              {
+                label: capital(rule.test.name),
+                value: score.test ? `${score.test.value} s` : 'No result',
+                icon: 'tests',
+              },
+            ]
+          : []),
+        ...(rule.longSessions
+          ? [{ label: 'Long sessions', value: `${long}`, icon: 'clock' }]
+          : []),
+      ],
+      nodes: [
+        {
+          type: 'step',
+          label: 'Keep the climbs that match',
+          detail: capital(rule.climbsText),
+          team: true,
+        },
+        {
+          type: 'check',
+          label: `${RADAR_MIN_CLIMBS}+ matching climbs${
+            rule.test ? ' or a test' : ''
+          }?`,
+          taken: score.scored ? 'yes' : 'no',
+          yes: 'Score this axis',
+          no: RADAR_LEVEL_NAME[0],
+          detail: `${logged} ${logged === 1 ? 'climb' : 'climbs'}, ${
+            RADAR_MIN_CLIMBS
+          } needed${testShort ? `. ${capital(testShort)}` : ''}`,
+          team: true,
+        },
+        ...(score.scored
+          ? [
+              {
+                type: 'step' as const,
+                label: '1 point per sent climb',
+                detail: `${score.sent} sent, ${count(score.sent, 'points')}`,
+                team: true,
+              },
+              ...(rule.test
+                ? [
+                    {
+                      type: 'step' as const,
+                      label: `${capital(rule.test.name)} marks ${a}, ${b}, ${c} s`,
+                      detail: score.test
+                        ? `${score.test.value} s is ${count(
+                            score.test.points,
+                            'points',
+                          )}`
+                        : 'No result, no points',
+                      team: true,
+                    },
+                  ]
+                : []),
+              ...(rule.longSessions
+                ? [
+                    {
+                      type: 'step' as const,
+                      label: `1 point per day with ${LONG_SESSION_CLIMBS}+ climbs`,
+                      detail: `${count(long, 'days')}, ${count(long, 'points')}`,
+                      team: true,
+                    },
+                  ]
+                : []),
+              {
+                type: 'step' as const,
+                label: 'Level from points',
+                detail: `${count(score.points, 'points')}: ${
+                  RADAR_LEVEL_POINTS.building
+                }+ is ${RADAR_LEVEL_NAME[2]}, ${
+                  RADAR_LEVEL_POINTS.established
+                }+ is ${RADAR_LEVEL_NAME[3]}`,
+                team: true,
+              },
+            ]
+          : []),
+      ],
+      result: { label: rule.name, value: level, icon: rule.icon },
+    },
+  };
+}
+
+/** The radar as a whole: which axes are scored and how the shape is drawn. */
+export function explainMovementRadar(
+  scores: readonly AxisScore[],
+): DecisionExplanation {
+  const scored = scores.filter(score => score.scored);
+  return {
+    summary: scored.length
+      ? `${scored.length} of ${scores.length} axes are scored from your own records.`
+      : `No axis is scored yet. Each needs ${RADAR_MIN_CLIMBS} matching climbs or its home test.`,
+    status: scored.some(score => score.sample || score.test?.simulated)
+      ? 'example'
+      : 'app_rule',
+    rule: lines(
+      ...scores.map(
+        score =>
+          `${score.name}: ${AXIS_RULES[score.axis].counts}. ${
+            RADAR_LEVEL_NAME[score.level]
+          }${score.scored ? `, ${count(score.points, 'points')}` : ''}.`,
+      ),
+      `Each sent matching climb is 1 point, and a home test adds up to 3. An axis needs ${RADAR_MIN_CLIMBS} matching climbs or its test to be scored.`,
+      'The shape is only filled between neighbouring scored axes. An unscored axis keeps a dashed line and is never drawn as zero.',
+    ),
+    evidence: scores.map(score => ({
+      id: `radar-${score.axis}`,
+      label: `${score.name}: ${RADAR_LEVEL_NAME[score.level]}`,
+      detail: score.next,
+      view: {
+        icon: AXIS_RULES[score.axis].icon,
+        title: score.name,
+        note: score.scored
+          ? `${count(score.points, 'points')}. ${score.next}`
+          : score.next,
+        outcome: {
+          text: RADAR_LEVEL_NAME[score.level],
+          done: score.scored,
+        },
+        ...(score.sample ? { sample: true } : {}),
+      },
+    })),
+    sourceIds: [],
+    limitations: [
+      RADAR_LIMIT,
+      'Tap an axis name for its records, rule and research.',
+    ],
+    inputSummary: `${scored.length} of ${scores.length} axes scored, from your climbs and home tests.`,
+    flow: {
+      inputs: scores.map(score => ({
+        label: score.name,
+        value: RADAR_LEVEL_NAME[score.level],
+        icon: AXIS_RULES[score.axis].icon,
+      })),
+      nodes: [
+        {
+          type: 'step',
+          label: 'Score each axis on its own',
+          detail: 'Sent climbs plus its home test',
+          team: true,
+        },
+        {
+          type: 'check',
+          label: 'Every axis scored?',
+          taken: scored.length === scores.length ? 'yes' : 'no',
+          yes: 'Fill the whole shape',
+          no: 'Fill only between scored axes',
+          detail: `${scored.length} of ${scores.length} scored`,
+          team: true,
+        },
+      ],
+      result: {
+        label: 'Radar',
+        value: `${scored.length} of ${scores.length} scored`,
+      },
+    },
+  };
+}
+
 /** The words a sport mode uses, so its explanations read naturally. */
 export type SportWords = Readonly<{
   pet: string;
@@ -1522,6 +1869,157 @@ export const RESEARCH_SOURCES: readonly ResearchSource[] = [
       'Small sample and only two test problems',
       'Within-group changes do not establish superiority over usual training',
       'Does not validate app cues, drills, doses, personalized selection or camera scoring',
+    ],
+    verifiedAt: '2026-10-04',
+  },
+  // Movement radar signals (packages/core/src/movement.ts). Each one backs
+  // why a signal is worth looking at for an axis, never the radar itself.
+  // Checked through web search of the bibliographic records; PubMed and the
+  // publishers were blocked by the network, so every entry is abstract level.
+  {
+    id: 'noe2001',
+    title:
+      'Influence of steep gradient supporting walls in rock climbing: biomechanical analysis',
+    authors: 'Frédéric Noé, Franck Quaine, Luc Martin',
+    year: 2001,
+    url: 'https://doi.org/10.1016/S0966-6362(00)00098-9',
+    finding:
+      'When climbers let go with one foot, staying on an overhanging wall relied strongly on the arms, while the vertical wall asked more of balance.',
+    studyType: 'Laboratory biomechanics experiment (Gait & Posture 13(2):86-94, PMID 11240356)',
+    population: 'Climbers on an instrumented wall; sample size not checked',
+    readingDepth: 'abstract only, through search records',
+    supports:
+      'Wall angle changes how arms and feet share the work, which is why the radar groups climbs by wall for footwork and tension.',
+    limitations: [
+      'One posture with one foot released on vertical and overhanging walls; slabs and whole climbs were not studied',
+      'Does not validate the radar, its axes or any wall-to-skill mapping',
+    ],
+    verifiedAt: '2026-10-04',
+  },
+  {
+    id: 'springer2007',
+    title:
+      'Normative values for the unipedal stance test with eyes open and closed',
+    authors:
+      'Barbara A. Springer, Raul Marin, Tamara Cyhan, Holly Roberts, Norman W. Gill',
+    year: 2007,
+    url: 'https://doi.org/10.1519/00139143-200704000-00003',
+    finding:
+      'In 549 healthy adults, one-leg stance times were very consistent between raters, with eyes open and closed, and fell with age.',
+    studyType:
+      'Normative and reliability study (J Geriatr Phys Ther 30(1):8-15, PMID 19839175)',
+    population: '549 healthy adults aged 18 and over, in six age groups',
+    readingDepth: 'abstract only, through search records',
+    supports:
+      'A timed one-leg stance is a repeatable floor test of standing balance.',
+    limitations: [
+      'Not climbers, and balance on the floor is not balance on a wall',
+      'Its age norms are not used as app marks; the marks are team rules',
+    ],
+    verifiedAt: '2026-10-04',
+  },
+  {
+    id: 'saul2019',
+    title: 'Determinants for success in climbing: A systematic review',
+    authors:
+      'Dominik Saul, Gino Steinmetz, Wolfgang Lehmann, Arndt F. Schilling',
+    year: 2019,
+    url: 'https://doi.org/10.1016/j.jesf.2019.04.002',
+    finding:
+      'A review of climbing studies found that successful climbers tended to have strong, enduring grips, good postural stability and long finger and bent-arm hang times.',
+    studyType:
+      'Systematic review, secondary evidence (J Exerc Sci Fit 17(3):91-100)',
+    population: 'Published climbing studies up to September 2018',
+    readingDepth: 'abstract only, through search records',
+    supports:
+      'Balance and hang endurance are qualities climbing research looks at, so they are fair signals to record.',
+    limitations: [
+      'Secondary evidence: associations across studies, mostly with skilled climbers',
+      'Does not validate the radar, its marks or any grade prediction',
+    ],
+    verifiedAt: '2026-10-04',
+  },
+  {
+    id: 'tong2014',
+    title:
+      'Sport-specific endurance plank test for evaluation of global core muscle function',
+    authors: 'Tom K. Tong, Shing Wu, Jinlei Nie',
+    year: 2014,
+    url: 'https://doi.org/10.1016/j.ptsp.2013.03.003',
+    finding:
+      'A timed plank test with arm and leg lifts gave very repeatable times in 36 young athletes, once they had one practice try.',
+    studyType:
+      'Validity and reliability study (Phys Ther Sport 15(1):58-63)',
+    population: '36 young athletes (28 men, 8 women)',
+    readingDepth: 'abstract only, through search records',
+    supports:
+      'A timed plank-style hold can be a repeatable test of trunk endurance.',
+    limitations: [
+      'A harder plank variant than the app test, in athletes, not climbers',
+      'Does not validate the app plank, its marks or body tension on a wall',
+    ],
+    verifiedAt: '2026-10-04',
+  },
+  {
+    id: 'muehlbauer2012',
+    title: 'Effects of climbing on core strength and mobility in adults',
+    authors: 'Thomas Muehlbauer, Matthias Stuerchler, Urs Granacher',
+    year: 2012,
+    url: 'https://doi.org/10.1055/s-0031-1301312',
+    finding:
+      'In 28 inactive adults, eight weeks of indoor climbing raised trunk strength and mobility, and some of it was lost after eight weeks off.',
+    studyType:
+      'Training and detraining study (Int J Sports Med 33(6):445-451, PMID 22422306)',
+    population: '28 young sedentary adults',
+    readingDepth: 'abstract only, through search records',
+    supports:
+      'Climbing works the trunk, so trunk endurance is a fair signal for body tension.',
+    limitations: [
+      'Inactive beginners in a short programme; design details beyond the abstract not checked',
+      'Does not show that a plank time reflects tension while climbing',
+    ],
+    verifiedAt: '2026-10-04',
+  },
+  {
+    id: 'balas2012',
+    title:
+      'Hand-arm strength and endurance as predictors of climbing performance',
+    authors: 'Jiří Baláš, Ondřej Pecha, Andrew J. Martin, Darryl Cochrane',
+    year: 2012,
+    url: 'https://doi.org/10.1080/17461391.2010.546431',
+    finding:
+      'In 205 sport climbers, grip strength, a bent-arm hang and a finger hang together formed a strength and endurance factor closely linked with climbing level.',
+    studyType:
+      'Cross-sectional structural model (Eur J Sport Sci 12(1):16-25)',
+    population: '205 sport climbers (136 men, 69 women), UIAA grades 4 to 11',
+    readingDepth: 'abstract only, through search records',
+    supports:
+      'Hang times are a recognised climbing endurance test, so a dead hang is a fair stamina signal.',
+    limitations: [
+      'A bar dead hang differs from the finger and bent-arm hangs studied',
+      'An association with level; the app never predicts a grade from it',
+    ],
+    verifiedAt: '2026-10-04',
+  },
+  {
+    id: 'augste2021',
+    title:
+      'Athletes’ performance in different boulder types at international bouldering competitions',
+    authors: 'Claudia Augste, Paulin Sponar, Marvin Winkler',
+    year: 2021,
+    url: 'https://doi.org/10.1080/24748668.2021.1907728',
+    finding:
+      'In 448 boulder sections from World Cup finals, more than half had a dynamic move as the crux, and success differed by boulder type.',
+    studyType:
+      'Video analysis of competitions (Int J Perform Anal Sport 21(3):409-420)',
+    population:
+      'Final rounds of 14 Bouldering World Cups in 2017 and 2018',
+    readingDepth: 'abstract only, through search records',
+    supports:
+      'Dynamic moves are a common, separate kind of boulder, so they are worth logging as their own axis.',
+    limitations: [
+      'Elite competition boulders, not gym climbers',
+      'Says nothing about how to score or train dynos',
     ],
     verifiedAt: '2026-10-04',
   },
