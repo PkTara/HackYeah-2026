@@ -39,6 +39,7 @@ export {
   Screen,
   ScreenCornerContext,
   useCornerReserve,
+  type CornerReserve,
 } from './components/Screen';
 export {
   Column,

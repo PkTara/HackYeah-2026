@@ -15,6 +15,8 @@ import { CHAPTERS, PERCHES, chapterOf, perchOf, type StepId } from './flow';
 
 /** Width of the onboarding column on wide screens. */
 const COLUMN_MAX = 600;
+/** Height of the progress plank without the music button. */
+const PLANK_HEIGHT = 44;
 /** Wood-plank text, same as the tab bar and rail. */
 const PLANK_TEXT = '#FFF4DC';
 
@@ -97,9 +99,10 @@ function Progress({
   width: number;
 }) {
   const { colors: c } = useTheme();
-  // On narrow screens the plank row runs to the right edge; stop it short of
-  // the music button in the corner.
-  const clash = useCornerReserve() - (width - column) / 2;
+  // The music button sits on the plank: make the plank tall enough for it,
+  // and on narrow screens stop the row short of it.
+  const reserve = useCornerReserve();
+  const clash = reserve.width - (width - column) / 2;
   const chapter = chapterOf(step);
   const label =
     step === 'welcome'
@@ -111,6 +114,7 @@ function Progress({
     <View
       style={[
         styles.plank,
+        { height: Math.max(PLANK_HEIGHT, reserve.height) },
         {
           backgroundColor: c.barkDark,
           borderBottomColor: c.outline,
@@ -202,7 +206,6 @@ const styles = StyleSheet.create({
   grow: { flex: 1 },
   // Fixed height, so the jungle strip sits at the same place on every step.
   plank: {
-    height: 44,
     justifyContent: 'center',
     borderBottomWidth: PX,
   },

@@ -6,13 +6,44 @@ import {
   chordsOfBar,
   midi,
   parseBar,
+  parseChord,
   sectionsInOrder,
   stepTime,
   voicing,
-  parseChord,
+  type Section,
 } from '../music/song';
 
 const arrangement = arrange();
+const section = (name: string) => {
+  const found = SONG.sections.find(s => s.name === name);
+  if (!found) {
+    throw new Error(`no ${name}`);
+  }
+  return found;
+};
+const barSteps = (bar: string) =>
+  parseBar(bar).reduce((sum, token) => sum + token.length, 0);
+const pitches = (bar: string) =>
+  parseBar(bar)
+    .map(token => token.pitch)
+    .filter((pitch): pitch is number => pitch !== null);
+
+/** The notes of one bar (0-based) of the loop. */
+const notesOfBar = (bar: number) =>
+  arrangement.notes.filter(
+    note => Math.floor(note.step / STEPS_PER_BAR) === bar,
+  );
+
+/** First bar of each section in the loop. */
+function sectionStarts(): Map<Section, number> {
+  const starts = new Map<Section, number>();
+  let bar = 0;
+  for (const s of sectionsInOrder(SONG)) {
+    starts.set(s, bar);
+    bar += s.chords.length;
+  }
+  return starts;
+}
 
 describe('song data', () => {
   it('reads note names as MIDI numbers', () => {
@@ -23,35 +54,42 @@ describe('song data', () => {
     expect(() => midi('H2')).toThrow();
   });
 
-  it('has an A and a B section, 24 to 32 bars in all', () => {
-    const names = SONG.sections.map(s => s.name);
-    expect(names).toEqual(expect.arrayContaining(['A', 'B']));
-    expect(arrangement.bars).toBeGreaterThanOrEqual(24);
-    expect(arrangement.bars).toBeLessThanOrEqual(32);
-    expect(SONG.bpm).toBeGreaterThanOrEqual(92);
-    expect(SONG.bpm).toBeLessThanOrEqual(104);
+  it('is upbeat: 120 to 128 BPM, sixteenths, at most a light swing', () => {
+    expect(SONG.bpm).toBeGreaterThanOrEqual(120);
+    expect(SONG.bpm).toBeLessThanOrEqual(128);
+    expect(STEPS_PER_BAR).toBe(16);
+    expect(SONG.swing).toBeGreaterThanOrEqual(0.5);
+    expect(SONG.swing).toBeLessThanOrEqual(0.58);
   });
 
-  it('gives every section as many melody bars as chord bars', () => {
-    for (const section of sectionsInOrder(SONG)) {
-      expect(section.melody).toHaveLength(section.chords.length);
+  it('builds like a climb: groove, hook, lift, summit, at least 24 bars', () => {
+    expect(SONG.form).toEqual(['Groove', 'Hook', 'Lift', 'Summit']);
+    expect(arrangement.bars).toBeGreaterThanOrEqual(24);
+    expect(arrangement.bars).toBeLessThanOrEqual(32);
+  });
+
+  it('gives every section as many melody (and counter) bars as chord bars', () => {
+    for (const s of sectionsInOrder(SONG)) {
+      expect(s.melody).toHaveLength(s.chords.length);
+      if (s.counter) {
+        expect(s.counter).toHaveLength(s.chords.length);
+      }
     }
   });
 
-  it('fills every melody bar exactly to the 4/4 meter', () => {
-    for (const section of SONG.sections) {
-      section.melody.forEach((bar, i) => {
-        const steps = parseBar(bar).reduce((sum, t) => sum + t.length, 0);
-        expect(`${section.name} bar ${i + 1}: ${steps}`).toBe(
-          `${section.name} bar ${i + 1}: ${STEPS_PER_BAR}`,
+  it('fills every melody and counter bar exactly to the 4/4 meter', () => {
+    for (const s of SONG.sections) {
+      [...s.melody, ...(s.counter ?? [])].forEach((bar, i) => {
+        expect(`${s.name} ${i}: ${barSteps(bar)}`).toBe(
+          `${s.name} ${i}: ${STEPS_PER_BAR}`,
         );
       });
     }
   });
 
   it('splits every chord bar evenly', () => {
-    for (const section of SONG.sections) {
-      for (const bar of section.chords) {
+    for (const s of SONG.sections) {
+      for (const bar of s.chords) {
         const count = bar.trim().split(/\s+/).length;
         expect(STEPS_PER_BAR % count).toBe(0);
         expect(chordsOfBar(bar)).toHaveLength(STEPS_PER_BAR);
@@ -59,14 +97,58 @@ describe('song data', () => {
     }
   });
 
-  it('varies the melody, so no section repeats another one bar for bar', () => {
-    const melodies = SONG.sections.map(s => s.melody.join('|'));
-    expect(new Set(melodies).size).toBe(melodies.length);
-    // The two A sections share an opening but differ in most bars.
-    const a = SONG.sections.find(s => s.name === 'A')!.melody;
-    const a2 = SONG.sections.find(s => s.name === 'A2')!.melody;
-    const same = a.filter((bar, i) => bar === a2[i]).length;
+  it('keeps the lead out of the intro groove until its run into the hook', () => {
+    const groove = section('Groove');
+    groove.melody.slice(0, -1).forEach(bar => expect(pitches(bar)).toEqual([]));
+    const run = pitches(groove.melody[groove.melody.length - 1]);
+    expect(run.length).toBeGreaterThanOrEqual(3);
+    expect([...run].sort((a, b) => a - b)).toEqual(run);
+  });
+
+  it('ends the lift with a rising run into the summit', () => {
+    const lift = section('Lift');
+    const run = pitches(lift.melody[lift.melody.length - 1]);
+    expect(run.length).toBeGreaterThanOrEqual(6);
+    run.slice(1).forEach((pitch, i) => expect(pitch).toBeGreaterThan(run[i]));
+  });
+
+  it('makes the summit bigger: a countermelody and a higher hook', () => {
+    const hook = section('Hook');
+    const summit = section('Summit');
+    expect(summit.counter).toBeDefined();
+    expect(Math.max(...summit.melody.flatMap(pitches))).toBeGreaterThan(
+      Math.max(...hook.melody.flatMap(pitches)),
+    );
+    // Same hook idea, but most bars differ.
+    const same = hook.melody.filter((bar, i) => bar === summit.melody[i]).length;
     expect(same).toBeLessThanOrEqual(2);
+  });
+
+  it('drives the groove with a kick on every beat and claps on 2 and 4', () => {
+    const starts = sectionStarts();
+    const bar = notesOfBar(starts.get(section('Hook'))!);
+    const local = (instrument: string) =>
+      bar
+        .filter(note => note.instrument === instrument)
+        .map(note => note.step % STEPS_PER_BAR);
+    expect(local('kick')).toEqual(expect.arrayContaining([0, 4, 8, 12]));
+    expect(local('clap')).toEqual([4, 12]);
+    expect(local('shaker')).toHaveLength(16);
+  });
+
+  it('ends every section with a drum fill in its second half', () => {
+    const starts = sectionStarts();
+    for (const [s, start] of starts) {
+      const last = notesOfBar(start + s.chords.length - 1);
+      const fill = last.filter(
+        note =>
+          (note.instrument === 'drumLow' ||
+            note.instrument === 'drumHigh' ||
+            note.instrument === 'clap') &&
+          note.step % STEPS_PER_BAR >= 8,
+      );
+      expect(`${s.name}: ${fill.length >= 4}`).toBe(`${s.name}: true`);
+    }
   });
 
   it('keeps every note inside its instrument range', () => {
@@ -104,11 +186,11 @@ describe('song data', () => {
     expect(times[0]).toBe(0);
   });
 
-  it('swings the off-beats late but keeps the beats straight', () => {
-    const beat = 60 / SONG.bpm;
-    expect(stepTime(2, SONG.bpm, SONG.swing)).toBeCloseTo(beat, 9);
-    expect(stepTime(1, SONG.bpm, SONG.swing)).toBeCloseTo(beat * SONG.swing, 9);
-    expect(SONG.swing).toBeGreaterThan(0.5);
+  it('swings only the in-between sixteenths, keeping eighths and beats straight', () => {
+    const eighth = 30 / SONG.bpm;
+    expect(stepTime(2, SONG.bpm, SONG.swing)).toBeCloseTo(eighth, 9);
+    expect(stepTime(4, SONG.bpm, SONG.swing)).toBeCloseTo(eighth * 2, 9);
+    expect(stepTime(1, SONG.bpm, SONG.swing)).toBeCloseTo(eighth * SONG.swing, 9);
   });
 
   it('plays every instrument somewhere in the loop', () => {
@@ -116,10 +198,11 @@ describe('song data', () => {
     expect([...used].sort()).toEqual(Object.keys(RANGES).sort());
   });
 
-  it('voices chords close together and without the root of seventh chords', () => {
+  it('voices chords close together and without the root of four-note chords', () => {
     expect(voicing(parseChord('F'))).toEqual([57, 60, 65]);
     expect(voicing(parseChord('C7'))).toEqual([58, 64, 67]);
-    for (const symbol of ['F', 'Bb', 'Dm', 'Gm7', 'Am7', 'C7']) {
+    expect(voicing(parseChord('Cadd9'))).toEqual([62, 64, 67]);
+    for (const symbol of ['G', 'C', 'Em', 'D', 'Am7', 'Cmaj7', 'Em7']) {
       const notes = voicing(parseChord(symbol));
       expect(Math.max(...notes) - Math.min(...notes)).toBeLessThan(12);
     }

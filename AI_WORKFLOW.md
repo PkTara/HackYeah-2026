@@ -270,3 +270,18 @@ The Codex design-drafting step used the `superpowers:using-superpowers` and `sup
 
 **Not verified:** listening on real phone and laptop speakers, and Safari.
 
+### 23. Livelier music (2026-10-04)
+
+**Prompt:** after listening to entry 22: "Make the music more lively and exciting - climbing energy vibe."
+
+**Output:**
+- `packages/platform/src/music/song.ts` rewritten as "Top Out": G major, 124 BPM, sixteenths with a light swing, 28 bars that build like a climb. A 4-bar drum and bass groove with a run up into an 8-bar steel drum hook (call and response, phrases stepping upward), an 8-bar half-time lift with rising arpeggios, a rising run and a clap roll, and an 8-bar summit with brighter chords (maj7, add9), a kalimba countermelody and a higher hook that runs back into the groove.
+- `voices.ts`: a round kick (pitch drop, no distortion), a clap from band-passed noise bursts, congas and toms, a brighter bass with octave jumps that lock with the kick, a louder lead and a busier shaker. Master gain, compressor and fades are unchanged.
+- The corner key moved 8 px in from the top and right so the keyboard focus ring shows on every side. The setup progress plank is taller while the key is there, and the profile tree moved further from the right edge so the monkey stays clear of the key at 360 and 390 px.
+
+**Originality:** as in entry 22, the melody, chords, rhythms and sounds were written for this app in code; only the requested energy was taken as direction. Nothing from an existing tune was copied or approximated.
+
+**Validation:** the song tests were rewritten (tempo, form, meter of every bar, the intro and lift runs, the countermelody, kick and clap placement, a fill at the end of every section, ranges and loop length). An OfflineAudioContext render (66 s, one loop plus the wrap) peaked at -5.0 dBFS with an RMS of -21.7 dBFS, no NaN samples, no gap at the seam and no silence of 0.3 s or more. Playwright screenshots at 360, 390, 1280 and 1440 px in light and dark; `npm run check`, the web build and the Android bundle pass.
+
+**Not verified:** listening on real speakers.
+

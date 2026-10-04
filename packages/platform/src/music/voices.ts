@@ -25,6 +25,8 @@ const BUSES: Readonly<Record<Instrument, Bus>> = {
   marimba: { level: 0.8, pan: 0.25, reverb: 0.25 },
   kalimba: { level: 0.75, pan: -0.3, reverb: 0.4 },
   bass: { level: 1, pan: 0, reverb: 0 },
+  kick: { level: 1, pan: 0, reverb: 0 },
+  clap: { level: 1, pan: 0.05, reverb: 0.3 },
   shaker: { level: 0.7, pan: 0.35, reverb: 0.15 },
   drumLow: { level: 0.85, pan: -0.1, reverb: 0.12 },
   drumHigh: { level: 0.75, pan: 0.15, reverb: 0.12 },
@@ -137,11 +139,11 @@ function additive(
  * different speeds, plus a slightly detuned copy for the shimmer.
  */
 const PAN: readonly Partial[] = [
-  { ratio: 1, level: 0.3, decay: 0.42 },
-  { ratio: 1.004, level: 0.09, decay: 0.4 },
-  { ratio: 2, level: 0.14, decay: 0.22 },
-  { ratio: 3, level: 0.055, decay: 0.1 },
-  { ratio: 4.2, level: 0.018, decay: 0.04 },
+  { ratio: 1, level: 0.36, decay: 0.42 },
+  { ratio: 1.004, level: 0.11, decay: 0.4 },
+  { ratio: 2, level: 0.17, decay: 0.22 },
+  { ratio: 3, level: 0.066, decay: 0.1 },
+  { ratio: 4.2, level: 0.02, decay: 0.04 },
 ];
 /** Marimba: a round sine with its bright fourth partial knocked in quickly. */
 const MARIMBA: readonly Partial[] = [
@@ -162,7 +164,7 @@ function bassNote(
 ) {
   const filter = ctx.createBiquadFilter();
   filter.type = 'lowpass';
-  filter.frequency.setValueAtTime(420, when);
+  filter.frequency.setValueAtTime(650, when);
   filter.Q.setValueAtTime(0.7, when);
   const env = ctx.createGain();
   const peak = 0.35 * note.velocity;
@@ -178,7 +180,7 @@ function bassNote(
     const level = ctx.createGain();
     osc.type = 'sine';
     osc.frequency.setValueAtTime(hz(note.pitch) * ratio, when);
-    level.gain.setValueAtTime(ratio === 1 ? 1 : 0.2, when);
+    level.gain.setValueAtTime(ratio === 1 ? 1 : 0.3, when);
     osc.connect(level);
     level.connect(filter);
     osc.start(when);
@@ -210,7 +212,7 @@ function shaker(
   filter.Q.setValueAtTime(0.7, when);
   const env = ctx.createGain();
   env.gain.setValueAtTime(0, when);
-  env.gain.linearRampToValueAtTime(0.07 * note.velocity, when + 0.008);
+  env.gain.linearRampToValueAtTime(0.11 * note.velocity, when + 0.008);
   env.gain.setTargetAtTime(0, when + 0.008, 0.028);
   source.connect(filter);
   filter.connect(env);
@@ -225,31 +227,75 @@ function shaker(
   };
 }
 
-/** Soft hand drum: a sine that drops quickly in pitch. */
-function handDrum(
+/** A sine that drops quickly in pitch: congas, toms and the kick. */
+function drum(
   ctx: AudioContextLike,
   out: AudioNodeLike,
-  note: TimedNote,
   when: number,
-  low: boolean,
+  { pitch, from, drop, peak, decay }: Readonly<{
+    pitch: number;
+    /** Starting pitch as a multiple of `pitch`. */
+    from: number;
+    /** Seconds to fall to `pitch`. */
+    drop: number;
+    peak: number;
+    decay: number;
+  }>,
 ) {
   const osc = ctx.createOscillator();
   const env = ctx.createGain();
-  const pitch = low ? 98 : 185;
-  const peak = (low ? 0.55 : 0.28) * note.velocity;
-  const decay = low ? 0.1 : 0.07;
   osc.type = 'sine';
-  osc.frequency.setValueAtTime(pitch * 1.6, when);
-  osc.frequency.exponentialRampToValueAtTime(pitch, when + 0.035);
+  osc.frequency.setValueAtTime(pitch * from, when);
+  osc.frequency.exponentialRampToValueAtTime(pitch, when + drop);
   env.gain.setValueAtTime(0, when);
-  env.gain.linearRampToValueAtTime(peak, when + 0.003);
-  env.gain.setTargetAtTime(0, when + 0.003, decay);
+  env.gain.linearRampToValueAtTime(peak, when + 0.002);
+  env.gain.setTargetAtTime(0, when + 0.002, decay);
   osc.connect(env);
   env.connect(out);
   osc.start(when);
   osc.stop(when + decay * 9);
   osc.onended = () => {
     osc.disconnect();
+    env.disconnect();
+  };
+}
+
+/** Round kick: a fast pitch drop gives the punch, no click or distortion. */
+const KICK = { pitch: 52, from: 3, drop: 0.06, peak: 0.72, decay: 0.11 };
+const CONGA_LOW = { pitch: 165, from: 1.5, drop: 0.03, peak: 0.42, decay: 0.09 };
+const CONGA_HIGH = { pitch: 250, from: 1.4, drop: 0.025, peak: 0.26, decay: 0.06 };
+
+/** Clap: three quick bursts of band-passed noise and a short tail. */
+function clap(
+  ctx: AudioContextLike,
+  out: AudioNodeLike,
+  note: TimedNote,
+  when: number,
+  noise: AudioBufferLike,
+) {
+  const source = ctx.createBufferSource();
+  source.buffer = noise;
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.setValueAtTime(1400, when);
+  filter.Q.setValueAtTime(0.6, when);
+  const env = ctx.createGain();
+  const peak = 1.1 * note.velocity;
+  env.gain.setValueAtTime(0, when);
+  for (const burst of [0, 0.011, 0.022]) {
+    env.gain.setValueAtTime(peak, when + burst);
+    env.gain.setTargetAtTime(0, when + burst + 0.001, 0.004);
+  }
+  env.gain.setValueAtTime(peak * 0.8, when + 0.032);
+  env.gain.setTargetAtTime(0, when + 0.033, 0.05);
+  source.connect(filter);
+  filter.connect(env);
+  env.connect(out);
+  source.start(when, ((note.step * 0.173) % 0.5) + 0.05);
+  source.stop(when + 0.4);
+  source.onended = () => {
+    source.disconnect();
+    filter.disconnect();
     env.disconnect();
   };
 }
@@ -340,10 +386,18 @@ export function createMusicGraph(
         case 'shaker':
           shaker(ctx, out, note, when, noise);
           break;
-        case 'drumLow':
-        case 'drumHigh':
-          handDrum(ctx, out, note, when, note.instrument === 'drumLow');
+        case 'kick':
+          drum(ctx, out, when, { ...KICK, peak: KICK.peak * note.velocity });
           break;
+        case 'clap':
+          clap(ctx, out, note, when, noise);
+          break;
+        case 'drumLow':
+        case 'drumHigh': {
+          const conga = note.instrument === 'drumLow' ? CONGA_LOW : CONGA_HIGH;
+          drum(ctx, out, when, { ...conga, peak: conga.peak * note.velocity });
+          break;
+        }
       }
     },
   };

@@ -79,7 +79,9 @@ export function jungleScene(
   // same shape by day and by night.
   const sky = random(7031962);
   const trunkWidth = 12;
-  const trunkX = cols - trunkWidth - 12;
+  // Far enough from the right edge that the monkey at the top of the tree
+  // stays clear of the music key in the page corner.
+  const trunkX = cols - trunkWidth - 18;
 
   // Sky in three flat bands that share their edges.
   const band2 = Math.round(height * 0.38);
