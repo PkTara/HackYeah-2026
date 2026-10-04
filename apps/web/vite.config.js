@@ -48,4 +48,9 @@ export default defineConfig(({ mode }) => ({
   server: {
     fs: { allow: [repoRoot] },
   },
+  build: {
+    // Keep /*! and @license comments so third-party licences (ZzFX, React)
+    // ship with the minified bundle.
+    rolldownOptions: { output: { legalComments: 'inline' } },
+  },
 }));

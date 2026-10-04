@@ -17,7 +17,7 @@ ZzFX Features
 - No additional libraries or dependencies are required.
 
 */
-/*
+/*! @license
 
   ZzFX MIT License
 
