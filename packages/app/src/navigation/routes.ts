@@ -1,3 +1,6 @@
+import { BodyReachScreen } from '../screens/BodyReachScreen';
+import { ActivityScreen } from '../screens/ActivityScreen';
+import { MeasurementDetailScreen } from '../screens/MeasurementDetailScreen';
 import type { ComponentType } from 'react';
 import { AboutScreen } from '../screens/AboutScreen';
 import { AnatomyScreen } from '../screens/AnatomyScreen';
@@ -21,6 +24,9 @@ export const screens = {
   Tests: TestsScreen,
   Data: TestsScreen,
   // Pushed on top of a tab
+  BodyReach: BodyReachScreen,
+  Activity: ActivityScreen,
+  MeasurementDetail: MeasurementDetailScreen,
   Evidence: EvidenceScreen,
   About: AboutScreen,
   Settings: SettingsScreen,

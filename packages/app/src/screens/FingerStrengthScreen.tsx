@@ -106,7 +106,12 @@ export function FingerStrengthScreen() {
     });
   };
   return (
-    <TabScreen>
+    <TabScreen
+      completion={{
+        disabled: saving,
+        ...(review ? { onPress: editReview } : {}),
+      }}
+    >
       <View style={styles.column}>
         {review ? (
           <Breadcrumbs
@@ -131,8 +136,8 @@ export function FingerStrengthScreen() {
         />
         {simulated && !review ? (
           <AppText>
-            Simulated instrument reading — example values, still reviewed before
-            saving.
+            Simulated instrument reading. Example values are still reviewed
+            before saving.
           </AppText>
         ) : null}
         {review ? (

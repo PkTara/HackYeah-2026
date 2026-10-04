@@ -6,12 +6,35 @@
  */
 
 export type Terrain = 'slab' | 'vertical' | 'overhang';
-/** Style of a climb. One climb can have both. */
-export type Movement = 'controlled' | 'dynamic';
-export type HoldType = 'jug' | 'crimp' | 'sloper' | 'pinch' | 'pocket' | 'volume';
+/** Style of a climb. A climb can use several styles. */
+export type Movement =
+  | 'controlled'
+  | 'dynamic'
+  | 'technical'
+  | 'powerful'
+  | 'balance'
+  | 'coordination'
+  | 'compression'
+  | 'endurance';
+export type HoldType =
+  | 'jug'
+  | 'crimp'
+  | 'sloper'
+  | 'pinch'
+  | 'pocket'
+  | 'volume';
 
 export const TERRAINS: readonly Terrain[] = ['slab', 'vertical', 'overhang'];
-export const MOVEMENTS: readonly Movement[] = ['controlled', 'dynamic'];
+export const MOVEMENTS: readonly Movement[] = [
+  'controlled',
+  'dynamic',
+  'technical',
+  'powerful',
+  'balance',
+  'coordination',
+  'compression',
+  'endurance',
+];
 export const HOLD_TYPES: readonly HoldType[] = [
   'jug',
   'crimp',
@@ -26,7 +49,7 @@ export type ClimbLog = Readonly<{
   /** Local date, YYYY-MM-DD. */
   date: string;
   terrain: Terrain;
-  /** Controlled, dynamic or both. */
+  /** All movement styles used on the climb. */
   movements: readonly Movement[];
   /** Hold types on the climb. Optional, may be empty. */
   holds: readonly HoldType[];
@@ -69,10 +92,12 @@ export function terrainTallies(
 export function movementTallies(
   logs: readonly ClimbLog[],
 ): Record<Movement, Tally> {
-  return {
-    controlled: tally(logs.filter(log => log.movements.includes('controlled'))),
-    dynamic: tally(logs.filter(log => log.movements.includes('dynamic'))),
-  };
+  return Object.fromEntries(
+    MOVEMENTS.map(movement => [
+      movement,
+      tally(logs.filter(log => log.movements.includes(movement))),
+    ]),
+  ) as Record<Movement, Tally>;
 }
 
 /** One cell of the terrain x movement grid. */
@@ -124,8 +149,8 @@ export function normalizeClimbLog(raw: unknown): ClimbLog {
   const movements = Array.isArray(log.movements)
     ? log.movements
     : log.movement
-      ? [log.movement]
-      : [];
+    ? [log.movement]
+    : [];
   return {
     id: log.id,
     date: log.date,

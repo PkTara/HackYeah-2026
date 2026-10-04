@@ -32,6 +32,7 @@ import {
   useTheme,
   type MovementAxis,
 } from '@hackyeah/ui';
+import { DataRow } from '../components/DataRow';
 import { TabScreen } from '../components/TabScreen';
 import {
   MOVEMENT_NAME,
@@ -39,12 +40,11 @@ import {
   TERRAIN_NAME,
   fingerLabel,
   flagText,
-  styleText,
 } from '../labels';
 import { useNavigation } from '../navigation/Navigator';
 import type { RouteName } from '../navigation/routes';
 import { useGame } from '../state/GameProvider';
-import { IntegrationsPanel } from '../demo/IntegrationsPanel';
+import { ActivitySummary } from './ActivityScreen';
 import { AssessmentSummary } from '../components/AssessmentSummary';
 
 const STEPS = XP_PER_LEVEL / XP_PER_QUEST;
@@ -75,35 +75,20 @@ export function ProfileScreen() {
   // Recent climbs. Wide screens show them under the quest, so both columns
   // end at about the same height. Phones keep them after Style.
   const recentPanel = (
-    <Panel title="Recent" icon="log">
-      {recent.length === 0 ? (
-        <AppText>No climbs logged yet.</AppText>
-      ) : (
-        recent.map(log => (
-          <View
-            key={log.id}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
-          >
-            <Icon name={TERRAIN_ICON[log.terrain]} />
-            <View style={{ flex: 1 }}>
-              <AppText>
-                {log.grade} {TERRAIN_NAME[log.terrain].toLowerCase()},{' '}
-                {styleText(log.movements)}
-              </AppText>
-              <AppText variant="caption" muted>
-                {shortDate(log.date)}
-                {log.sample ? ' (example)' : ''}
-              </AppText>
-            </View>
-            <Tag
-              text={log.sent ? 'Sent' : 'Not yet'}
-              tone={log.sent ? 'new' : 'muted'}
-            />
-          </View>
-        ))
-      )}
-      <Button title="Log a climb" icon="log" onPress={() => reset('Log')} />
-    </Panel>
+    <DataRow
+      title="Recent climbs"
+      subtitle={
+        recent.length
+          ? `${state.logs.length} observations · Latest: ${
+              recent[0].grade
+            } ${TERRAIN_NAME[recent[0].terrain].toLowerCase()} · ${shortDate(
+              recent[0].date,
+            )}${recent[0].sample ? ' (example)' : ''}`
+          : 'No climbs logged yet.'
+      }
+      accessibilityLabel="Open climbing log"
+      onPress={() => reset('Log')}
+    />
   );
 
   return (
@@ -269,44 +254,47 @@ export function ProfileScreen() {
           </Panel>
 
           {/* Active hand flags change what the monkey suggests */}
-          {state.flags.length > 0 ? (
-            <Panel variant="alert" title="Hands" icon="flag">
-              {state.flags.map(f => (
-                <View
-                  key={`${f.side}-${f.finger}`}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 10,
-                  }}
-                >
-                  <AppText style={{ flex: 1 }}>{flagText(f, today)}</AppText>
-                  <Button
-                    title="Edit"
-                    variant="secondary"
-                    small
-                    accessibilityLabel={`Edit ${fingerLabel(
-                      f.side,
-                      f.finger,
-                    ).toLowerCase()}`}
-                    onPress={() =>
-                      navigate('Finger', { side: f.side, finger: f.finger })
-                    }
-                  />
-                </View>
-              ))}
-              <AppText variant="caption" muted>
-                Finger-loading quests are paused. Your climbing profile stays
-                the same.
-              </AppText>
-              <Button
-                title="Update hands"
-                variant="secondary"
-                small
-                onPress={() => reset('Hands')}
-              />
-            </Panel>
-          ) : null}
+          <Panel
+            variant={state.flags.length > 0 ? 'alert' : 'quiet'}
+            title="Hands"
+            icon="flag"
+          >
+            {state.flags.map(f => (
+              <View
+                key={`${f.side}-${f.finger}`}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 10,
+                }}
+              >
+                <AppText style={{ flex: 1 }}>{flagText(f, today)}</AppText>
+                <Button
+                  title="Edit"
+                  variant="secondary"
+                  small
+                  accessibilityLabel={`Edit ${fingerLabel(
+                    f.side,
+                    f.finger,
+                  ).toLowerCase()}`}
+                  onPress={() =>
+                    navigate('Finger', { side: f.side, finger: f.finger })
+                  }
+                />
+              </View>
+            ))}
+            <AppText variant="caption" muted>
+              {state.flags.length > 0
+                ? 'Finger-loading quests are paused. Your climbing profile stays the same.'
+                : 'No finger discomfort is marked. Open the hand journal to check in.'}
+            </AppText>
+            <Button
+              title={state.flags.length > 0 ? 'Update hands' : 'Open Hands'}
+              variant="secondary"
+              small
+              onPress={() => reset('Hands')}
+            />
+          </Panel>
 
           {wide ? recentPanel : null}
         </Column>
@@ -328,7 +316,7 @@ export function ProfileScreen() {
             </AppText>
           </Panel>
 
-          {/* Style: controlled and dynamic, counted separately */}
+          {/* Each style is counted separately, including multi-style climbs. */}
           <Panel title="Style">
             {MOVEMENTS.map(m => (
               <View key={m} style={{ gap: 6 }}>
@@ -352,7 +340,7 @@ export function ProfileScreen() {
               </View>
             ))}
             <AppText variant="caption" muted>
-              Two separate skills, not one slider. You can be good at both.
+              A climb can use several styles. Each selected style counts here.
             </AppText>
             <View
               style={{
@@ -375,8 +363,10 @@ export function ProfileScreen() {
           </Panel>
 
           {wide ? null : recentPanel}
-          <IntegrationsPanel />
+          <ActivitySummary />
           <AssessmentSummary
+            compact
+            onOpen={metric => navigate('MeasurementDetail', { metric })}
             records={state.assessments}
             metrics={[
               'leg_spread',

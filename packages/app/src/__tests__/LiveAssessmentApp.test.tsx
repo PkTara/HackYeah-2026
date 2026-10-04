@@ -29,6 +29,7 @@ it('records a live measurement using saved permission, auto-stops and saves it i
     JSON.stringify({ cameraAnalysis: true, handPhotos: false }),
   );
   const screen = await render(fixture, 'Tests');
+  await press(screen, 'Open leg spread');
   await press(screen, 'Leg spread assessment');
   expect(fixture.preview.active).toBe(false);
   await press(screen, 'Record');

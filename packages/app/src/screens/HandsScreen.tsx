@@ -56,8 +56,7 @@ export function HandsScreen() {
           ))}
         </View>
         <AppText variant="caption" muted>
-          Outlined fingers are buttons. Red with ! means flagged. Use Tab and
-          Enter with a keyboard.
+          Red fingers with ! are flagged. Use Tab and Enter with a keyboard.
         </AppText>
       </Panel>
       <Columns>

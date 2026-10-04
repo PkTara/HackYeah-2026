@@ -2,6 +2,7 @@ import ReactTestRenderer, { act } from 'react-test-renderer';
 import { emptyGame } from '@hackyeah/core';
 import { createLocalBackend, LOCAL_STORAGE_KEY } from '@hackyeah/data';
 import { createMemoryStore, type Capabilities } from '@hackyeah/platform';
+import { AppText } from '@hackyeah/ui';
 import { App } from '../App';
 import type { RouteName } from '../navigation/routes';
 
@@ -114,6 +115,7 @@ it('restores assessment parameters and the About opening stack after a camera-so
   await press(s, 'Demo controls');
   await press(s, 'Demo mode, Use a separate demo profile.');
   await press(s, 'Back to Data');
+  await press(s, 'Open shoulder reach');
   await press(s, 'Shoulder reach assessment');
   await press(s, 'Settings');
   await press(s, 'About this build');
@@ -125,7 +127,7 @@ it('restores assessment parameters and the About opening stack after a camera-so
   );
   await press(s, 'Back to About');
   await press(s, 'Back to Settings');
-  await press(s, 'Back to Shoulder reach');
+  await press(s, 'Back to Record shoulder reach');
   expect(JSON.stringify(s.toJSON())).toContain('Shoulder reach');
   await press(s, 'Back to Data');
   expect(JSON.stringify(s.toJSON())).toContain('Body & reach');
@@ -180,14 +182,18 @@ it('groups Data by purpose and opens Settings with a working breadcrumb and pers
   expect(
     s.root.findAll(n => n.props.accessibilityLabel === 'Data').length,
   ).toBeGreaterThan(0);
-  const json = JSON.stringify(s.toJSON());
+  const headings = s.root
+    .findAllByType(AppText)
+    .filter(node => node.props.variant === 'caption')
+    .map(node => node.props.children);
   for (const section of [
     'Body & reach',
-    'Mobility & movement',
-    'Strength & endurance',
+    'Strength',
+    'Flexibility',
+    'Finger strength',
     'Activity & recovery',
   ]) {
-    expect(json.includes(section)).toBe(true);
+    expect(headings).toContain(section);
   }
   await press(s, 'Settings');
   expect(find(s, 'Back to Data')).toBeDefined();

@@ -1,7 +1,9 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import type { AssessmentRecord } from '@hackyeah/core';
+import { AppText, Button, Panel } from '@hackyeah/ui';
 import { LiveAssessment } from '../capture/LiveAssessment';
-import { NeedsServer } from '../capture/parts';
+import { AssessmentCameraTray } from '../capture/AssessmentCameraTray';
+import type { AssessmentCompletion } from '../capture/AssessmentReview';
 import { Crumbs } from '../components/Crumbs';
 import { PageHeader } from '../components/PageHeader';
 import { TabScreen } from '../components/TabScreen';
@@ -24,6 +26,7 @@ export function AssessmentScreen() {
   const privacy = usePrivacy();
   const demo = useDemo();
   const { saveAssessment } = useGame();
+  const [completion, setCompletion] = useState<AssessmentCompletion>();
   const save = useCallback(
     async (records: readonly AssessmentRecord[]) => {
       for (const record of records) {
@@ -33,11 +36,11 @@ export function AssessmentScreen() {
     [saveAssessment],
   );
   return (
-    <TabScreen>
+    <TabScreen {...{ completion }}>
       <Crumbs />
       <PageHeader
         title={title}
-        subtitle="Record a live measurement. Hold steady, then review your result."
+        subtitle="Hold steady, then review your camera measurement."
       />
       {media ? (
         <LiveAssessment
@@ -46,12 +49,25 @@ export function AssessmentScreen() {
           consent={privacy.choices.cameraAnalysis}
           simulated={demo.settings.enabled && demo.settings.analysis}
           onSettings={() =>
-            navigate('Settings', { from: 'Assessment', metric })
+            navigate('Settings', {
+              from: 'Assessment',
+              metric,
+              ...(params.detailMetric
+                ? { detailMetric: params.detailMetric }
+                : {}),
+            })
           }
           onSave={save}
+          onCompletionChange={setCompletion}
         />
       ) : (
-        <NeedsServer what="The camera assessment" />
+        <>
+          <AssessmentCameraTray unavailable="Connect the analysis service to record a live measurement." />
+          <Panel title="Recording" variant="quiet">
+            <AppText>Live analysis is unavailable in this build.</AppText>
+            <Button title="Record" disabled onPress={() => {}} />
+          </Panel>
+        </>
       )}
     </TabScreen>
   );

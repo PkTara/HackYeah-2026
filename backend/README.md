@@ -54,7 +54,7 @@ Input examples:
 {"terrain":"vertical","movements":["dynamic","controlled"],"holds":["crimp","pinch"],"completed":false,"attempts":3,"grade":"6A","grade_system":"font","location":"My gym"}
 ```
 
-Post to `/v1/me/climbs`. A climb log records one terrain and one or both movement styles. Send `movements` (one or two of `controlled` and `dynamic`, no repeats), the older single `movement`, or both; when both are sent, `movement` must be one of `movements`. The server stores both fields with `movement` as the first of `movements`, so older clients that read `movement` keep working. Records saved before `movements` existed have only `movement`; the profile reads them as `[movement]`, and clients should do the same. `holds` optionally lists hold types (`jug`, `crimp`, `sloper`, `pinch`, `pocket`, `volume`, no repeats; default empty). `attempts` is optional (1 to 1000); it is null when not recorded. Avoid interpreting style or hold tags as mutually exclusive physical abilities.
+Post to `/v1/me/climbs`. A climb log records one terrain and one or more movement styles. Send `movements` (any combination of `controlled`, `dynamic`, `technical`, `powerful`, `balance`, `coordination`, `compression`, and `endurance`, no repeats), the older single `movement`, or both; when both are sent, `movement` must be one of `movements`. The server stores both fields with `movement` as the first of `movements`, so clients that read only `movement` still receive a single style. Records saved before `movements` existed have only `movement`; the profile reads them as `[movement]`, and clients should do the same. `holds` optionally lists hold types (`jug`, `crimp`, `sloper`, `pinch`, `pocket`, `volume`, no repeats; default empty). `attempts` is optional (1 to 1000); it is null when not recorded. Avoid interpreting style or hold tags as mutually exclusive physical abilities.
 
 ```json
 {"metric":"leg_spread","value":90,"unit":"degrees","method":"manual","protocol":"front-facing-leg-spread-v1"}
@@ -88,7 +88,7 @@ Each evidence collection supports `GET` and `DELETE /v1/me/{collection}/{id}`. `
 
 `GET /v1/me/profile` returns:
 
-- Independent `terrain`, `movement` and `grid` summaries: counts, observed completion rate and evidence IDs. `ability_score` remains null. A climb with both styles counts under each of its movements in the `movement` and `grid` summaries, and once in `terrain`.
+- Independent `terrain`, `movement` and `grid` summaries: counts, observed completion rate and evidence IDs. `ability_score` remains null. A climb with several styles counts under each of its movements in the `movement` and `grid` summaries, and once in `terrain`.
 - `radar` axes with null values until there are validated technique observations. Do not render null as zero.
 - `assessment_trends` with latest result, comparable previous result and delta; comparisons require matching metric, unit, method, protocol, side, complete setup and simulation provenance. Legacy records without `simulated` are treated as real.
 - `active_hand_flags` from the latest report per side/region (active when `pain` is null or above 0), `activity_context`, and an evidence-linked `focus`.
