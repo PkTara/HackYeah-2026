@@ -49,7 +49,13 @@ export function AssessmentScreen() {
           consent={privacy.choices.cameraAnalysis}
           simulated={demo.settings.enabled && demo.settings.analysis}
           onSettings={() =>
-            navigate('Settings', { from: 'Assessment', metric })
+            navigate('Settings', {
+              from: 'Assessment',
+              metric,
+              ...(params.detailMetric
+                ? { detailMetric: params.detailMetric }
+                : {}),
+            })
           }
           onSave={save}
           onCompletionChange={setCompletion}

@@ -58,6 +58,43 @@ const sourceText = (record: AssessmentRecord) =>
 const dateText = (record: AssessmentRecord) =>
   toLocalDate(new Date(record.occurredAt));
 
+function shoulderText(records: readonly AssessmentRecord[]): string {
+  const ordered = [...records].sort(
+    (a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt),
+  );
+  const sides = [
+    {
+      label: 'Left',
+      record: ordered.find(record => record.metric === 'shoulder_reach_left'),
+    },
+    {
+      label: 'Right',
+      record: ordered.find(record => record.metric === 'shoulder_reach_right'),
+    },
+  ];
+  const first = sides.find(side => side.record)?.record;
+  const shared = sides.every(
+    ({ record }) =>
+      !record ||
+      (first &&
+        sourceText(record) === sourceText(first) &&
+        dateText(record) === dateText(first)),
+  );
+  const values = sides
+    .map(({ label, record }) => {
+      if (!record) {
+        return `${label} unmeasured`;
+      }
+      return `${label} ${compactValueText(record)}${
+        shared ? '' : ` (${sourceText(record)} · ${dateText(record)})`
+      }`;
+    })
+    .join(' · ');
+  return `${values}${
+    shared && first ? ` · ${sourceText(first)} · ${dateText(first)}` : ''
+  }`;
+}
+
 export function AssessmentSummary({
   records = [],
   metrics,
@@ -105,7 +142,9 @@ export function AssessmentSummary({
                 key={group.metric}
                 title={group.title}
                 subtitle={
-                  latest
+                  group.metric === 'shoulder_reach'
+                    ? shoulderText(selected)
+                    : latest
                     ? `${compactValueText(latest)}${
                         latest.side ? ` · ${latest.side}` : ''
                       } · ${sourceText(latest)} · ${dateText(latest)}`

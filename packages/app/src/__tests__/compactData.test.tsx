@@ -153,3 +153,48 @@ it('opens only the selected metric history and preserves comparable changes', as
   expect(text(screen)).toContain('Camera estimate');
   await act(async () => screen.unmount());
 });
+
+it('returns from each recording child to the originating metric detail', async () => {
+  for (const entry of [
+    {
+      open: 'Open shoulder reach',
+      record: 'Shoulder reach assessment',
+      back: 'Back to Shoulder reach',
+    },
+    {
+      open: 'Open leg spread',
+      record: 'Leg spread assessment',
+      back: 'Back to Leg spread',
+    },
+    {
+      open: 'Open finger strength',
+      record: 'Record finger strength',
+      back: 'Back to Finger strength',
+    },
+  ]) {
+    const screen = await render(setup(), 'Data');
+    await press(screen, entry.open, entry.record);
+    expect(control(screen, entry.back)).toBeDefined();
+    await press(screen, entry.back);
+    expect(control(screen, entry.record)).toBeDefined();
+    expect(control(screen, 'Record')).toBeUndefined();
+    await act(async () => screen.unmount());
+  }
+});
+
+it('preserves the measurement parent through recording Settings and About round trips', async () => {
+  const screen = await render(setup({ privacy: false }), 'Data');
+  await press(
+    screen,
+    'Open shoulder reach',
+    'Shoulder reach assessment',
+    'Settings',
+    'About this build',
+  );
+  expect(control(screen, 'Back to Record shoulder reach')).toBeDefined();
+  await press(screen, 'Back to Settings', 'Back to Record shoulder reach');
+  expect(control(screen, 'Record')).toBeDefined();
+  await press(screen, 'Back to Shoulder reach');
+  expect(control(screen, 'Shoulder reach assessment')).toBeDefined();
+  await act(async () => screen.unmount());
+});

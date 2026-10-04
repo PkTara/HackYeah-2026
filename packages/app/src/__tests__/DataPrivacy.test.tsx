@@ -126,7 +126,7 @@ it('restores assessment parameters and the About opening stack after a camera-so
   );
   await press(s, 'Back to About');
   await press(s, 'Back to Settings');
-  await press(s, 'Back to Shoulder reach');
+  await press(s, 'Back to Record shoulder reach');
   expect(JSON.stringify(s.toJSON())).toContain('Shoulder reach');
   await press(s, 'Back to Data');
   expect(JSON.stringify(s.toJSON())).toContain('Body & reach');

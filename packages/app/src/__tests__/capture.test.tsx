@@ -130,7 +130,7 @@ describe('camera assessment', () => {
       screen,
       'Live camera analysis, Allow frames to be sent while a camera assessment is recording.',
     );
-    await press(screen, 'Back to Shoulder reach', 'Record');
+    await press(screen, 'Back to Record shoulder reach', 'Record');
     await ready(live);
     expect(JSON.parse(live.sent[0] as string)).toMatchObject({
       metric: 'shoulder_reach',

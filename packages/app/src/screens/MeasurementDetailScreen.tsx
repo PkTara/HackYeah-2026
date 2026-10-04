@@ -32,8 +32,11 @@ export function MeasurementDetailScreen() {
           small
           onPress={() =>
             finger
-              ? navigate('FingerStrength')
-              : navigate('Assessment', { metric: group.metric })
+              ? navigate('FingerStrength', { detailMetric: group.metric })
+              : navigate('Assessment', {
+                  metric: group.metric,
+                  detailMetric: group.metric,
+                })
           }
         />
       </Panel>

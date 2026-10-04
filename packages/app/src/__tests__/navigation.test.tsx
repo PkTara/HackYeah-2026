@@ -169,6 +169,43 @@ describe('trailFor', () => {
     ).toEqual({ metric: 'shoulder_reach' });
   });
 
+  it('keeps originating measurement details as the parent of recording pages', () => {
+    const camera = { metric: 'shoulder_reach', detailMetric: 'shoulder_reach' };
+    expect(trailFor('Assessment', camera)).toEqual([
+      { route: 'Data', label: 'Data' },
+      {
+        route: 'MeasurementDetail',
+        params: { metric: 'shoulder_reach' },
+        label: 'Shoulder reach',
+      },
+      {
+        route: 'Assessment',
+        params: camera,
+        label: 'Record shoulder reach',
+        short: 'Record',
+      },
+    ]);
+    const force = { detailMetric: 'finger_force' };
+    expect(trailFor('FingerStrength', force)).toEqual([
+      { route: 'Data', label: 'Data' },
+      {
+        route: 'MeasurementDetail',
+        params: { metric: 'finger_force' },
+        label: 'Finger strength',
+      },
+      {
+        route: 'FingerStrength',
+        params: force,
+        label: 'Record finger strength',
+      },
+    ]);
+    expect(labels('Assessment', { metric: 'shoulder_reach' })).toEqual([
+      'Data',
+      'Shoulder reach',
+    ]);
+    expect(labels('FingerStrength')).toEqual(['Data', 'Finger strength']);
+  });
+
   it('has no trail on visible tabs and canonicalizes the Tests alias', () => {
     expect(labels('Hands')).toEqual([]);
     expect(labels('Profile')).toEqual([]);

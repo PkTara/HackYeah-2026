@@ -135,3 +135,118 @@ it('keeps compact latest readings concise and source-labelled while linking to m
   expect(open).toHaveBeenCalledWith('finger_force');
   await act(async () => screen.unmount());
 });
+
+it('shows the latest compact shoulder value for each side with shared provenance once', async () => {
+  const left: AssessmentRecord = {
+    id: 'left',
+    metric: 'shoulder_reach_left',
+    value: 165,
+    unit: 'degrees',
+    method: 'camera',
+    protocol: 'front-facing-overhead-reach-v1',
+    occurredAt: latest.occurredAt,
+    confidence: 0.9,
+  };
+  const right: AssessmentRecord = {
+    ...left,
+    id: 'right',
+    metric: 'shoulder_reach_right',
+    value: 172,
+  };
+  let screen!: ReactTestRenderer.ReactTestRenderer;
+  await act(async () => {
+    screen = ReactTestRenderer.create(
+      <AssessmentSummary
+        compact
+        records={[
+          {
+            ...left,
+            id: 'older-left',
+            value: 150,
+            occurredAt: previous.occurredAt,
+          },
+          right,
+          left,
+        ]}
+        metrics={['shoulder_reach_left', 'shoulder_reach_right']}
+      />,
+    );
+  });
+  expect(text(screen)).toContain(
+    'Left 165° · Right 172° · Camera estimate · 2026-10-04',
+  );
+  expect(text(screen)).not.toContain('150°');
+  await act(async () => screen.unmount());
+});
+
+it('marks an unmeasured shoulder side rather than hiding it', async () => {
+  const left: AssessmentRecord = {
+    id: 'left-only',
+    metric: 'shoulder_reach_left',
+    value: 165,
+    unit: 'degrees',
+    method: 'camera',
+    protocol: 'front-facing-overhead-reach-v1',
+    occurredAt: latest.occurredAt,
+    confidence: 0.9,
+    simulated: true,
+  };
+  let screen!: ReactTestRenderer.ReactTestRenderer;
+  await act(async () => {
+    screen = ReactTestRenderer.create(
+      <AssessmentSummary
+        compact
+        records={[left]}
+        metrics={['shoulder_reach_left', 'shoulder_reach_right']}
+      />,
+    );
+  });
+  expect(text(screen)).toContain(
+    'Left 165° · Right unmeasured · Simulated · Camera estimate · 2026-10-04',
+  );
+  await act(async () =>
+    screen.update(
+      <AssessmentSummary
+        compact
+        metrics={['shoulder_reach_left', 'shoulder_reach_right']}
+      />,
+    ),
+  );
+  expect(text(screen)).toContain('Left unmeasured · Right unmeasured');
+  await act(async () => screen.unmount());
+});
+
+it('keeps differing shoulder sources and dates attached to their own side', async () => {
+  const left: AssessmentRecord = {
+    id: 'left-real',
+    metric: 'shoulder_reach_left',
+    value: 165,
+    unit: 'degrees',
+    method: 'camera',
+    protocol: 'front-facing-overhead-reach-v1',
+    occurredAt: previous.occurredAt,
+    confidence: 0.9,
+  };
+  const right: AssessmentRecord = {
+    ...left,
+    id: 'right-demo',
+    metric: 'shoulder_reach_right',
+    value: 172,
+    occurredAt: latest.occurredAt,
+    simulated: true,
+  };
+  let screen!: ReactTestRenderer.ReactTestRenderer;
+  await act(async () => {
+    screen = ReactTestRenderer.create(
+      <AssessmentSummary
+        compact
+        records={[right, left]}
+        metrics={['shoulder_reach_left', 'shoulder_reach_right']}
+      />,
+    );
+  });
+  expect(text(screen)).toContain(
+    'Left 165° (Camera estimate · 2026-10-03) · Right 172° (Simulated · Camera estimate · 2026-10-04)',
+  );
+  await act(async () => screen.unmount());
+});

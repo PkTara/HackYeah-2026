@@ -82,7 +82,12 @@ export function trailFor(route: RouteName, params: Params): Crumb[] {
     case 'Settings':
       return [
         ...(params.from === 'Assessment'
-          ? trailFor('Assessment', { metric: params.metric ?? 'leg_spread' })
+          ? trailFor('Assessment', {
+              metric: params.metric ?? 'leg_spread',
+              ...(params.detailMetric
+                ? { detailMetric: params.detailMetric }
+                : {}),
+            })
           : params.from === 'HandCapture'
           ? trailFor('HandCapture', params)
           : [tab('Data')]),
@@ -99,21 +104,35 @@ export function trailFor(route: RouteName, params: Params): Crumb[] {
         { route, params: { metric: group.metric }, label: group.title },
       ];
     }
-    case 'FingerStrength':
-      return [tab('Data'), { route, label: 'Finger strength' }];
-    case 'Assessment':
+    case 'FingerStrength': {
+      const fromDetail = params.detailMetric === 'finger_force';
       return [
-        tab('Data'),
+        ...(fromDetail
+          ? trailFor('MeasurementDetail', { metric: 'finger_force' })
+          : [tab('Data')]),
+        fromDetail
+          ? { route, params, label: 'Record finger strength' }
+          : { route, label: 'Finger strength' },
+      ];
+    }
+    case 'Assessment': {
+      const metric =
+        params.metric === 'shoulder_reach' ? 'shoulder_reach' : 'leg_spread';
+      const title =
+        metric === 'shoulder_reach' ? 'Shoulder reach' : 'Leg spread';
+      const fromDetail = params.detailMetric === metric;
+      return [
+        ...(fromDetail
+          ? trailFor('MeasurementDetail', { metric })
+          : [tab('Data')]),
         {
           route,
           params,
-          label:
-            params.metric === 'shoulder_reach'
-              ? 'Shoulder reach'
-              : 'Leg spread',
-          short: 'Camera',
+          label: fromDetail ? `Record ${title.toLowerCase()}` : title,
+          short: fromDetail ? 'Record' : 'Camera',
         },
       ];
+    }
     case 'HandCapture': {
       // Opened from a finger close-up it sits under that finger.
       const here = { route, params, label: 'Add a photo', short: 'Photo' };
