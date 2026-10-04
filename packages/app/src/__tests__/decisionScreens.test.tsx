@@ -1,7 +1,7 @@
 import { act } from 'react-test-renderer';
 import { Linking } from 'react-native';
 import { RESEARCH_SOURCES, sampleGame } from '@hackyeah/core';
-import { press, render, setup, text } from '../testing/cameraFixture';
+import { control, press, render, setup, text } from '../testing/cameraFixture';
 
 it('opens local focus help with the actual current climb records on Profile', async () => {
   const screen = await render(
@@ -15,10 +15,10 @@ it('opens local focus help with the actual current climb records on Profile', as
     'Profile',
   );
   try {
-    await press(screen, 'Why your focus?');
+    await press(screen, 'Why your focus?', 'Your inputs for your focus');
     expect(text(screen)).toContain(sampleGame.logs[0].date);
     expect(text(screen)).toContain(sampleGame.logs[0].id);
-    expect(JSON.stringify(screen.toJSON())).toContain('App rule');
+    expect(text(screen)).toContain('local-focus-v1');
   } finally {
     await act(async () => screen.unmount());
   }
@@ -27,20 +27,26 @@ it('opens local focus help with the actual current climb records on Profile', as
 it('offers disclosures beside the profile quest and each calculated chart or reward', async () => {
   const screen = await render(setup(), 'Profile');
   try {
-    await press(screen, 'Why your quest?');
-    expect(JSON.stringify(screen.toJSON()).includes('Draft suggestion')).toBe(
-      true,
-    );
+    await press(screen, 'Why your quest?', 'Your inputs for your quest');
+    expect(JSON.stringify(screen.toJSON())).not.toContain('Draft suggestion');
     expect(text(screen)).toContain('Draft quest: Quiet feet');
     await press(
       screen,
       'Why XP and level?',
+      'Your inputs for XP and level',
+      'How was this data created?',
       'Why Slab tally?',
+      'Your inputs for Slab tally',
       'Why Vertical tally?',
+      'Your inputs for Vertical tally',
       'Why Overhang tally?',
+      'Your inputs for Overhang tally',
       'Why Controlled tally?',
+      'Your inputs for Controlled tally',
       'Why Dynamic tally?',
+      'Your inputs for Dynamic tally',
       'Why movement radar?',
+      'Your inputs for movement radar',
     );
     expect(text(screen)).toContain('fixed demonstration');
     expect(text(screen)).toContain('Completion ID stored');
@@ -63,7 +69,13 @@ it('shows the actual dated finger flag behind pausing and the offered alternativ
     'Hands',
   );
   try {
-    await press(screen, 'Why finger pause rule?', 'Why alternative quest?');
+    await press(
+      screen,
+      'Why finger pause rule?',
+      'Your inputs for finger pause rule',
+      'Why alternative quest?',
+      'Your inputs for alternative quest',
+    );
     expect(text(screen)).toContain('2026-10-01');
     expect(text(screen)).toContain('right ring');
     expect(text(screen)).toContain('completed=');
@@ -78,8 +90,11 @@ it('explains selected Evidence counts and each style cell with matching records'
     await press(
       screen,
       'Why Vertical tally?',
+      'Your inputs for Vertical tally',
       'Why evidence focus?',
+      'Your inputs for evidence focus',
       'Why Controlled Vertical cell?',
+      'Your inputs for Controlled Vertical cell',
     );
     expect(text(screen)).toContain('sample-3');
     expect(text(screen)).toContain('2026-09-21');
@@ -110,7 +125,13 @@ it('reveals saved reach arithmetic and home-test protocol context from Tests', a
     'Tests',
   );
   try {
-    await press(screen, 'Why reach difference?', 'Why pull-ups result?');
+    await press(
+      screen,
+      'Why reach difference?',
+      'Your inputs for reach difference',
+      'Why pull-ups result?',
+      'Your inputs for pull-ups result',
+    );
     expect(text(screen)).toContain('arm span minus height');
     expect(text(screen)).toContain('2026-10-02');
     expect(text(screen)).toContain('2026-10-01');
@@ -145,6 +166,7 @@ it('opens help on the actual analyzed camera reading including usable counts and
       'Send for analysis, I consent to sending this capture to the server for analysis.',
       'Analyse photo',
       'Why camera reading?',
+      'Your inputs for camera reading',
     );
     expect(text(screen)).toContain('front-facing-leg-spread-v1');
     expect(text(screen)).toContain('92');
@@ -182,6 +204,7 @@ it('explains an invalid camera capture using its actual rejection reason', async
       'Send for analysis, I consent to sending this capture to the server for analysis.',
       'Analyse photo',
       'Why camera reading?',
+      'Your inputs for camera reading',
     );
     expect(text(screen)).toContain('Both hips and ankles must be visible.');
     expect(text(screen)).toContain('0 of 1 usable');
@@ -195,7 +218,11 @@ it('explains an invalid camera capture using its actual rejection reason', async
 it('names both filters for a style cell and excludes other terrains from its records', async () => {
   const screen = await render(setup(), 'Evidence');
   try {
-    await press(screen, 'Why Controlled Slab cell?');
+    await press(
+      screen,
+      'Why Controlled Slab cell?',
+      'Your inputs for Controlled Slab cell',
+    );
     expect(text(screen)).toContain('First filter terrain=slab');
     expect(text(screen)).toContain('sample-1');
     expect(text(screen)).not.toContain('(sample-3)');
@@ -239,11 +266,11 @@ it('keeps a server quest snapshot separate from the current local focus', async 
     'Profile',
   );
   try {
-    await press(screen, 'Why your quest?');
+    await press(screen, 'Why your quest?', 'Your inputs for your quest');
     expect(text(screen)).toContain('earlier-report');
     expect(text(screen)).toContain('server-saved-rule');
     expect(text(screen)).not.toContain('(sample-1)');
-    await press(screen, 'Why your focus?');
+    await press(screen, 'Why your focus?', 'Your inputs for your focus');
     expect(text(screen)).toContain('(sample-1)');
     expect(text(screen)).toContain('Independent of server quest selection');
   } finally {
@@ -299,6 +326,7 @@ it('uses returned camera landmark snapshots and identifies relative clip offsets
       'Send for analysis, I consent to sending this capture to the server for analysis.',
       'Analyse photo',
       'Why camera reading?',
+      'Your inputs for camera reading',
     );
     expect(text(screen)).toContain('x=0.42; y=0.50; visibility=0.91');
     expect(text(screen)).toContain('Relative sample offset: 400 ms');
@@ -331,10 +359,34 @@ it('describes an empty legacy camera response without inferring capture rejectio
       'Send for analysis, I consent to sending this capture to the server for analysis.',
       'Analyse photo',
       'Why camera reading?',
+      'Your inputs for camera reading',
     );
     expect(text(screen)).toContain('No valid sample was returned');
     expect(text(screen)).not.toContain('server rejected');
     expect(text(screen)).toContain('0 of 0 usable');
+  } finally {
+    await act(async () => screen.unmount());
+  }
+});
+
+it('keeps wall tallies below the triangle inside a collapsed creation tray', async () => {
+  const screen = await render(setup(), 'Profile');
+  try {
+    expect(control(screen, 'Why Slab tally?')).toBeUndefined();
+    expect(
+      control(screen, 'How was this data created?')?.props.accessibilityState
+        .expanded,
+    ).toBe(false);
+    await press(screen, 'How was this data created?');
+    expect(control(screen, 'Why Slab tally?')).toBeDefined();
+    expect(control(screen, 'Why Vertical tally?')).toBeDefined();
+    expect(control(screen, 'Why Overhang tally?')).toBeDefined();
+    await press(screen, 'Why Slab tally?');
+    expect(text(screen)).not.toContain('(sample-1)');
+    await press(screen, 'Your inputs for Slab tally');
+    expect(text(screen)).toContain('(sample-1)');
+    await press(screen, 'How was this data created?');
+    expect(control(screen, 'Why Slab tally?')).toBeUndefined();
   } finally {
     await act(async () => screen.unmount());
   }

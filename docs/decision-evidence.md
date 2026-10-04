@@ -64,3 +64,9 @@ Today the decision pipeline consumes explicit fields. Free-text hand notes are s
 For example, “I fell after changing feet” does not establish a footwork deficit. A candidate could identify a reported event and link its exact note; the climber must confirm its category. A detected pause is a measured still interval under software thresholds, not evidence of poor route reading: it could reflect planning, rest, occlusion or a deliberate move. Confirmation makes an observation attributable and correctable; it still does not validate its causal interpretation.
 
 Keep personal observations, derived calculations, rule choices, published research and missing information visible as separate parts of the explanation. No reviewed treatment library, stretching dose, photo healing assessment or return-to-climb protocol is implied by this contract.
+
+## Disclosure layout refinement
+
+Question marks are small superscript annotations beside the related values or labels. Each explanation keeps its personal records in a separate **Your inputs** tray that starts collapsed. On the profile, the slab/vertical/overhang tally explanations live beneath the terrain triangle in the collapsed **How was this data created?** section. Prominent status badges and repeated example qualifiers are omitted; the full provenance, study scope and limits remain available inside the explanations.
+
+Verified after this refinement: 44 Jest suites / 707 tests, typecheck, lint and the production web build passed. Browser checks confirmed nested tray visibility and the native/web expanded-state attributes; focused code review passed.

@@ -62,7 +62,6 @@ export function EvidenceScreen() {
   const tally = terrainTallies(state.logs)[terrain];
   const isFocus = focus.terrain === terrain;
   const toGo = MIN_LOGS - tally.logged;
-  const hasSample = state.logs.some(log => log.sample);
   // Newest first. Logs are stored in the order they were added.
   const climbs = state.logs
     .filter(log => log.terrain === terrain)
@@ -143,10 +142,7 @@ export function EvidenceScreen() {
             </AppText>
           </Panel>
 
-          <Panel
-            title="Wall x style"
-            badge={hasSample ? <Tag text="Example" /> : undefined}
-          >
+          <Panel title="Wall x style">
             <StyleGrid logs={state.logs} selected={terrain} />
             {MOVEMENTS.flatMap(m =>
               TERRAINS.map(t => (
@@ -165,15 +161,7 @@ export function EvidenceScreen() {
         </Column>
 
         <Column>
-          <Panel
-            title="Climbs"
-            icon="log"
-            badge={
-              climbs.some(log => log.sample) ? (
-                <Tag text="Example" />
-              ) : undefined
-            }
-          >
+          <Panel title="Climbs" icon="log">
             {climbs.length === 0 ? (
               <AppText>No {name.toLowerCase()} climbs logged yet.</AppText>
             ) : (
@@ -356,7 +344,6 @@ function ClimbRow({ log }: { log: ClimbLog }) {
         ) : null}
         <AppText variant="caption" muted>
           {shortDate(log.date)}
-          {log.sample ? ' (example)' : ''}
         </AppText>
       </View>
       {/* Wrapped so the tag centres on the row instead of the top edge. */}

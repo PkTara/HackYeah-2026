@@ -5,6 +5,7 @@ import {
   explainReach,
 } from '../components/resultExplanations';
 import { Linking, View } from 'react-native';
+import { AppText } from '@hackyeah/ui';
 import { DecisionHelp } from '../components/DecisionHelp';
 import { press, text, control, type Renderer } from '../testing/cameraFixture';
 
@@ -48,7 +49,7 @@ async function render() {
 it('starts collapsed and toggles actual records, rule, limitations and original paper link', async () => {
   const screen = await render();
   expect(text(screen)).not.toContain('Count matching records');
-  await press(screen, 'Why focus?');
+  await press(screen, 'Why focus?', 'Your inputs for focus');
   expect(control(screen, 'Why focus?')?.props.accessibilityState.expanded).toBe(
     true,
   );
@@ -81,7 +82,7 @@ it('reports missing research and provenance honestly for a legacy explanation', 
       />,
     );
   });
-  await press(screen, 'Why legacy quest?');
+  await press(screen, 'Why legacy quest?', 'Your inputs for legacy quest');
   expect(text(screen)).toContain('Input records unavailable');
   expect(text(screen)).toContain('Source unavailable: missing-paper');
   await act(async () => screen.unmount());
@@ -135,8 +136,11 @@ it('distinguishes generated local display references from unavailable original r
     await press(
       screen,
       'Why saved local test?',
+      'Your inputs for saved local test',
       'Why unsaved local test?',
+      'Your inputs for unsaved local test',
       'Why legacy reach?',
+      'Your inputs for legacy reach',
     );
     const content = text(screen);
     expect(content.match(/App display reference/g) ?? []).toHaveLength(3);
@@ -149,6 +153,46 @@ it('distinguishes generated local display references from unavailable original r
     expect(content).toContain('4 reps; method: typed');
     expect(content).toContain('Stored reach dated 2026-10-02');
     expect(content).toContain('Arm span 182 cm; height 178 cm');
+  } finally {
+    await act(async () => screen.unmount());
+  }
+});
+
+it('keeps input records in a separate tray collapsed until requested', async () => {
+  const screen = await render();
+  try {
+    await press(screen, 'Why focus?');
+    expect(text(screen)).not.toContain('log-7');
+    expect(
+      control(screen, 'Your inputs for focus')?.props.accessibilityState
+        .expanded,
+    ).toBe(false);
+    expect(text(screen)).toContain('Count matching records');
+    await press(screen, 'Your inputs for focus');
+    expect(text(screen)).toContain('log-7');
+    await press(screen, 'Your inputs for focus');
+    expect(text(screen)).not.toContain('log-7');
+  } finally {
+    await act(async () => screen.unmount());
+  }
+});
+
+it('attaches help to its displayed value without a separate status row', async () => {
+  let screen!: Renderer;
+  await act(async () => {
+    screen = ReactTestRenderer.create(
+      <DecisionHelp label="focus" explanation={explanation} sources={[source]}>
+        <AppText>Vertical</AppText>
+      </DecisionHelp>,
+    );
+  });
+  try {
+    expect(text(screen)).toContain('Vertical');
+    expect(text(screen)).not.toContain('focus');
+    expect(JSON.stringify(screen.toJSON())).not.toContain('App rule');
+    expect(control(screen, 'Why focus?')).toBeDefined();
+    await press(screen, 'Why focus?');
+    expect(text(screen)).toContain('Count matching records');
   } finally {
     await act(async () => screen.unmount());
   }

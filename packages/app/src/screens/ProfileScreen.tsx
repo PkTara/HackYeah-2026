@@ -42,6 +42,7 @@ import {
   explainXP,
   explainExampleRadar,
 } from '../components/resultExplanations';
+import { ExpandableTray } from '../components/ExpandableTray';
 import { DecisionHelp } from '../components/DecisionHelp';
 import { TabScreen } from '../components/TabScreen';
 import {
@@ -58,7 +59,7 @@ import { useGame } from '../state/GameProvider';
 
 const STEPS = XP_PER_LEVEL / XP_PER_QUEST;
 
-// Not scored yet: shown striped and labelled EXAMPLE until real evidence exists.
+// Illustrative values; their provenance is available in the radar explanation.
 const EXAMPLE_MOVES: readonly MovementAxis[] = [
   { label: 'Footwork', value: 0.45 },
   { label: 'Balance', value: 0.75 },
@@ -77,7 +78,6 @@ export function ProfileScreen() {
 
   const terrain = terrainTallies(state.logs);
   const moves = movementTallies(state.logs);
-  const hasSample = state.logs.some(l => l.sample);
   const questsToGo = STEPS - pet.xpInLevel / XP_PER_QUEST;
   const recent = [...state.logs].reverse().slice(0, 4);
 
@@ -101,7 +101,6 @@ export function ProfileScreen() {
               </AppText>
               <AppText variant="caption" muted>
                 {shortDate(log.date)}
-                {log.sample ? ' (example)' : ''}
               </AppText>
             </View>
             <Tag
@@ -133,9 +132,10 @@ export function ProfileScreen() {
         <DecisionHelp
           label="XP and level"
           explanation={explainXP(state.completed)}
-        />
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        >
           <PixelText text={`Lvl ${pet.level}`} scale={4} heading />
+        </DecisionHelp>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <View style={{ flex: 1, gap: 6 }}>
             <Meter
               value={pet.xpInLevel / XP_PER_QUEST}
@@ -170,13 +170,19 @@ export function ProfileScreen() {
             <DecisionHelp
               label="your focus"
               explanation={explainFocus(focus, state.logs)}
-            />
-            <View
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
             >
-              <Icon name={TERRAIN_ICON[focus.terrain]} scale={3} />
-              <PixelText text={TERRAIN_NAME[focus.terrain]} scale={4} heading />
-            </View>
+              <View
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+              >
+                <Icon name={TERRAIN_ICON[focus.terrain]} scale={3} />
+                <PixelText
+                  text={TERRAIN_NAME[focus.terrain]}
+                  scale={4}
+                  heading
+                />
+              </View>
+            </DecisionHelp>
+
             {focus.kind === 'practice' ? (
               <AppText>
                 You sent {focus.tally.sent} of the {focus.tally.logged}{' '}
@@ -212,7 +218,18 @@ export function ProfileScreen() {
             {quest.quest ? (
               <>
                 {/* Server quests can have long titles, so they wrap. */}
-                <PixelText text={quest.quest.title} scale={3} heading wrap />
+                <DecisionHelp
+                  label="your quest"
+                  explanation={explainQuest(
+                    quest.quest,
+                    focus,
+                    state.logs,
+                    state.flags,
+                    { completed: state.completed, skipped: state.skipped },
+                  )}
+                >
+                  <PixelText text={quest.quest.title} scale={3} heading wrap />
+                </DecisionHelp>
                 <AppText>{quest.quest.task}</AppText>
                 <View
                   style={{ flexDirection: 'row', gap: 16, flexWrap: 'wrap' }}
@@ -236,16 +253,7 @@ export function ProfileScreen() {
                 <AppText variant="caption" muted>
                   Why: {quest.quest.why}
                 </AppText>
-                <DecisionHelp
-                  label="your quest"
-                  explanation={explainQuest(
-                    quest.quest,
-                    focus,
-                    state.logs,
-                    state.flags,
-                    { completed: state.completed, skipped: state.skipped },
-                  )}
-                />
+
                 <AppText variant="caption" muted>
                   {state.assigned !== undefined
                     ? 'The server selected this quest. Its saved decision is separate from the local wall focus.'
@@ -354,17 +362,7 @@ export function ProfileScreen() {
 
         <Column>
           {/* Terrain triangle */}
-          <Panel
-            title="Walls"
-            badge={hasSample ? <Tag text="Example" /> : undefined}
-          >
-            {TERRAINS.map(t => (
-              <DecisionHelp
-                key={t}
-                label={`${TERRAIN_NAME[t]} tally`}
-                explanation={explainTerrain(t, state.logs)}
-              />
-            ))}
+          <Panel title="Walls">
             <TerrainTriangle
               stats={terrain}
               focus={focus.terrain}
@@ -374,27 +372,38 @@ export function ProfileScreen() {
               Each corner grows with the share of logged climbs you sent on that
               wall. Tap a corner to see the climbs.
             </AppText>
+            <ExpandableTray title="How was this data created?">
+              {TERRAINS.map(t => (
+                <DecisionHelp
+                  key={t}
+                  label={`${TERRAIN_NAME[t]} tally`}
+                  explanation={explainTerrain(t, state.logs)}
+                />
+              ))}
+            </ExpandableTray>
           </Panel>
 
           {/* Style: controlled and dynamic, counted separately */}
           <Panel title="Style">
             {MOVEMENTS.map(m => (
               <View key={m} style={{ gap: 6 }}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <PixelText text={MOVEMENT_NAME[m]} />
-                  <AppText variant="caption" muted>
-                    {moves[m].sent} of {moves[m].logged} sent
-                  </AppText>
-                </View>
                 <DecisionHelp
                   label={`${MOVEMENT_NAME[m]} tally`}
                   explanation={explainMovement(m, state.logs)}
-                />
+                >
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 10,
+                    }}
+                  >
+                    <PixelText text={MOVEMENT_NAME[m]} />
+                    <AppText variant="caption" muted>
+                      {moves[m].sent} of {moves[m].logged} sent
+                    </AppText>
+                  </View>
+                </DecisionHelp>
                 <Pips
                   results={state.logs
                     .filter(l => l.movements.includes(m))
@@ -413,16 +422,12 @@ export function ProfileScreen() {
                 marginVertical: 4,
               }}
             />
-            <View
-              style={{ flexDirection: 'row', justifyContent: 'space-between' }}
-            >
-              <PixelText text="Movement radar" />
-              <Tag text="Example" />
-            </View>
             <DecisionHelp
               label="movement radar"
               explanation={explainExampleRadar(EXAMPLE_MOVES)}
-            />
+            >
+              <PixelText text="Movement radar" />
+            </DecisionHelp>
             <MovementRadar axes={EXAMPLE_MOVES} example />
             <AppText variant="caption" muted>
               Not scored yet. These axes need movement evidence before they show

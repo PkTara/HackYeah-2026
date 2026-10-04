@@ -41,7 +41,7 @@ const PACKAGES = [
 ] as const;
 
 const HONEST_BITS = [
-  'Sample climbs are labelled Example.',
+  'Record provenance is available in the question-mark explanations.',
   'Quest content is a draft. A climbing coach should review it.',
   'Nothing here is medical advice.',
 ] as const;
