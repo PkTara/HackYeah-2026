@@ -48,10 +48,10 @@ The shared `DecisionExplanation` contract in [core evidence](../packages/core/sr
 | Local focus | All terrain totals/rates and fixed tie order | Reflection/collection heuristic, not measured weakness |
 | Local quest and pause | Focus, flags, completed/skipped IDs, quest filtering/order and loading eligibility | Draft drill and product dose; a cleared flag is not health clearance |
 | Assigned server quest | Assignment-time record snapshot, server goal/rule/version and authoritative explanation | Missing legacy provenance is unavailable; current state is not the original snapshot |
-| Camera estimate | Actual reading, capture/protocol/model information when available, geometry and visibility definition | Image-plane estimate; no transferred accuracy from another pose paper |
+| Camera estimate | Actual four hip/ankle coordinates and visibility values, image dimensions or square assumption, formula/protocol, and output; model/capture time when supplied | Image-plane estimate; no transferred accuracy from another pose paper |
 | Camera rep/hold/form candidate | Actual capture source and rule thresholds, frame/time evidence when available | App detection criteria and visibility are unvalidated for performance/diagnosis |
 | Home-test/body entry and computed ratio | Entered value/unit/date; recorded protocol; arm-span/height ratio or arm-span-minus-height calculation | Descriptive measurements; qualitative display labels and test-to-area grouping are app choices |
-| Assessment comparison | Latest and previous values with matching metric, method, protocol and unit; subtraction | A delta is not meaningful improvement without measurement-error data |
+| Assessment comparison | Latest and previous values with matching metric, method, protocol and unit; subtraction | A delta is not evidence of meaningful improvement without measurement-error data |
 | Example radar | Explicit example status and its illustrative values | No personal input produced the polygon; no validated ability axes |
 | XP/level/reward | Unique completed quest IDs; 10 XP each, 50 XP per level, unlock rules | Participation reward, not strength, healing, mobility or readiness |
 
