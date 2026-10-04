@@ -8,10 +8,14 @@ import {
 
 it('explains XP from unique completion records with the actual product arithmetic', () => {
   const result = explainXP(['quiet-feet', 'preview', 'quiet-feet']);
-  expect(result.rule).toContain('10 XP');
-  expect(result.rule).toContain('50 XP');
+  expect(result.rule).toContain('2 x 10 = 20 XP');
+  expect(result.rule).toContain('Every 50 XP is a new level');
   expect(result.evidence.map(r => r.id)).toEqual(['quiet-feet', 'preview']);
+  expect(result.evidence[0].detail).toContain(
+    'date it was completed is not recorded',
+  );
   expect(result.summary).toContain('20 XP');
+  expect(result.sourceIds).toEqual([]);
   expect(result.limitations.join(' ')).toContain('climbing ability');
 });
 
@@ -21,11 +25,12 @@ it('explains the reach difference using both measured values and their date', ()
     heightCm: 178,
     date: '2026-10-03',
   });
-  expect(result.summary).toContain('4 cm');
+  expect(result.summary).toContain('4 cm longer');
   expect(result.evidence[0].detail).toContain('182 cm');
   expect(result.evidence[0].detail).toContain('178 cm');
   expect(result.evidence[0].label).toContain('2026-10-03');
-  expect(result.rule).toContain('arm span minus height');
+  expect(result.rule).toContain('182 minus 178 = 4 cm');
+  expect(result.limitations.join(' ')).toContain('never scored as a weakness');
 });
 
 it('shows the actual home-test protocol, manual method, value and recorded date', () => {
@@ -37,19 +42,20 @@ it('shows the actual home-test protocol, manual method, value and recorded date'
     unit: 'reps',
   });
   expect(result.rule).toContain(test.steps[2]);
+  expect(result.rule).not.toContain(test.id);
   expect(result.evidence[0].detail).toContain('7 reps');
   expect(result.evidence[0].detail).toContain('counter');
   expect(result.evidence[0].label).toContain('2026-10-03');
-  expect(result.limitations.join(' ')).toContain('not calibrated');
+  expect(result.limitations.join(' ')).toContain('not a calibrated score');
 });
 
 it('reports radar values as fixed examples without claiming a personal score', () => {
   const result = explainExampleRadar([{ label: 'Footwork', value: 0.45 }]);
   expect(result.status).toBe('example');
   expect(result.evidence[0].detail).toContain('0.45');
-  expect(result.rule).toContain('fixed demonstration');
+  expect(result.rule).toContain('fixed example values');
   expect(result.limitations.join(' ')).toContain(
-    'not calculated from your records',
+    'Not calculated from your records',
   );
 });
 
@@ -62,10 +68,10 @@ it('explains an empty known completion list without presenting missing provenanc
 
 it('shows the configured cosmetic thresholds and current unlock decisions', () => {
   const result = explainXP(['a', 'b', 'c', 'd', 'e']);
-  expect(result.summary).toContain('level 2');
-  expect(result.rule).toContain('Banana headband (headband): level 2');
-  expect(result.rule).toContain('Chalk bag (chalk-bag): level 3');
-  expect(result.rule).toContain('unlocked: headband');
+  expect(result.summary).toContain('Level 2');
+  expect(result.rule).toContain('Banana headband at level 2');
+  expect(result.rule).toContain('Chalk bag at level 3');
+  expect(result.rule).toContain('Unlocked now: Banana headband.');
 });
 
 it('preserves authoritative reach inputs measured on different dates', () => {

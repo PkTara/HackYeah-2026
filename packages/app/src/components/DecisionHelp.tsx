@@ -1,153 +1,262 @@
 import { useState, type ReactNode } from 'react';
-import { Linking, Pressable, StyleSheet, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   RESEARCH_SOURCES,
   type DecisionExplanation,
   type ResearchSource,
 } from '@hackyeah/core';
-import { AppText, ToneContext, useTheme } from '@hackyeah/ui';
-import { ExpandableTray } from './ExpandableTray';
+import {
+  AppText,
+  Disclosure,
+  Divider,
+  HelpMark,
+  PixelText,
+  SampleMark,
+  Sheet,
+} from '@hackyeah/ui';
 
-/** Inline disclosures keep the associated result visible on native and web. */
+/** Above this many records, "Your inputs" starts folded away. */
+const SHORT_INPUTS = 3;
+
+const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+
+type HelpProps = {
+  /** Names the result: "Focus", "Slab tally". Read as "Why: Focus". */
+  label: string;
+  explanation: DecisionExplanation;
+  /** One sentence to lead with instead of the explanation's summary. */
+  takeaway?: string;
+  /** The sheet's heading, when the value has a better name than the label. */
+  title?: string;
+  sources?: readonly ResearchSource[];
+};
+
+/**
+ * A generated value with a small superscript "?" after it. The question
+ * mark opens one explanation sheet: what the result means, the records
+ * behind it, the rule in plain words, research where a published claim is
+ * made, and its limits. Without children the label itself is shown.
+ */
 export function DecisionHelp({
   label,
   explanation,
+  takeaway,
+  title,
   sources = RESEARCH_SOURCES,
   children,
-  takeaway,
-}: {
-  label: string;
-  explanation: DecisionExplanation;
-  sources?: readonly ResearchSource[];
-  children?: ReactNode;
-  takeaway?: string;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const { colors: c } = useTheme();
-  const readingIsBackground =
-    explanation.status === 'app_rule' || explanation.status === 'example';
-  const research = explanation.sourceIds.map(id => {
-    const source = sources.find(item => item.id === id);
-    return source ? (
-      <ResearchPaper key={id} source={source} />
-    ) : (
-      <AppText key={id}>Source unavailable: {id}</AppText>
-    );
-  });
+}: HelpProps & { children?: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const name = capital(label);
   return (
-    <View style={styles.stack}>
-      <View style={styles.row}>
-        {children ? (
-          <View style={styles.anchor}>{children}</View>
-        ) : (
-          <AppText variant="caption">{label}</AppText>
-        )}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Why ${label}?`}
-          accessibilityHint="Shows the inputs, rule, research and limits"
-          accessibilityState={{ expanded }}
-          aria-expanded={expanded}
-          onPress={() => setExpanded(!expanded)}
-          hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
-          style={styles.help}
+    <View style={styles.anchorRow}>
+      {children ? (
+        <View style={styles.anchor}>{children}</View>
+      ) : (
+        <AppText variant="caption" muted style={styles.anchor}>
+          {name}
+        </AppText>
+      )}
+      <HelpMark
+        accessibilityLabel={`Why: ${name}`}
+        accessibilityHint="Shows the records, rule and limits behind this"
+        onPress={() => setOpen(true)}
+      />
+      <ExplanationSheet
+        visible={open}
+        onClose={() => setOpen(false)}
+        label={label}
+        explanation={explanation}
+        takeaway={takeaway}
+        title={title}
+        sources={sources}
+      />
+    </View>
+  );
+}
+
+/** The explanation sheet on its own, for values that open it themselves. */
+export function ExplanationSheet({
+  visible,
+  onClose,
+  ...body
+}: HelpProps & { visible: boolean; onClose: () => void }) {
+  return (
+    <Sheet
+      visible={visible}
+      title="Why?"
+      onClose={onClose}
+      closeLabel="Close explanation"
+    >
+      {visible ? <ExplanationBody {...body} /> : null}
+    </Sheet>
+  );
+}
+
+function ExplanationBody({
+  label,
+  explanation,
+  takeaway,
+  title,
+  sources = RESEARCH_SOURCES,
+}: HelpProps) {
+  const { evidence, rule, sourceIds, limitations, status } = explanation;
+  return (
+    <>
+      <PixelText text={capital(title ?? label)} scale={3} heading wrap />
+      <AppText>{takeaway ?? explanation.summary}</AppText>
+      {status === 'example' ? (
+        <SampleMark text="Built from sample data, not your own records." />
+      ) : status === 'draft' ? (
+        <AppText variant="caption" muted>
+          Draft content from the team, not yet reviewed by an expert.
+        </AppText>
+      ) : null}
+
+      <Divider />
+      {evidence.length > SHORT_INPUTS ? (
+        <Disclosure
+          title="Your inputs"
+          note={`${evidence.length} records`}
+          accessibilityLabel={`Your inputs, ${evidence.length} records`}
         >
-          <AppText accessible={false} style={styles.question}>
-            ?
-          </AppText>
-        </Pressable>
-      </View>
-      {expanded ? (
-        <ToneContext.Provider value={{ text: c.text, textMuted: c.textMuted }}>
-          <View
-            style={[
-              styles.details,
-              { backgroundColor: c.surfaceShade, borderColor: c.outline },
-            ]}
-          >
-            <AppText accessibilityRole="header">
-              {takeaway ?? explanation.summary}
+          <Records evidence={evidence} />
+        </Disclosure>
+      ) : (
+        <Section title="Your inputs">
+          {evidence.length === 0 ? (
+            <AppText variant="caption">
+              No records were saved with this result, so they cannot be shown.
             </AppText>
-            {!readingIsBackground && research.length > 0 ? (
-              <View style={styles.stack}>
-                <AppText variant="caption" muted>
-                  Related research; this app's{' '}
-                  {explanation.status === 'estimate'
-                    ? 'measurement'
-                    : 'suggestion'}{' '}
-                  is unvalidated.
-                </AppText>
-                {research}
-              </View>
-            ) : null}
-            <ExpandableTray
-              title="How it works"
-              accessibilityLabel={`How it works for ${label}`}
-            >
-              {takeaway && takeaway !== explanation.summary ? (
-                <AppText variant="caption">{explanation.summary}</AppText>
-              ) : null}
-              <AppText>{explanation.rule}</AppText>
-              {explanation.limitations.map((limit, index) => (
-                <AppText key={index} variant="caption">
-                  • {limit}
-                </AppText>
-              ))}
-              {readingIsBackground && research.length > 0 ? (
-                <View style={styles.stack}>
-                  <AppText variant="caption" muted>
-                    Background reading
-                  </AppText>
-                  {research}
-                </View>
-              ) : null}
-            </ExpandableTray>
-            <ExpandableTray
-              title="Your inputs"
-              count={explanation.evidence.length}
-              accessibilityLabel={`Your inputs for ${label}`}
-            >
-              {explanation.evidence.length === 0 ? (
-                <AppText>Input records unavailable.</AppText>
-              ) : null}
-              {explanation.evidence.map((record, index) => (
-                <View key={`${record.id}-${index}`} style={styles.stack}>
-                  <AppText variant="caption">
-                    {record.label} ({record.id})
-                  </AppText>
-                  <AppText>{record.detail}</AppText>
-                </View>
-              ))}
-            </ExpandableTray>
+          ) : (
+            <Records evidence={evidence} />
+          )}
+        </Section>
+      )}
+
+      <Divider />
+      <Section title="How it works">
+        {rule
+          .split('\n')
+          .filter(line => line.trim())
+          .map((line, index) => (
+            <AppText key={index} variant="caption">
+              {line}
+            </AppText>
+          ))}
+        <AppText variant="caption" muted>
+          {status === 'estimate'
+            ? "The formula is the app's own. It has not been checked against a lab measurement."
+            : 'Chosen by the team, not taken from a study.'}
+        </AppText>
+      </Section>
+
+      {sourceIds.length > 0 ? (
+        <>
+          <Divider />
+          <Section title="Research">
+            <AppText variant="caption" muted>
+              Background only. None of these studies tested this app.
+            </AppText>
+            <ResearchList ids={sourceIds} sources={sources} />
+          </Section>
+        </>
+      ) : null}
+
+      {limitations.length > 0 ? (
+        <>
+          <Divider />
+          <Section title="Limits">
+            {limitations.map((limit, index) => (
+              <AppText key={index} variant="caption">
+                {limit}
+              </AppText>
+            ))}
+          </Section>
+        </>
+      ) : null}
+    </>
+  );
+}
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <View style={styles.section}>
+      <PixelText text={title} heading />
+      {children}
+    </View>
+  );
+}
+
+function Records({ evidence }: { evidence: DecisionExplanation['evidence'] }) {
+  return (
+    <View style={styles.records}>
+      {evidence.map((record, index) => (
+        <View key={`${record.id}-${index}`} style={styles.record}>
+          <View style={styles.recordHead}>
+            <AppText variant="caption" style={styles.strong}>
+              {record.label}
+            </AppText>
+            <AppText variant="caption" muted>
+              Ref {record.id}
+            </AppText>
           </View>
-        </ToneContext.Provider>
+          {record.detail ? (
+            <AppText variant="caption">{record.detail}</AppText>
+          ) : null}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/**
+ * One plain takeaway and a short citation per study, with the full study
+ * details behind a single "Study details" control. The paper only opens
+ * when its title is pressed.
+ */
+export function ResearchList({
+  ids,
+  sources = RESEARCH_SOURCES,
+}: {
+  /** Which sources to show, in order. All of `sources` when left out. */
+  ids?: readonly string[];
+  sources?: readonly ResearchSource[];
+}) {
+  const wanted = ids ?? sources.map(source => source.id);
+  const found = wanted
+    .map(id => sources.find(source => source.id === id))
+    .filter((source): source is ResearchSource => source !== undefined);
+  const missing = wanted.filter(id => !sources.some(s => s.id === id));
+  return (
+    <View style={styles.records}>
+      {found.map(source => (
+        <Citation key={source.id} source={source} />
+      ))}
+      {missing.map(id => (
+        <AppText key={id} variant="caption">
+          A cited study ({id}) is not in the app's library, so its details
+          cannot be shown.
+        </AppText>
+      ))}
+      {found.length > 0 ? (
+        <Disclosure title="Study details">
+          {found.map(source => (
+            <StudyDetails key={source.id} source={source} />
+          ))}
+        </Disclosure>
       ) : null}
     </View>
   );
 }
 
-const SOURCE_TOPICS: Readonly<Record<string, string>> = {
-  michailov2018: 'Finger testing',
-  mermier2000: 'Climbing performance',
-  draga2020: 'Flexibility',
-  orth2018: 'Learning through practice',
-  seifert2017: 'Route preview',
-  stenum2021: '2D movement estimates',
-  barzegar2024: 'Camera joint angles',
-  schweizer2001: 'Crimp grip loading',
-  klauser2002: 'Finger pulley imaging',
-  paxton2012: 'Ligament lab study',
-  shaw2017: 'Nutrition and collagen markers',
-  baar2019: 'Tendon case report',
-  walker2020: 'Coached video feedback',
-  sanchez2012: 'Route inspection',
-  medernach2021: 'Bouldering decisions',
-  langer2024: 'Climbing training trial',
-  stien2024: 'Movement practice pilot',
-};
+/** "Sanchez et al., 2012" from the full author list. */
+function shortAuthors(source: ResearchSource): string {
+  const authors = source.authors.split(',');
+  const surname = authors[0].trim().split(' ').pop();
+  return `${surname}${authors.length > 1 ? ' et al.' : ''}, ${source.year}`;
+}
 
-/** Only this deliberate press opens a remote paper; sources are bundled. */
-export function ResearchPaper({ source }: { source: ResearchSource }) {
+function Citation({ source }: { source: ResearchSource }) {
   const [error, setError] = useState(false);
   const open = async () => {
     setError(false);
@@ -158,59 +267,65 @@ export function ResearchPaper({ source }: { source: ResearchSource }) {
     }
   };
   return (
-    <View style={styles.stack}>
+    <View style={styles.citation}>
+      <AppText variant="caption">{source.finding}</AppText>
       <Pressable
         accessibilityRole="link"
-        accessibilityLabel={`Open original paper: ${source.title}`}
+        accessibilityLabel={`Open study: ${source.title}`}
         onPress={open}
       >
-        <AppText style={styles.link}>
-          {SOURCE_TOPICS[source.id] ?? source.title} ·{' '}
-          {source.authors.split(',')[0]}
-          {source.authors.includes(',') ? ' et al.' : ''}, {source.year}
+        <AppText variant="caption" muted>
+          {shortAuthors(source)}.{' '}
+          <Text style={styles.link}>{source.title}</Text>
         </AppText>
       </Pressable>
-      <ExpandableTray
-        title="Study details"
-        accessibilityLabel={`Study details: ${source.title}`}
-      >
-        <AppText>{source.title}</AppText>
-        <AppText variant="caption">
-          {source.authors}, {source.year}
-        </AppText>
-        <AppText variant="caption">
-          {source.studyType} · {source.population}
-        </AppText>
-        <AppText>{source.supports}</AppText>
-        {source.limitations.map((limit, index) => (
-          <AppText variant="caption" key={index}>
-            • {limit}
-          </AppText>
-        ))}
-        <AppText variant="caption" muted>
-          Read: {source.readingDepth} · Checked: {source.verifiedAt}
-        </AppText>
-      </ExpandableTray>
       {error ? (
-        <AppText accessibilityRole="alert">
-          Could not open this paper. Try again.
+        <AppText variant="caption" accessibilityRole="alert">
+          Could not open the study. Try again.
         </AppText>
       ) : null}
     </View>
   );
 }
+
+function StudyDetails({ source }: { source: ResearchSource }) {
+  return (
+    <View style={styles.citation}>
+      <AppText variant="caption" style={styles.strong}>
+        {source.title}
+      </AppText>
+      <AppText variant="caption">
+        {source.authors}, {source.year}.
+      </AppText>
+      <AppText variant="caption">
+        {source.studyType}. {source.population}.
+      </AppText>
+      <AppText variant="caption">Can support: {source.supports}</AppText>
+      {source.limitations.map((limit, index) => (
+        <AppText key={index} variant="caption">
+          Limit: {limit}.
+        </AppText>
+      ))}
+      <AppText variant="caption" muted>
+        We read: {source.readingDepth}. Checked {source.verifiedAt}.
+      </AppText>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  stack: { gap: 6 },
-  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 3 },
+  anchorRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 4 },
   anchor: { flexShrink: 1 },
-  help: {
-    width: 18,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: -4,
+  section: { gap: 8 },
+  records: { gap: 12 },
+  record: { gap: 2 },
+  recordHead: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    columnGap: 12,
   },
-  question: { fontWeight: '700', fontSize: 12, lineHeight: 16 },
-  details: { padding: 12, borderWidth: 3, gap: 10 },
-  link: { textDecorationLine: 'underline', fontWeight: '700' },
+  strong: { fontWeight: '800' },
+  citation: { gap: 4 },
+  link: { textDecorationLine: 'underline' },
 });

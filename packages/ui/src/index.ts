@@ -9,7 +9,9 @@ export {
 export { useReducedMotion, useTicker } from './hooks';
 export { AppText } from './components/AppText';
 export { Breadcrumbs, fitCrumbs, type Crumb } from './components/Breadcrumbs';
+export { Disclosure } from './components/Disclosure';
 export { Divider } from './components/Divider';
+export { HelpMark } from './components/HelpMark';
 export { HandAnatomy } from './components/HandAnatomy';
 export {
   LayerSlider,
@@ -42,6 +44,8 @@ export { Panel, type PanelVariant } from './components/Panel';
 export { PixelArt } from './components/PixelArt';
 export { PixelBox } from './components/PixelBox';
 export { PixelText } from './components/PixelText';
+export { SampleMark } from './components/SampleMark';
+export { Sheet } from './components/Sheet';
 export { SportHero } from './components/SportHero';
 export {
   Screen,

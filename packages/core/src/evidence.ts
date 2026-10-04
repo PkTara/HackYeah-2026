@@ -1,3 +1,13 @@
+/**
+ * Why each generated result says what it says, in plain words.
+ *
+ * Every explanation keeps four things apart: the user's own records
+ * (`evidence`), the app rule that turned them into the result (`rule`, one
+ * sentence per line), published research (`sourceIds`, only where a
+ * published claim is made) and the limits (`limitations`, one or two short
+ * lines). Arithmetic and selection rules are app rules, so they cite no
+ * papers. Where something was not recorded, the text says so.
+ */
 import {
   MIN_LOGS,
   TERRAINS,
@@ -8,7 +18,16 @@ import {
   type Terrain,
 } from './climbing';
 import type { HandFlag } from './game';
-import { QUESTS, type Quest } from './quests';
+import { QUESTS, findQuest, type Quest } from './quests';
+import {
+  MIN_SESSIONS,
+  talliesBy,
+  type BodyFlag,
+  type SessionLog,
+  type SportFocus,
+  type SportQuest,
+} from './sport';
+import { spotsFor } from './spots';
 
 /** Personal record evidence and published research have separate identifiers. */
 export type ResearchSource = Readonly<{
@@ -17,9 +36,12 @@ export type ResearchSource = Readonly<{
   authors: string;
   year: number;
   url: string;
+  /** What the study found, in one plain sentence. */
+  finding: string;
   studyType: string;
   population: string;
   readingDepth: string;
+  /** The narrow statement the study can support. */
   supports: string;
   limitations: readonly string[];
   verifiedAt: string;
@@ -28,6 +50,7 @@ export type ResearchSource = Readonly<{
 export type DecisionExplanation = Readonly<{
   summary: string;
   status: 'app_rule' | 'draft' | 'estimate' | 'example';
+  /** The rule in plain words. Each line is one step. */
   rule: string;
   evidence: readonly Readonly<{ id: string; label: string; detail: string }>[];
   sourceIds: readonly string[];
@@ -66,13 +89,24 @@ export function isDecisionExplanation(
   );
 }
 
+const lines = (...steps: readonly (string | false)[]) =>
+  steps.filter(Boolean).join('\n');
+const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+const percent = (part: number, whole: number) =>
+  `${Math.round((part / whole) * 100)}%`;
+const list = (items: readonly string[]) =>
+  items.length <= 1
+    ? items.join('')
+    : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+
+/** A server quest saved before decisions were recorded. */
 const unavailable: DecisionExplanation = {
-  summary: 'Decision provenance unavailable.',
+  summary: 'Why this quest was picked was not saved.',
   status: 'app_rule',
-  rule: 'Unavailable: the selection inputs and rule were not recorded.',
+  rule: 'The records and the rule behind this quest were not recorded when it was assigned, so they cannot be shown.',
   evidence: [],
   sourceIds: [],
-  limitations: ['Do not infer the original decision from current records.'],
+  limitations: ['Your current climbs cannot show why it was picked back then.'],
 };
 
 function climbEvidence(
@@ -80,63 +114,121 @@ function climbEvidence(
 ): DecisionExplanation['evidence'] {
   return logs.map(log => ({
     id: log.id,
-    label: `Climb · ${log.date}${log.sample ? ' · example' : ''}`,
-    detail: `${log.terrain}; movements=${log.movements.join(',')}; holds=${
-      log.holds.join(',') || 'not recorded'
-    }; grade=${log.grade || 'not recorded'}; sent=${log.sent}`,
+    label: `Climb, ${log.date}${log.sample ? ' (example)' : ''}`,
+    detail: `${capital(log.terrain)}, ${
+      log.movements.join(' and ') || 'style not recorded'
+    }, ${log.holds.join(' and ') || 'holds not recorded'}, ${
+      log.grade || 'grade not recorded'
+    }. ${log.sent ? 'Sent' : 'Not sent'}.`,
   }));
 }
 
+/** "slab 2 of 4 (50%), vertical 1 of 2, ..." */
+function sentSoFar(logs: readonly ClimbLog[]): string {
+  const tallies = terrainTallies(logs);
+  return `Sent so far: ${TERRAINS.map(terrain => {
+    const { sent, logged } = tallies[terrain];
+    return `${terrain} ${sent} of ${logged}${
+      logged >= MIN_LOGS ? ` (${percent(sent, logged)})` : ''
+    }`;
+  }).join(', ')}.`;
+}
+
 const LOG_LIMITS = [
-  `The ${MIN_LOGS}-climb threshold is a product choice, not a scientific minimum.`,
-  'Logged completion shares depend on difficulty, exposure and route selection; they do not measure ability or diagnose a physical limitation.',
-  'Published learning research is background only; it does not validate this app rule.',
+  `${MIN_LOGS} climbs is an app threshold, not a scientific minimum.`,
+  'Sends depend on grade, route choice and how often you climb each wall. A low share is a prompt to reflect, not a measure of ability.',
 ] as const;
 
 export function explainFocus(
   focus: Focus,
   logs: readonly ClimbLog[],
 ): DecisionExplanation {
-  const tallies = terrainTallies(logs);
-  const comparisons = TERRAINS.map(
-    terrain =>
-      `${terrain}: ${tallies[terrain].sent}/${tallies[terrain].logged} sent`,
-  ).join('; ');
   return {
     summary:
       focus.kind === 'explore'
-        ? `Gather logs on ${focus.terrain}.`
-        : `Reflect on logged ${focus.terrain} outcomes.`,
+        ? `${capital(
+            focus.terrain,
+          )} is your focus because it has the fewest logged climbs, so the monkey asks for more there first.`
+        : `${capital(
+            focus.terrain,
+          )} is your focus because it has the lowest share of sent climbs of the three walls.`,
     status: logs.some(log => log.sample) ? 'example' : 'app_rule',
-    rule: `local-focus-v1: first consider terrains with fewer than ${MIN_LOGS} logs; choose the fewest logs. Otherwise choose the lowest sent/logged share. Ties use slab, vertical, overhang. ${comparisons}.`,
+    rule: lines(
+      sentSoFar(logs),
+      `A wall needs ${MIN_LOGS} logged climbs before it is compared with the others.`,
+      `While any wall has fewer than ${MIN_LOGS}, the focus is the wall with the fewest logs.`,
+      `Once every wall has ${MIN_LOGS}, the focus is the wall with the lowest share sent.`,
+      'A tie goes to slab first, then vertical, then overhang.',
+    ),
     evidence: climbEvidence(logs),
-    sourceIds: ['orth2018'],
+    sourceIds: [],
     limitations: LOG_LIMITS,
   };
 }
+
+function fingerFlagEvidence(
+  flags: readonly HandFlag[],
+): DecisionExplanation['evidence'] {
+  return flags.map(flag => {
+    const spots = flag.spots.map(
+      id => spotsFor(flag.finger).find(spot => spot.id === id)?.name ?? id,
+    );
+    return {
+      id: `${flag.side}/${flag.finger}`,
+      label: `Flagged finger, since ${flag.date}`,
+      detail: `${capital(flag.side)} ${flag.finger}, sore ${
+        spots.length ? `at ${list(spots)}` : 'with no spot marked'
+      }. Pain ratings are not kept with the flag.`,
+    };
+  });
+}
+
 export function explainPause(flags: readonly HandFlag[]): DecisionExplanation {
   return {
     summary: flags.length
-      ? 'Finger-loading suggestions are paused because you reported soreness.'
-      : 'No current finger flags pause suggestions.',
+      ? 'Quests that load your fingers are paused because you flagged a sore finger.'
+      : 'Nothing is flagged, so no quests are paused.',
     status: 'app_rule',
-    rule: 'local-pause-v1: any current hand flag pauses quests with loadsFingers=true; unflagging removes that software restriction.',
-    evidence: flags.map(flag => ({
-      id: `${flag.side}/${flag.finger}`,
-      label: `Hand flag · ${flag.date}`,
-      detail: `${flag.side} ${flag.finger}; reported sore; spots=${
-        flag.spots.join(',') || 'not specified'
-      }`,
-    })),
-    sourceIds: ['klauser2002', 'schweizer2001'],
+    rule: lines(
+      'While any finger is flagged, quests that load the fingers, such as climbing or hanging, are paused.',
+      'Quests that do not load the fingers, and a finger check-in, can still be offered.',
+      'Clearing the flag on the Hands tab brings the paused quests back.',
+    ),
+    evidence: fingerFlagEvidence(flags),
+    sourceIds: ['klauser2002'],
     limitations: [
-      'A conservative product eligibility rule, not diagnosis or proven injury prevention.',
-      'No flags or a zero report do not establish that climbing is safe.',
-      'Hand flags retain the start date and current spots, not original report IDs or pain ratings; photos do not assess internal healing.',
-      'Related biomechanics and imaging studies do not validate this pause rule.',
+      'A flag or a photo cannot show what is wrong inside a finger. Pulley injuries are checked with scans.',
+      'Clearing a flag is not a medical all-clear. No study has tested whether pausing quests prevents injury.',
     ],
   };
 }
+
+/** Plain titles for quest ids, so progress reads as words. */
+function questNames(ids: readonly string[]): string {
+  return ids.length ? list(ids.map(id => findQuest(id)?.title ?? id)) : 'none';
+}
+
+function quietLimits(quest: Quest): readonly string[] {
+  switch (quest.kind) {
+    case 'practice':
+      return [
+        `Draft quest written by the team. No study has tested this drill, its count or its time.`,
+        LOG_LIMITS[1],
+      ];
+    case 'plan':
+      return [
+        'Draft quest written by the team. The preview studies did not test this task or its time.',
+        'In the preview studies, previewing changed how people climbed, not whether they finished.',
+      ];
+    case 'checkin':
+      return [
+        'A check-in records what you report. It is not a diagnosis and does not clear the flag.',
+      ];
+    default:
+      return LOG_LIMITS;
+  }
+}
+
 export function explainQuest(
   quest: Quest,
   focus: Focus,
@@ -150,96 +242,113 @@ export function explainQuest(
   if (!QUESTS.some(candidate => candidate.id === quest.id)) {
     return unavailable;
   }
-  const focusDecision = explainFocus(focus, logs);
-  const pause = explainPause(flags);
   const draft = quest.kind === 'practice' || quest.kind === 'plan';
   return {
-    summary: `${draft ? 'Draft quest' : 'App-selected quest'}: ${quest.title}.`,
-    status: draft ? 'draft' : focusDecision.status,
-    rule: `local-quest-v1: explore focus offers matching log quests; practice focus offers matching terrain or general quests. Completed quests are excluded, flagged-only quests require a flag, loading quests pause with any flag. Order eligible quests: unskipped before skipped; skipped oldest-first; needsFlag check-in priority within the same skip rank; library order breaks remaining ties. Current focus=${
-      focus.kind
-    }/${focus.terrain}; flags=${flags.length}; loadsFingers=${
-      quest.loadsFingers
-    }. ${
-      selection
-        ? 'Completion/skip inputs are shown below.'
-        : 'Completion/skip IDs are unavailable to this disclosure.'
-    } Task: ${quest.task} Time estimate: ${quest.minutes} minutes. ${
-      focusDecision.rule
-    }`,
+    summary: quest.why,
+    status: draft
+      ? 'draft'
+      : logs.some(log => log.sample)
+      ? 'example'
+      : 'app_rule',
+    rule: lines(
+      focus.kind === 'explore'
+        ? `Your focus is ${focus.terrain}: it has the fewest logged climbs.`
+        : `Your focus is ${focus.terrain}: it has the lowest share sent.`,
+      sentSoFar(logs),
+      `While a wall has fewer than ${MIN_LOGS} logs, the quest is to log more climbs there. After that, the quests practise that wall.`,
+      `While a finger is flagged, quests that load the fingers are paused. Once every wall has ${MIN_LOGS} logs, a finger check-in goes first.`,
+      'Quests you have done are left out. Swapped quests go to the back, oldest swap first. Other ties follow the order of the quest library.',
+      `This quest: ${quest.task} About ${quest.minutes} minutes. ${
+        quest.loadsFingers
+          ? 'It loads your fingers.'
+          : 'It does not load your fingers.'
+      }`,
+    ),
     evidence: [
-      ...focusDecision.evidence,
-      ...pause.evidence,
+      ...climbEvidence(logs),
+      ...fingerFlagEvidence(flags),
       ...(selection
         ? [
             {
-              id: 'quest-selection',
-              label: 'Current quest controls',
-              detail: `completed=${
-                selection.completed.join(',') || 'none'
-              }; skipped oldest-first=${selection.skipped.join(',') || 'none'}`,
+              id: 'quest-progress',
+              label: 'Your quest progress',
+              detail: `Done: ${questNames(
+                selection.completed,
+              )}. Swapped, oldest first: ${questNames(selection.skipped)}.`,
             },
           ]
         : []),
     ],
-    sourceIds: draft
-      ? quest.kind === 'plan'
-        ? ['seifert2017', 'sanchez2012', 'medernach2021']
-        : quest.id === 'vertical-quiet-feet'
-        ? ['walker2020', 'stien2024']
-        : ['orth2018', 'stien2024']
-      : quest.kind === 'checkin'
-      ? pause.sourceIds
-      : focusDecision.sourceIds,
-    limitations: [
-      ...LOG_LIMITS,
-      'Counts, time estimates and selection order are product choices, not proven training doses.',
-      ...(draft
-        ? [
-            'Draft content awaiting review; no direct research validates this exact drill, dose or personalized selection. Related papers provide background only.',
-          ]
-        : []),
-      ...(flags.length ? pause.limitations : []),
-    ],
+    sourceIds: quest.kind === 'plan' ? ['sanchez2012', 'seifert2017'] : [],
+    limitations: quietLimits(quest),
   };
 }
+
 function explainTally(
-  label: string,
+  what: string,
   logs: readonly ClimbLog[],
+  extra?: string,
 ): DecisionExplanation {
   const sent = logs.filter(log => log.sent).length;
+  const logged = logs.length;
   return {
-    summary: `${sent} of ${logs.length} logged ${label} climbs were sent.`,
+    summary:
+      logged === 0
+        ? `No ${what} logged yet.`
+        : `You sent ${sent} of the ${logged} ${what} you logged.`,
     status: logs.some(log => log.sample) ? 'example' : 'app_rule',
-    rule: `local-tally-v1: filter records by ${label}, count logged and sent=true; raw counts are always shown. Sent share = sent/logged; with fewer than ${MIN_LOGS} records the rate comparison and profile shape are not assessed.`,
+    rule: lines(
+      `Count the ${what} you logged: ${logged}. Count those marked sent: ${sent}.`,
+      logged >= MIN_LOGS
+        ? `${sent} of ${logged} is ${percent(sent, logged)}.`
+        : `With fewer than ${MIN_LOGS} climbs the share is not shown or compared yet.`,
+      extra ?? false,
+    ),
     evidence: climbEvidence(logs),
     sourceIds: [],
-    limitations: LOG_LIMITS.slice(0, 2),
+    limitations: LOG_LIMITS,
   };
 }
+
+const BOTH_STYLES =
+  'A climb marked with several styles counts once in each of them.';
 
 export function explainTerrain(
   terrain: Terrain,
   logs: readonly ClimbLog[],
 ): DecisionExplanation {
   return explainTally(
-    terrain,
+    `${terrain} climbs`,
     logs.filter(log => log.terrain === terrain),
   );
 }
+
 export function explainMovement(
   movement: Movement,
   logs: readonly ClimbLog[],
 ): DecisionExplanation {
-  const tally = explainTally(
-    movement,
+  return explainTally(
+    `${movement} climbs`,
     logs.filter(log => log.movements.includes(movement)),
+    BOTH_STYLES,
   );
-  return {
-    ...tally,
-    rule: `${tally.rule} A climb marked several styles contributes once to each selected style; style totals can overlap.`,
-  };
 }
+
+/** One box of the wall x style grid: both filters apply. */
+export function explainCell(
+  terrain: Terrain,
+  movement: Movement,
+  logs: readonly ClimbLog[],
+): DecisionExplanation {
+  return explainTally(
+    `${movement} ${terrain} climbs`,
+    logs.filter(
+      log => log.terrain === terrain && log.movements.includes(movement),
+    ),
+    `Only ${terrain} climbs marked ${movement} count here. ${BOTH_STYLES}`,
+  );
+}
+
 export function explainCamera(input: {
   metric?: 'leg_spread' | 'shoulder_reach';
   leftValue?: number | null;
@@ -255,55 +364,198 @@ export function explainCamera(input: {
     return input.decision;
   }
   const shoulder = input.metric === 'shoulder_reach';
+  const value = input.value ?? 'unavailable';
+  const left = input.leftValue ?? 'unavailable';
+  const right = input.rightValue ?? 'unavailable';
   return {
     summary: shoulder
-      ? `Estimated image-plane shoulder reach: left ${
-          input.leftValue ?? 'unavailable'
-        }, right ${input.rightValue ?? 'unavailable'}, mean ${
-          input.value ?? 'unavailable'
-        } degrees.`
-      : `Estimated image-plane leg-spread angle: ${
-          input.value ?? 'unavailable'
-        } degrees.`,
+      ? `Shoulder reach estimate: left ${left}, right ${right}, average ${value} degrees, measured as angles in the camera image.`
+      : `Leg spread estimate: ${value} degrees, measured as an angle in the camera image.`,
     status: 'estimate',
     rule: shoulder
-      ? 'camera-shoulder-reach-v1: compute the image-plane hip-shoulder-elbow angle on each side and their arithmetic mean. Required hips, shoulders, elbows and wrists must be visible; shoulder-elbow-wrist angles must be at least 160 degrees. Image dimensions correct normalized-coordinate aspect ratio; if absent assume a square plane.'
-      : 'camera-leg-spread-v1: find the hip midpoint, form vectors from that midpoint to the left and right ankles, and compute their image-plane angle. Image dimensions correct normalized-coordinate aspect ratio; if absent assume a square plane.',
+      ? lines(
+          'On each side, measure the angle at the shoulder between the hip and the elbow, flat in the image.',
+          'The reading is the average of the left and right angles.',
+          'Hips, shoulders, elbows and wrists must be visible, and each arm must be nearly straight: at least 160 degrees at the elbow.',
+          'The image width and height correct for a stretched picture. Without them the image is treated as square.',
+        )
+      : lines(
+          'Find the point midway between the two hips.',
+          'Draw a line from that point to each ankle.',
+          'The reading is the angle between the two lines, flat in the image.',
+          'The image width and height correct for a stretched picture. Without them the image is treated as square.',
+        ),
     evidence: [
       {
         id: 'camera-reading',
-        label: 'Current camera output and metadata',
-        detail: `value=${input.value ?? 'unavailable'} degrees; ${
-          shoulder
-            ? `left=${input.leftValue ?? 'unavailable'}; right=${
-                input.rightValue ?? 'unavailable'
-              }; `
-            : ''
-        }minimum landmark visibility=${
+        label: 'Camera reading',
+        detail: `${value} degrees${
+          shoulder ? ` (left ${left}, right ${right})` : ''
+        }. Lowest visibility of the body points: ${
           input.confidence ?? 'unavailable'
-        }; method=${input.method ?? 'unavailable'}; protocol=${
+        }. Method: ${input.method ?? 'unavailable'}. Protocol: ${
           input.protocol ?? 'unavailable'
-        }; model/version=${input.modelVersion ?? 'unavailable'}`,
+        }. Model: ${
+          input.modelVersion ?? 'not recorded'
+        }. The body point coordinates were not returned, so the angle cannot be recomputed here.`,
       },
     ],
-    sourceIds: shoulder
-      ? ['stenum2021', 'barzegar2024']
-      : ['draga2020', 'stenum2021', 'barzegar2024'],
+    sourceIds: ['stenum2021', 'barzegar2024'],
     limitations: [
       shoulder
-        ? 'Actual hip/shoulder/elbow/wrist coordinates and image dimensions are unavailable in this disclosure; it cannot reproduce the numeric angles from the output alone.'
-        : 'Actual hip/ankle coordinates and image dimensions are unavailable in this disclosure; it cannot reproduce the numeric angle from the output alone.',
-      'Model/version is unavailable unless supplied with this reading.',
-      'The visibility score is not angle accuracy, an error bound or clinical confidence.',
-      shoulder
-        ? 'Image-plane geometry is not validated shoulder mobility or true 3D joint range; viewpoint and out-of-plane motion affect it. The 160-degree elbow threshold is a product rule.'
-        : 'Image-plane geometry is not validated hip mobility or true 3D joint range; viewpoint, bent knees and out-of-plane motion affect it.',
-      'These papers concern different protocols, tasks or hardware and do not validate this app measurement or a flexibility-to-terrain mapping.',
+        ? 'An angle in a flat image, not a measured joint range. Camera position, bent elbows and depth all change it.'
+        : 'An angle in a flat image, not a measured joint range. Camera position, bent knees and depth all change it.',
+      'Visibility says how clearly the points were seen, not how accurate the angle is.',
     ],
   };
 }
 
-/** Verified primary research; background context does not validate the app. */
+/** The words a sport mode uses, so its explanations read naturally. */
+export type SportWords = Readonly<{
+  pet: string;
+  session: string;
+  sessions: string;
+  unit: string;
+  kindName: Readonly<Record<string, string>>;
+  placeName: Readonly<Record<string, string>>;
+  bodyPartName: Readonly<Record<string, string>>;
+}>;
+
+function sessionEvidence(
+  logs: readonly SessionLog[],
+  words: SportWords,
+): DecisionExplanation['evidence'] {
+  return logs.map(log => ({
+    id: log.id,
+    label: `${capital(words.session)}, ${log.date}${
+      log.sample ? ' (example)' : ''
+    }`,
+    detail: `${words.kindName[log.kind] ?? log.kind}, ${(
+      words.placeName[log.place] ?? log.place
+    ).toLowerCase()}, ${log.distance} ${words.unit}, ${log.minutes} min. ${
+      log.finished ? 'Finished as planned' : 'Cut short'
+    }.`,
+  }));
+}
+
+function finishedSoFar(
+  logs: readonly SessionLog[],
+  kinds: readonly string[],
+  words: SportWords,
+): string {
+  const tallies = talliesBy(logs, 'kind', kinds);
+  return `Finished so far: ${kinds
+    .map(kind => {
+      const { finished, logged } = tallies[kind];
+      return `${(
+        words.kindName[kind] ?? kind
+      ).toLowerCase()} ${finished} of ${logged}${
+        logged >= MIN_SESSIONS ? ` (${percent(finished, logged)})` : ''
+      }`;
+    })
+    .join(', ')}.`;
+}
+
+const sportLimits = (words: SportWords) =>
+  [
+    `${MIN_SESSIONS} ${words.sessions} is an app threshold, not a scientific minimum.`,
+    `Finishing depends on the plan, the weather and how often you do each kind. A low share is a prompt to reflect, not a fitness score.`,
+  ] as const;
+
+export function explainSportFocus(
+  focus: SportFocus,
+  logs: readonly SessionLog[],
+  kinds: readonly string[],
+  words: SportWords,
+): DecisionExplanation {
+  const name = words.kindName[focus.sessionKind] ?? focus.sessionKind;
+  const order = kinds.map(k => (words.kindName[k] ?? k).toLowerCase());
+  return {
+    summary:
+      focus.kind === 'explore'
+        ? `${name} is your focus because it has the fewest logged ${words.sessions}, so the ${words.pet} asks for more there first.`
+        : `${name} is your focus because it has the lowest share of ${words.sessions} finished as planned.`,
+    status: logs.some(log => log.sample) ? 'example' : 'app_rule',
+    rule: lines(
+      finishedSoFar(logs, kinds, words),
+      `Each kind needs ${MIN_SESSIONS} logged ${words.sessions} before it is compared with the others.`,
+      `While any kind has fewer than ${MIN_SESSIONS}, the focus is the kind with the fewest logs.`,
+      `Once every kind has ${MIN_SESSIONS}, the focus is the kind with the lowest share finished.`,
+      `A tie goes to ${order.join(', then ')}.`,
+    ),
+    evidence: sessionEvidence(logs, words),
+    sourceIds: [],
+    limitations: sportLimits(words),
+  };
+}
+
+export function explainSportQuest(
+  quest: SportQuest,
+  focus: SportFocus,
+  state: Readonly<{
+    logs: readonly SessionLog[];
+    flags: readonly BodyFlag[];
+    completed: readonly string[];
+    skipped: readonly string[];
+  }>,
+  library: readonly SportQuest[],
+  kinds: readonly string[],
+  words: SportWords,
+): DecisionExplanation {
+  const name = (words.kindName[focus.sessionKind] ?? '').toLowerCase();
+  const titles = (ids: readonly string[]) =>
+    ids.length
+      ? list(ids.map(id => library.find(q => q.id === id)?.title ?? id))
+      : 'none';
+  const draft = quest.kind === 'practice' || quest.kind === 'plan';
+  return {
+    summary: quest.why,
+    status: draft
+      ? 'draft'
+      : state.logs.some(log => log.sample)
+      ? 'example'
+      : 'app_rule',
+    rule: lines(
+      focus.kind === 'explore'
+        ? `Your focus is ${name}: it has the fewest logged ${words.sessions}.`
+        : `Your focus is ${name}: it has the lowest share finished.`,
+      finishedSoFar(state.logs, kinds, words),
+      `While a kind has fewer than ${MIN_SESSIONS} logs, the quest is to log more of it. After that, the quests practise that kind.`,
+      `While something is flagged sore, quests that mean ${words.sessions} are paused. Once every kind has ${MIN_SESSIONS} logs, a check-in goes first.`,
+      'Quests you have done are left out. Swapped quests go to the back, oldest swap first. Other ties follow the order of the quest library.',
+      `This quest: ${quest.task} About ${quest.minutes} minutes.`,
+    ),
+    evidence: [
+      ...sessionEvidence(state.logs, words),
+      ...state.flags.map(flag => ({
+        id: `${flag.side}/${flag.part}`,
+        label: `Flagged sore, since ${flag.date}`,
+        detail: `${capital(flag.side)} ${(
+          words.bodyPartName[flag.part] ?? flag.part
+        ).toLowerCase()}.`,
+      })),
+      {
+        id: 'quest-progress',
+        label: 'Your quest progress',
+        detail: `Done: ${titles(
+          state.completed,
+        )}. Swapped, oldest first: ${titles(state.skipped)}.`,
+      },
+    ],
+    sourceIds: [],
+    limitations: draft
+      ? [
+          'Draft quest written by the team. No study has tested this exact task or its time.',
+          sportLimits(words)[1],
+        ]
+      : sportLimits(words),
+  };
+}
+
+/**
+ * Original studies the team read. Each `finding` is what the study found;
+ * none of them tested this app, its camera or its quests.
+ */
 export const RESEARCH_SOURCES: readonly ResearchSource[] = [
   {
     id: 'michailov2018',
@@ -313,6 +565,8 @@ export const RESEARCH_SOURCES: readonly ResearchSource[] = [
       'Michail L. Michailov, Jiří Baláš, Stoyan K. Tanev, Hristo S. Andonov, Jan Kodejška, Lee Brown',
     year: 2018,
     url: 'https://doi.org/10.1080/02701367.2018.1441484',
+    finding:
+      'Finger strength and endurance measured with a force sensor gave repeatable results in small groups of male climbers, and arm position changed the readings.',
     studyType: 'Original measurement study',
     population:
       '22 male climbers in position comparison; 9 male climbers in repeatability testing',
@@ -331,6 +585,8 @@ export const RESEARCH_SOURCES: readonly ResearchSource[] = [
     authors: 'C. M. Mermier, J. M. Janot, D. L. Parker, J. G. Swan',
     year: 2000,
     url: 'https://doi.org/10.1136/bjsm.34.5.359',
+    finding:
+      'In 44 climbers, trainable factors such as strength and endurance explained more of the differences in performance than body size or flexibility.',
     studyType: 'Cross-sectional performance study',
     population: '44 climbers (24 men, 20 women), across skill levels',
     readingDepth: 'abstract only',
@@ -350,6 +606,8 @@ export const RESEARCH_SOURCES: readonly ResearchSource[] = [
       'Paweł Draga, Mariusz Ozimek, Marcin Krawczyk, Robert Rokowski, Marcelina Nowakowska, Paweł Ochwat, Adam Jurczak, Arkadiusz Stanula',
     year: 2020,
     url: 'https://doi.org/10.3390/ijerph17072512',
+    finding:
+      'In 60 competitive male climbers, straddle flexibility tests were linked to climbing level, while the climbing-specific tests were not.',
     studyType: 'Cross-sectional flexibility study',
     population: '60 competitive male climbers, advanced to higher elite',
     readingDepth: 'abstract and selected full-text methods excerpts',
@@ -369,6 +627,8 @@ export const RESEARCH_SOURCES: readonly ResearchSource[] = [
       'Dominic Orth, Keith Davids, Jia-Yi Chow, Eric Brymer, Ludovic Seifert',
     year: 2018,
     url: 'https://doi.org/10.3389/fpsyg.2018.00949',
+    finding:
+      'Over seven weeks of practice, beginner climbers learned at different rates and in different ways.',
     studyType: 'Longitudinal practice investigation',
     population:
       '8 beginner climbers recruited, 1 dropout; 42 practice trials over 7 weeks',
@@ -388,6 +648,8 @@ export const RESEARCH_SOURCES: readonly ResearchSource[] = [
       'Ludovic Seifert, Romain Cordier, Dominic Orth, Yoan Courtine, James L. Croft',
     year: 2017,
     url: 'https://doi.org/10.1371/journal.pone.0176306',
+    finding:
+      'How 18 climbers previewed one route was linked to how much they explored and paused while climbing it.',
     studyType: 'Observational climbing experiment',
     population:
       '18 climbers (8 inexperienced, 10 experienced), one 10 m French 5b route',
@@ -406,6 +668,8 @@ export const RESEARCH_SOURCES: readonly ResearchSource[] = [
     authors: 'Jan Stenum, Cristina Rossi, Ryan T. Roemmich',
     year: 2021,
     url: 'https://doi.org/10.1371/journal.pcbi.1008935',
+    finding:
+      'Body points tracked in ordinary side-on video measured walking with errors that depended on the joint and on the camera view.',
     studyType: 'Pose validation against motion capture',
     population:
       '32 healthy adults; 31 walking trials analyzed after one exclusion',
@@ -413,7 +677,7 @@ export const RESEARCH_SOURCES: readonly ResearchSource[] = [
     supports:
       'Reference comparison and controlled camera geometry for a new metric.',
     limitations: [
-      'OpenPose walking differs from MediaPipe climbing and frontal leg spread',
+      'Walking video with another pose model differs from climbing and a front-facing leg spread',
       'Task-dependent error and perspective limits; no transferred accuracy',
     ],
     verifiedAt: '2026-10-03',
@@ -425,6 +689,8 @@ export const RESEARCH_SOURCES: readonly ResearchSource[] = [
     authors: 'Ali Barzegar Khanghah, Geoff Fernie, Atena Roshan Fekr',
     year: 2024,
     url: 'https://doi.org/10.1186/s12938-024-01203-5',
+    finding:
+      'Shoulder angles estimated with a depth camera changed with distance from the camera and improved with per-person calibration.',
     studyType: 'Joint angle validation study',
     population: '14 young healthy participants (8 women, 6 men)',
     readingDepth: 'full-text methods/results/discussion',
@@ -443,6 +709,8 @@ export const RESEARCH_SOURCES: readonly ResearchSource[] = [
     authors: 'Andreas Schweizer',
     year: 2001,
     url: 'https://doi.org/10.1016/S0021-9290(00)00184-6',
+    finding:
+      'In 16 fingers of 4 people, the crimp grip put more load on the finger pulleys than the other grip tested.',
     studyType: 'In-vivo biomechanical experiment',
     population: '16 fingers in 4 participants',
     readingDepth: 'abstract only',
@@ -462,6 +730,8 @@ export const RESEARCH_SOURCES: readonly ResearchSource[] = [
       'Andrea Klauser, Ferdinand Frauscher, Gerd Bodner, Ethan J. Halpern, Michael F. Schocke, Peter Springer, Markus Gabl, Werner Judmaier, Dieter zur Nedden',
     year: 2002,
     url: 'https://doi.org/10.1148/radiol.2223010752',
+    finding:
+      'In 64 injured high-level climbers, finger pulley injuries were assessed with dynamic ultrasound and checked against MRI scans.',
     studyType: 'Diagnostic imaging investigation',
     population:
       '64 injured high-level climbers; 75 symptomatic and 181 asymptomatic fingers',
@@ -481,6 +751,8 @@ export const RESEARCH_SOURCES: readonly ResearchSource[] = [
       'Jennifer Z. Paxton, Paul Hagerty, Jonathan J. Andrick, Keith Baar',
     year: 2012,
     url: 'https://doi.org/10.1089/ten.TEA.2011.0336',
+    finding:
+      'In ligament tissue grown in a lab, short bouts of stretch with long rests increased collagen. No people took part.',
     studyType: 'Laboratory engineered ligament experiment',
     population:
       'Engineered ligament constructs; no human participants; replicate counts unverified',
@@ -502,6 +774,8 @@ export const RESEARCH_SOURCES: readonly ResearchSource[] = [
       'Gregory Shaw, Ann Lee-Barthel, Megan L. R. Ross, Bing Wang, Keith Baar',
     year: 2017,
     url: 'https://doi.org/10.3945/ajcn.116.138594',
+    finding:
+      'In 8 healthy men, gelatin with vitamin C before short exercise raised blood markers linked to collagen making.',
     studyType: 'Randomized double-blind crossover biomarker trial',
     population:
       '8 healthy men; serum from 4 used in engineered-ligament bioassay',
@@ -521,6 +795,8 @@ export const RESEARCH_SOURCES: readonly ResearchSource[] = [
     authors: 'Keith Baar',
     year: 2019,
     url: 'https://doi.org/10.1123/ijsnem.2018-0231',
+    finding:
+      'One professional basketball player with a knee tendon problem improved during a combined loading and nutrition programme.',
     studyType: 'Case report',
     population:
       '1 professional basketball player with MRI-diagnosed patellar tendinopathy',
@@ -540,6 +816,8 @@ export const RESEARCH_SOURCES: readonly ResearchSource[] = [
     authors: 'Seth G. Walker, Stephanie L. Mattson, Tyra P. Sellers',
     year: 2020,
     url: 'https://doi.org/10.1002/jaba.694',
+    finding:
+      'Expert video examples combined with video and spoken feedback helped novice climbers perform three targeted skills more accurately.',
     studyType: 'Multiple-baseline intervention across skills',
     population:
       'Novice adult climbers; participant count unverified in accessible primary abstract',
@@ -560,6 +838,8 @@ export const RESEARCH_SOURCES: readonly ResearchSource[] = [
     authors: 'X. Sanchez, Ph. Lambert, G. Jones, D. J. Llewellyn',
     year: 2012,
     url: 'https://doi.org/10.1111/j.1600-0838.2010.01151.x',
+    finding:
+      'In 29 male climbers, a three-minute route preview led to fewer and shorter stops on the climb, but not to more routes completed.',
     studyType: 'Preview/no-preview climbing experiment',
     population:
       '29 male intermediate, advanced and expert indoor sport climbers',
@@ -580,6 +860,8 @@ export const RESEARCH_SOURCES: readonly ResearchSource[] = [
     authors: 'Jerry Prosper Medernach, Daniel Memmert',
     year: 2021,
     url: 'https://doi.org/10.1371/journal.pone.0250701',
+    finding:
+      'Advanced boulderers generally decided faster and made fewer movement mistakes than novices. The authors doubted that one expert solution suits everyone.',
     studyType: 'Three-task comparative experiment across ability groups',
     population:
       '86 volunteers; 77 men analyzed (18 novice, 18 intermediate, 41 advanced); nine women excluded; separate solution retest with 13 elite women',
@@ -596,10 +878,12 @@ export const RESEARCH_SOURCES: readonly ResearchSource[] = [
   {
     id: 'langer2024',
     title:
-      'The effects of five weeks of climbing training, on and off the wall, on climbing specific strength, performance, and training experience in female climbers—A randomized controlled trial',
+      'The effects of five weeks of climbing training, on and off the wall, on climbing specific strength, performance, and training experience in female climbers: A randomized controlled trial',
     authors: 'Kaja Langer, Vidar Andersen, Nicolay Stien',
     year: 2024,
     url: 'https://doi.org/10.1371/journal.pone.0306300',
+    finding:
+      'In a five-week trial with female climbers, performance improved in every group, but differences in strength and technique between the programmes were unclear.',
     studyType: 'Randomized three-group training trial',
     population:
       '31 female lower-grade to advanced climbers randomized; methods report 26 completers and 21 with technique ratings',
@@ -621,6 +905,8 @@ export const RESEARCH_SOURCES: readonly ResearchSource[] = [
       'Nicolay Stien, Kaja Langer, Vidar Andersen, Gunn Helene Engelsrud, Elias Olsen, Atle Hole Saeterbakken',
     year: 2024,
     url: 'https://doi.org/10.1155/2024/5584962',
+    finding:
+      'In 13 advanced female boulderers, five weeks of targeted movement practice did not clearly beat usual training.',
     studyType: 'Randomized two-group pilot training trial',
     population:
       '13 advanced female boulderers; seven system-wall practice and six usual-training controls',

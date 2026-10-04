@@ -1,10 +1,10 @@
 import { useState, type ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import {
   MIN_LOGS,
+  explainCell,
   explainFocus,
   explainTerrain,
-  explainMovement,
   MOVEMENTS,
   TERRAINS,
   ageLabel,
@@ -28,7 +28,7 @@ import {
   Tag,
   useTheme,
 } from '@hackyeah/ui';
-import { DecisionHelp } from '../components/DecisionHelp';
+import { DecisionHelp, ExplanationSheet } from '../components/DecisionHelp';
 import { Crumbs } from '../components/Crumbs';
 import { PageHeader } from '../components/PageHeader';
 import { TabScreen } from '../components/TabScreen';
@@ -99,24 +99,19 @@ export function EvidenceScreen() {
             icon={TERRAIN_ICON[terrain]}
             badge={isFocus ? <Tag text="Your focus" tone="focus" /> : undefined}
           >
-            <PixelText
-              text={
-                tally.logged === 0
-                  ? 'None logged'
-                  : `${tally.sent} of ${tally.logged} sent`
-              }
-              scale={4}
-            />
             <DecisionHelp
               label={`${name} tally`}
               explanation={explainTerrain(terrain, state.logs)}
-            />
-            {isFocus ? (
-              <DecisionHelp
-                label="evidence focus"
-                explanation={explainFocus(focus, state.logs)}
+            >
+              <PixelText
+                text={
+                  tally.logged === 0
+                    ? 'None logged'
+                    : `${tally.sent} of ${tally.logged} sent`
+                }
+                scale={4}
               />
-            ) : null}
+            </DecisionHelp>
             {tally.rate === null ? (
               <AppText>
                 Needs {toGo} more logged {toGo === 1 ? 'climb' : 'climbs'}{' '}
@@ -124,11 +119,16 @@ export function EvidenceScreen() {
               </AppText>
             ) : null}
             {isFocus ? (
-              <AppText>
-                {focus.kind === 'practice'
-                  ? 'This is your focus: the lowest share of sends of the three walls.'
-                  : 'This is your focus: it has the fewest logged climbs, so the monkey asks for more here first.'}
-              </AppText>
+              <DecisionHelp
+                label="Focus"
+                explanation={explainFocus(focus, state.logs)}
+              >
+                <AppText>
+                  {focus.kind === 'practice'
+                    ? 'This is your focus: the lowest share of sends of the three walls.'
+                    : 'This is your focus: it has the fewest logged climbs, so the monkey asks for more here first.'}
+                </AppText>
+              </DecisionHelp>
             ) : null}
             {climbs.length > 0 ? (
               <AppText variant="caption" muted>
@@ -144,18 +144,10 @@ export function EvidenceScreen() {
 
           <Panel title="Wall x style">
             <StyleGrid logs={state.logs} selected={terrain} />
-            {MOVEMENTS.flatMap(m =>
-              TERRAINS.map(t => (
-                <DecisionHelp
-                  key={`${m}-${t}`}
-                  label={`${MOVEMENT_NAME[m]} ${TERRAIN_NAME[t]} cell`}
-                  explanation={cellExplanation(t, m, state.logs)}
-                />
-              )),
-            )}
             <AppText variant="caption" muted>
               Each box shows sent / logged. A dash means none logged yet. The
-              framed column is {name.toLowerCase()}.
+              framed column is {name.toLowerCase()}. Tap a box to see the climbs
+              behind it.
             </AppText>
           </Panel>
         </Column>
@@ -192,8 +184,27 @@ function StyleGrid({
   selected: Terrain;
 }) {
   const { colors: c } = useTheme();
+  const [open, setOpen] = useState<
+    Readonly<{ terrain: Terrain; movement: Movement }> | undefined
+  >(undefined);
   return (
     <View style={[styles.grid, { backgroundColor: c.outline }]}>
+      <ExplanationSheet
+        visible={open !== undefined}
+        onClose={() => setOpen(undefined)}
+        label={
+          open
+            ? `${MOVEMENT_NAME[open.movement]} ${TERRAIN_NAME[
+                open.terrain
+              ].toLowerCase()}`
+            : ''
+        }
+        explanation={explainCell(
+          open?.terrain ?? selected,
+          open?.movement ?? MOVEMENTS[0],
+          logs,
+        )}
+      />
       {/* Every box below has its own full label, so the headings are skipped
           by screen readers. */}
       <View
@@ -242,9 +253,10 @@ function StyleGrid({
                 edge={row === MOVEMENTS.length - 1 ? 'bottom' : undefined}
                 label={
                   tally.logged === 0
-                    ? `${what}: none yet`
-                    : `${what}: ${tally.sent} of ${tally.logged} sent`
+                    ? `Why: ${what}, none yet`
+                    : `Why: ${what}, ${tally.sent} of ${tally.logged} sent`
                 }
+                onPress={() => setOpen({ terrain: t, movement: m })}
               >
                 {tally.logged === 0 ? (
                   <View
@@ -290,6 +302,7 @@ function Cell({
   selected,
   edge,
   label,
+  onPress,
   children,
 }: {
   fill: string;
@@ -298,15 +311,20 @@ function Cell({
   edge?: 'top' | 'bottom';
   /** Screen reader text for the box. */
   label?: string;
+  /** Data boxes open the explanation behind their count. */
+  onPress?: () => void;
   children: ReactNode;
 }) {
   const { colors: c } = useTheme();
   return (
-    <View
+    <Pressable
+      disabled={!onPress}
+      onPress={onPress}
       accessible={label !== undefined}
-      accessibilityRole={label ? 'text' : undefined}
+      accessibilityRole={onPress ? 'button' : label ? 'text' : undefined}
       accessibilityLabel={label}
-      style={[
+      // hovered is only reported on the web.
+      style={state => [
         styles.cell,
         edge === 'top' ? styles.headCell : styles.dataCell,
         {
@@ -316,10 +334,13 @@ function Cell({
         selected && styles.frameSides,
         selected && edge === 'top' && styles.frameTop,
         selected && edge === 'bottom' && styles.frameBottom,
+        (state as { hovered?: boolean }).hovered &&
+          onPress &&
+          !selected && { backgroundColor: c.surfaceLight },
       ]}
     >
       {children}
-    </View>
+    </Pressable>
   );
 }
 
@@ -344,6 +365,7 @@ function ClimbRow({ log }: { log: ClimbLog }) {
         ) : null}
         <AppText variant="caption" muted>
           {shortDate(log.date)}
+          {log.sample ? ', example' : ''}
         </AppText>
       </View>
       {/* Wrapped so the tag centres on the row instead of the top edge. */}
@@ -392,20 +414,3 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
-
-/** Both filters define a wall/style cell; keep the full matching records. */
-function cellExplanation(
-  terrain: Terrain,
-  movement: Movement,
-  logs: readonly ClimbLog[],
-) {
-  const explanation = explainMovement(
-    movement,
-    logs.filter(log => log.terrain === terrain),
-  );
-  return {
-    ...explanation,
-    summary: `${TERRAIN_NAME[terrain]} / ${MOVEMENT_NAME[movement]}: ${explanation.summary}`,
-    rule: `First filter terrain=${terrain}; then ${explanation.rule}`,
-  };
-}
