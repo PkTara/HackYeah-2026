@@ -2,6 +2,7 @@
 import { CameraPreview } from './camera';
 import { CaptureMediaPreview } from './capturePreview';
 import { createMemoryStore } from './memoryStore';
+import { platformShare } from './share';
 import {
   browserMusicEnvironment,
   createWebMusic,
@@ -94,4 +95,6 @@ export const capabilities: Capabilities = {
   camera: { Preview: CameraPreview, MediaPreview: CaptureMediaPreview },
   music: audio.music,
   sfx: audio.sfx,
+  // Web Share, clipboard, file save and print, where the browser has them.
+  share: platformShare,
 };

@@ -9,6 +9,7 @@ import { Platform, Vibration } from 'react-native';
 import { CameraPreview } from './camera';
 import { CaptureMediaPreview } from './capturePreview';
 import { createMemoryStore } from './memoryStore';
+import { platformShare } from './share';
 import type { Capabilities } from './types';
 
 export const capabilities: Capabilities = {
@@ -28,4 +29,6 @@ export const capabilities: Capabilities = {
   // No sound effects either, for the same reason: the app stays silent and
   // hides the sound effects switch.
   sfx: undefined,
+  // React Native's built-in Share sheet. No native library needed.
+  share: platformShare,
 };

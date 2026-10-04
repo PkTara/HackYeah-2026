@@ -73,6 +73,45 @@ export interface SfxCapability {
   setEnabled(on: boolean): void;
 }
 
+/** A file to hand over: a name, its type and its text. */
+export type ShareFile = Readonly<{
+  name: string;
+  mimeType: string;
+  text: string;
+}>;
+
+/**
+ * How a hand over ended. 'dismissed' means the person closed the sheet or
+ * declined the save; screens stay quiet about it.
+ */
+export type ShareOutcome =
+  | 'shared'
+  | 'saved'
+  | 'dismissed'
+  | 'unavailable'
+  | 'failed';
+
+/**
+ * Hands exported text to the person: share sheet, clipboard, file save or
+ * print. Nothing is uploaded by the app; the person picks where it goes.
+ * share.ts (Android, iOS) uses React Native's Share; share.web.ts uses the
+ * browser.
+ */
+export interface ShareCapability {
+  /** Opens the system share sheet with the text (and the file, where the platform can). */
+  share(
+    input: Readonly<{ title: string; text: string; file?: ShareFile }>,
+  ): Promise<ShareOutcome>;
+  /** False where the app cannot write to the clipboard itself. */
+  readonly canCopy: boolean;
+  /** True when the text was copied. */
+  copy(text: string): Promise<boolean>;
+  /** Saves a file. Missing where files cannot be saved directly. */
+  download?(file: ShareFile): Promise<ShareOutcome>;
+  /** Opens a print view of a standalone HTML page. Missing where there is none. */
+  print?(html: string): Promise<boolean>;
+}
+
 export interface Capabilities {
   readonly platform: PlatformName;
   /** Human-readable description of the OS, for display and diagnostics. */
@@ -92,4 +131,6 @@ export interface Capabilities {
    * is hidden.
    */
   readonly sfx?: SfxCapability;
+  /** Missing where nothing can share; the export screen then shows the preview only. */
+  readonly share?: ShareCapability;
 }
