@@ -65,12 +65,20 @@ const fingerOf = (region: HandRegion | null): Finger | undefined =>
  */
 export function HandCaptureScreen() {
   const media = useMedia();
+  const { params } = useNavigation<RouteName>();
+  const finger = FINGERS.find(f => f === params.finger);
+  const side =
+    params.side === 'left' || params.side === 'right' ? params.side : null;
+  const context =
+    side && finger
+      ? `Photo for your ${fingerLabel(side, finger).toLowerCase()}.`
+      : 'A private photo for your hand journal.';
   return (
     <TabScreen>
       <Crumbs />
       <PageHeader
         title="Hand photo"
-        subtitle="A private photo for your hand journal, with how it feels."
+        subtitle={`${context} Review the photo, then describe how it feels before saving.`}
       />
       {media ? (
         <HandCapture media={media} />
@@ -163,7 +171,10 @@ function HandCapture({ media }: { media: MediaClient }) {
       <ReviewTray capture={c} />
 
       {c.capture ? (
-        <Panel title="Details">
+        <Panel title="Photo details">
+          <AppText variant="caption" muted>
+            Check the hand and place below. These details belong to this photo.
+          </AppText>
           <Field label="Hand">
             {SIDES.map(s => (
               <Chip
@@ -175,7 +186,7 @@ function HandCapture({ media }: { media: MediaClient }) {
               />
             ))}
           </Field>
-          <Field label="Photo of the">
+          <Field label="Photo view">
             {VIEWS.map(v => (
               <Chip
                 key={v.key}
@@ -187,7 +198,7 @@ function HandCapture({ media }: { media: MediaClient }) {
             ))}
           </Field>
           <Divider />
-          <Field label="Where">
+          <Field label="Where it hurts">
             {FINGERS.map(f => (
               <Chip
                 key={f}
@@ -257,7 +268,7 @@ function HandCapture({ media }: { media: MediaClient }) {
       ) : null}
 
       {c.capture ? (
-        <Panel title="Save">
+        <Panel title="Review and save">
           <ServerNote server={media.server} simulated={simulated}>
             The photo stays there, private to your profile, until you delete
             your profile.

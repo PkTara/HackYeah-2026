@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import {
   ANATOMY_LAYERS,
   FINGERS,
+  SPOT_LAYERS,
   anatomyById,
   anatomyIdForSpot,
   counterpartIn,
@@ -10,11 +11,18 @@ import {
   type Finger,
   type Side,
 } from '@hackyeah/core';
-import { AppText, HandAnatomy, Panel, WarningSign, spacing } from '@hackyeah/ui';
+import {
+  AppText,
+  HandAnatomy,
+  Panel,
+  WarningSign,
+  spacing,
+} from '@hackyeah/ui';
 import { Crumbs } from '../components/Crumbs';
 import { PageHeader } from '../components/PageHeader';
 import { TabScreen } from '../components/TabScreen';
 import { useNavigation } from '../navigation/Navigator';
+import { fingerLabel } from '../labels';
 import type { RouteName } from '../navigation/routes';
 
 // Learning screen: quiet panels and plain words. No monkey, no rewards.
@@ -31,26 +39,42 @@ export function anatomyStart(params: Readonly<Record<string, string>>): Start {
   const finger = FINGERS.find(f => f === params.finger);
   const id =
     (params.id && anatomyById(params.id) ? params.id : undefined) ??
-    (finger && params.spot ? anatomyIdForSpot(finger, params.spot) : undefined) ??
+    (finger && params.spot
+      ? anatomyIdForSpot(finger, params.spot)
+      : undefined) ??
     null;
   const asked = ANATOMY_LAYERS.find(l => l === params.layer);
-  const layer = asked ?? (id ? anatomyById(id)?.layer : undefined) ?? 'skeleton';
+  const layer =
+    asked ?? (id ? anatomyById(id)?.layer : undefined) ?? 'skeleton';
   return { side, layer, id: counterpartIn(layer, id) };
 }
 
 /**
  * The hand anatomy viewer on its own page. Reached from the finger
- * close-up ("What is each part"), or from a web link: /#Anatomy.
+ * close-up ("Not sure which part?"), or from a web link: /#Anatomy.
  */
 export function AnatomyScreen() {
   const { params, backTo } = useNavigation<RouteName>();
   const [start] = useState(() => anatomyStart(params));
   const [side, setSide] = useState<Side>(start.side);
   const [selected, setSelected] = useState<string | null>(start.id);
+  const fromFinger = FINGERS.find(f => f === params.finger);
 
   // Back to that finger's close-up: popped to it when it is open below.
   const openFinger = (finger: Finger) =>
-    backTo([{ route: 'Hands' }, { route: 'Finger', params: { side, finger } }]);
+    backTo([
+      { route: 'Hands' },
+      {
+        route: 'Finger',
+        params: {
+          side,
+          finger,
+          ...(SPOT_LAYERS.some(l => l === params.spotLayer)
+            ? { spotLayer: params.spotLayer }
+            : {}),
+        },
+      },
+    ]);
 
   return (
     <TabScreen>
@@ -59,6 +83,15 @@ export function AnatomyScreen() {
         title="Hand anatomy"
         subtitle="Slide between bones, muscles and tendons. Tap a part to read about it."
       />
+      <AppText variant="caption" muted>
+        {fromFinger
+          ? `Use ${fingerLabel(
+              start.side,
+              fromFinger,
+            )} in the breadcrumbs above to return to your sore spots.`
+          : 'Use Hands in the breadcrumbs above to return to the whole-hand diagram.'}{' '}
+        Exploring anatomy does not change your notes.
+      </AppText>
       <HandAnatomy
         side={side}
         onSideChange={setSide}
@@ -73,8 +106,8 @@ export function AnatomyScreen() {
           <WarningSign />
           <AppText variant="caption" style={styles.grow}>
             General anatomy for learning, not a diagnosis. If you feel sharp
-            pain, hear a pop, or see swelling or bruising, stop climbing and
-            see a physio or doctor.
+            pain, hear a pop, or see swelling or bruising, stop climbing and see
+            a physio or doctor.
           </AppText>
         </View>
       </Panel>
