@@ -29,6 +29,7 @@ import {
   type TriangleStat,
 } from '@hackyeah/ui';
 import { DecisionHelp } from '../../components/DecisionHelp';
+import { ExportEntry } from '../../components/ExportEntry';
 import { PetsPanel } from '../../components/PetsPanel';
 import { TabScreen } from '../../components/TabScreen';
 import { useNavigation } from '../../navigation/Navigator';
@@ -376,6 +377,7 @@ export function SportProfileScreen() {
 
           {wide ? null : recentPanel}
 
+          <ExportEntry />
           <PetsPanel />
         </Column>
       </Columns>

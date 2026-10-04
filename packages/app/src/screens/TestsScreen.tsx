@@ -200,6 +200,21 @@ export function TestsScreen() {
           {body}
           {camera}
           {activity}
+          <Group
+            title="Share"
+            icon="share"
+            purpose="Summaries for the people who help you. Made on this device."
+          >
+            <DataRow
+              title="Export your record"
+              subtitle="Doctor, physio, coach, family and data files."
+              accessibilityLabel="Export your record"
+              icon="share"
+              state="ready"
+              divider={false}
+              onPress={() => navigate('Export')}
+            />
+          </Group>
           <Panel variant="quiet" title="App">
             <View style={styles.buttons}>
               <Button

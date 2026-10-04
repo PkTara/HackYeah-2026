@@ -4,6 +4,8 @@
  * straight to a finger close-up still starts with Hands.
  */
 import {
+  AUDIENCES,
+  AUDIENCE_ORDER,
   ANATOMY_LAYERS,
   BASELINE_TESTS,
   FINGERS,
@@ -146,6 +148,22 @@ export function trailFor(route: RouteName, params: Params): Crumb[] {
       return FINGERS.some(f => f === params.finger)
         ? [tab('Hands'), fingerCrumb(params), here]
         : [tab('Hands'), here];
+    }
+    case 'Export':
+      return [tab('Profile'), { route, label: 'Export' }];
+    case 'SportExport':
+      return [
+        { route: 'SportProfile', label: 'Profile' },
+        { route, label: 'Export' },
+      ];
+    case 'ExportFormat':
+    case 'SportExportFormat': {
+      const id =
+        AUDIENCE_ORDER.find(a => a === params.audience) ?? AUDIENCE_ORDER[0];
+      return [
+        ...trailFor(route === 'ExportFormat' ? 'Export' : 'SportExport', {}),
+        { route, params: { audience: id }, label: AUDIENCES[id].name },
+      ];
     }
     case 'SportEvidence':
       return [

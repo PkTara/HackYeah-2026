@@ -45,6 +45,8 @@ type SportApi = Readonly<{
   dismissSyncError: () => void;
   /** Every sport pet's level, for the Pets panel. */
   pets: Readonly<Record<SportId, PetStatus>>;
+  /** Every sport's state, read only. Export uses it for "my other sports". */
+  states: Readonly<Record<SportId, SportState>>;
 
   /*
    * The active sport: the one the mode's pet leads. In monkey mode this is
@@ -231,6 +233,7 @@ export function SportProvider({ children, backend, today: fixedToday }: Props) {
       syncError,
       dismissSyncError: () => setSyncError(null),
       pets,
+      states: all,
       sport,
       view,
       state,
@@ -278,6 +281,7 @@ export function SportProvider({ children, backend, today: fixedToday }: Props) {
       mode,
       syncError,
       pets,
+      all,
       backend,
       sport,
       view,

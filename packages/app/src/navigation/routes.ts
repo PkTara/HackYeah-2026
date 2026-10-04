@@ -19,6 +19,7 @@ import { BodyScreen } from '../screens/sport/BodyScreen';
 import { SportEvidenceScreen } from '../screens/sport/SportEvidenceScreen';
 import { SportLogScreen } from '../screens/sport/SportLogScreen';
 import { SportProfileScreen } from '../screens/sport/SportProfileScreen';
+import { ExportFormatScreen, ExportScreen } from '../screens/ExportScreen';
 
 export const screens = {
   // Tabs
@@ -49,6 +50,10 @@ export const screens = {
   Assessment: AssessmentScreen,
   /** Hand journal photo. Optional params: side and finger, to start there. */
   HandCapture: HandCaptureScreen,
+  /** Export: pick who a summary is for. */
+  Export: ExportScreen,
+  /** Export for one reader. Params: audience, an AudienceId from core. */
+  ExportFormat: ExportFormatScreen,
 
   // Sport mode tabs (gazelle and dolphin). They show the active sport.
   SportProfile: SportProfileScreen,
@@ -57,6 +62,9 @@ export const screens = {
   // Pushed on top of a sport tab
   /** Params: kind, one of the active sport's three kinds. */
   SportEvidence: SportEvidenceScreen,
+  /** The same Export screens, under the sport profile. */
+  SportExport: ExportScreen,
+  SportExportFormat: ExportFormatScreen,
 } satisfies Record<string, ComponentType>;
 
 export type RouteName = keyof typeof screens;
@@ -67,6 +75,8 @@ const SPORT_ROUTES: readonly RouteName[] = [
   'SportLog',
   'SportBody',
   'SportEvidence',
+  'SportExport',
+  'SportExportFormat',
 ];
 
 export function isSportRoute(name: RouteName): boolean {

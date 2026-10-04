@@ -193,6 +193,7 @@ it('groups Data by purpose and opens Settings with a working breadcrumb and pers
     'Body and reach',
     'Camera',
     'Activity',
+    'Share',
     'App',
   ]);
   await press(s, 'Settings');

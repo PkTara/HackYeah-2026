@@ -57,6 +57,7 @@ import type { RouteName } from '../navigation/routes';
 import { useGame } from '../state/GameProvider';
 import { ActivitySummary } from './ActivityScreen';
 import { AssessmentSummary } from '../components/AssessmentSummary';
+import { ExportEntry } from '../components/ExportEntry';
 import { PetsPanel } from '../components/PetsPanel';
 import { StateLabel } from '../components/StateLabel';
 
@@ -482,6 +483,7 @@ export function ProfileScreen() {
 
           {wide ? null : recentPanel}
 
+          <ExportEntry />
           <PetsPanel />
         </Column>
       </Columns>

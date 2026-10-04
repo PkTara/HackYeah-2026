@@ -1073,6 +1073,107 @@ export const ICONS = {
     ############
     ............
   `),
+  // Export: an arrow out of a tray, for sharing a record.
+  share: art(`
+    .....##.....
+    ....####....
+    ...######...
+    .....##.....
+    .....##.....
+    .##..##..##.
+    .#...##...#.
+    .#........#.
+    .#........#.
+    .##########.
+    ............
+    ............
+  `),
+  // Export readers: a doctor's badge, a plaster, a whistle, an apple, a
+  // house and a floppy disk for the data file.
+  doctor: art(`
+    ............
+    .##########.
+    .#KKKKKKKK#.
+    .#KKKCCKKK#.
+    .#KKKCCKKK#.
+    .#KCCCCCCK#.
+    .#KCCCCCCK#.
+    .#KKKCCKKK#.
+    .#KKKCCKKK#.
+    .#KKKKKKKK#.
+    .##########.
+    ............
+  `),
+  plaster: art(`
+    ............
+    ............
+    ............
+    .##########.
+    #TTT####TTT#
+    #TTT#ss#TTT#
+    #TTT#ss#TTT#
+    #TTT####TTT#
+    .##########.
+    ............
+    ............
+    ............
+  `),
+  whistle: art(`
+    ............
+    ............
+    ..######....
+    .#MMMMMM#...
+    #MM##MMMM###
+    #M#..#MMMMM#
+    #MM##MMMM###
+    .#MMMMMM#...
+    ..######..#.
+    ..........#.
+    .........##.
+    ............
+  `),
+  apple: art(`
+    ......#.ll..
+    ......#ll...
+    ..###.####..
+    .#KKK#KKkk#.
+    #KKKKKKKKkk#
+    #KKKKKKKKKk#
+    #KKKKKKKKKK#
+    #KKKKKKKKKK#
+    .#KKKKKKKK#.
+    .#KKKKKKKK#.
+    ..###..###..
+    ............
+  `),
+  house: art(`
+    .....##.....
+    ....#RR#....
+    ...#RRRR#...
+    ..#RRRRRR#..
+    .#RRRRRRRR#.
+    ############
+    .#TTTTTTTT#.
+    .#TT##TTTT#.
+    .#TT##T##T#.
+    .#TT##T##T#.
+    .#TT##TTTT#.
+    .##########.
+  `),
+  disk: art(`
+    ##########..
+    #MM#CCCC#M#.
+    #MM#CCCC#MM#
+    #MM#C##C#MM#
+    #MM######MM#
+    #MMMMMMMMMM#
+    #M########M#
+    #M#CCCCCC#M#
+    #M#C####C#M#
+    #M#CCCCCC#M#
+    #M#CCCCCC#M#
+    ############
+  `),
   // Swim goggles, for the dolphin's quests.
   goggles: art(`
     ............
