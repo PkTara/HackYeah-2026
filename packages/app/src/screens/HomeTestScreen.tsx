@@ -16,7 +16,7 @@ import { TestStep } from '../onboarding/TestSteps';
 import { useGame } from '../state/GameProvider';
 
 /**
- * One home test from setup, done again from the Tests tab.
+ * One home test from setup, done again from the Data tab.
  * Params: id, a test id from BASELINE_TESTS.
  */
 export function HomeTestScreen() {

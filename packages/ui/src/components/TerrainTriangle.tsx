@@ -80,8 +80,8 @@ export function TerrainTriangle({ stats, focus, onSelect }: Props) {
 
 /**
  * The triangle chart for any three things with a success rate: corners in
- * clockwise order from the top. The gazelle uses it for easy, tempo and long
- * runs ("finished"), the monkey for walls ("sent").
+ * clockwise order from the top. The sport modes use it for their three kinds
+ * (run types, strokes: "finished"), the monkey for walls ("sent").
  */
 export function RateTriangle<K extends string>({
   corners,

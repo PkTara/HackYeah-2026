@@ -8,9 +8,9 @@ import {
   gazelleRows,
 } from '../pixel/sprites';
 
-/** SavannaHero's height in art pixels. */
+/** SportHero's height in art pixels. */
 const HERO_HEIGHT = 62;
-/** Marker posts like the ones SavannaHero passes for a five-step level. */
+/** Marker posts like the ones SportHero passes for a five-step level. */
 const MARKERS = [34, 46, 58, 70, 82];
 
 const CASES = [60, 90, 160].flatMap(cols =>

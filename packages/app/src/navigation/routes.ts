@@ -22,6 +22,8 @@ export const screens = {
   Profile: ProfileScreen,
   Log: LogScreen,
   Hands: HandsScreen,
+  // Tests is the Data tab's old name. Old links and HomeTestScreen's reset
+  // still use it; the breadcrumbs and tab bar show it as Data.
   Tests: TestsScreen,
   Data: TestsScreen,
   // Pushed on top of a tab
@@ -34,7 +36,10 @@ export const screens = {
   Anatomy: AnatomyScreen,
   /** Params: id, a home test id from core's BASELINE_TESTS. */
   Test: HomeTestScreen,
-  /** Camera assessment (leg spread), from the Tests tab. */
+  /**
+   * Live camera assessment, from the Data tab. Params: metric
+   * ('leg_spread', the default, or 'shoulder_reach').
+   */
   Assessment: AssessmentScreen,
   /** Hand journal photo. Optional params: side and finger, to start there. */
   HandCapture: HandCaptureScreen,

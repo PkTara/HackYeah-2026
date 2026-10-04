@@ -61,7 +61,7 @@ export const endpoints = {
     path: `/v1/me/quests/${id(questId)}/skip`,
   }),
 
-  // Camera media (media.ts). Multipart bodies, see mediaWire.ts.
+  // Camera media (media.ts). Multipart bodies; answer shapes in wire.ts.
 
   /** Form: file, upload_consent. Answer: PoseResultDto. Nothing is kept. */
   analyzeImage: (): Route => ({ method: 'POST', path: '/v1/pose/image' }),

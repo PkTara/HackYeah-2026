@@ -279,7 +279,7 @@ export function fromAssessmentDto(dto: AssessmentDto): AssessmentRecord {
 }
 
 /**
- * Height and arm span the climber typed in, during setup or on the Tests tab.
+ * Height and arm span the climber typed in, during setup or on the Data tab.
  * One protocol for both places, so the server compares them with each other.
  */
 export const REACH_PROTOCOL = 'self-measured-v1';

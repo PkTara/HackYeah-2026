@@ -72,8 +72,10 @@ function signedCm(cm: number): string {
 }
 
 /**
- * Assessments: the home tests from setup, manual reach, the camera
- * assessment (it needs the server), and honest "not built yet" cards.
+ * The Data tab: body and reach, strength and endurance (home tests, finger
+ * strength), mobility and movement (live camera assessments, which need the
+ * server), and activity and recovery, plus links to About, Settings and the
+ * demo controls. The file keeps its old name from when the tab was Tests.
  */
 export function TestsScreen() {
   const demo = useDemo();
@@ -134,8 +136,9 @@ export function TestsScreen() {
 }
 
 /**
- * Leg spread with the camera. It needs the server, which analyses the
- * picture; the on-device demo says so instead of offering it.
+ * Leg spread and shoulder reach with the live camera, plus the manual
+ * mobility tests. The camera needs the server, which analyses the frames;
+ * without one the panel says so instead of offering it.
  */
 function CameraPanel() {
   const { navigate } = useNavigation<RouteName>();

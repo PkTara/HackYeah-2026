@@ -85,7 +85,7 @@ type GameApi = Readonly<{
   finishOnboarding: (result: OnboardingResult) => void;
   /** Setup was skipped: stop asking on launch. */
   skipOnboarding: () => void;
-  /** One home test done from the Tests tab. */
+  /** One home test done from the Data tab. */
   saveBaseline: (result: BaselineResult) => void;
   saveAssessment: (record: AssessmentRecord) => Promise<void>;
   /**

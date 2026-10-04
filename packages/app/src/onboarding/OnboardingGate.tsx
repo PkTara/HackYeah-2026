@@ -29,7 +29,7 @@ function previewRequested(): boolean {
 }
 
 type SetupApi = Readonly<{
-  /** Runs setup again, for example from the Tests tab. */
+  /** Runs setup again, for example from the Data tab or Settings. */
   redoSetup: () => void;
 }>;
 

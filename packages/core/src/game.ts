@@ -52,7 +52,7 @@ export type GameState = Readonly<{
   onboarding: OnboardingResult | null;
   /** The climber skipped setup, so the app stops asking. */
   onboardingSkipped: boolean;
-  /** Latest home test result per test, from setup or the Tests tab. */
+  /** Latest home test result per test, from setup or the Data tab. */
   baseline: readonly BaselineResult[];
   assessments?: readonly AssessmentRecord[];
   /**

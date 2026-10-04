@@ -48,7 +48,7 @@ export interface ClimbingBackend {
   finishOnboarding(result: OnboardingResult): Promise<GameState | void>;
   skipOnboarding(): Promise<GameState | void>;
 
-  /** One home test done again from the Tests tab. Replaces that test's result. */
+  /** One home test done again from the Data tab. Replaces that test's result. */
   saveBaseline(result: BaselineResult): Promise<GameState | void>;
 
   /**
