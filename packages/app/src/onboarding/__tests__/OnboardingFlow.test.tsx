@@ -11,8 +11,11 @@ import {
   goTo,
   lineFor,
   nextStep,
+  propFor,
   startNav,
+  type StepId,
 } from '../flow';
+import { MONKEY_PROPS } from '@hackyeah/ui';
 
 type Renderer = ReactTestRenderer.ReactTestRenderer;
 
@@ -89,6 +92,20 @@ function has(renderer: Renderer, label: string): boolean {
         node.props.accessibilityLabel === label,
     ).length > 0
   );
+}
+
+/** What the guide monkey holds or wears right now, from its testID. */
+function monkeyProp(renderer: Renderer): string {
+  const ids = renderer.root
+    .findAll(
+      node =>
+        typeof node.type === 'string' &&
+        typeof node.props.testID === 'string' &&
+        node.props.testID.startsWith('monkey-prop-'),
+    )
+    .map(node => node.props.testID.slice('monkey-prop-'.length));
+  expect(ids).toHaveLength(1);
+  return ids[0];
 }
 
 /** Welcome to the body step, answering the four required questions. */
@@ -252,6 +269,52 @@ describe('OnboardingFlow', () => {
     act(() => renderer.unmount());
   });
 
+  it('gives the monkey a prop for each step as you go', () => {
+    const renderer = render();
+    const seen = [monkeyProp(renderer)];
+    press(renderer, 'Start');
+    seen.push(monkeyProp(renderer));
+    press(renderer, 'Outdoors', 'Next');
+    seen.push(monkeyProp(renderer));
+    press(renderer, '2 to 5 years', 'Next');
+    seen.push(monkeyProp(renderer));
+    press(renderer, 'V7+', 'Next');
+    seen.push(monkeyProp(renderer));
+    press(renderer, 'Get stronger fingers', 'Next');
+    seen.push(monkeyProp(renderer));
+    press(renderer, 'Skip reach');
+    seen.push(monkeyProp(renderer));
+    press(renderer, 'Connect Strava');
+    seen.push(monkeyProp(renderer));
+    press(renderer, 'Back', 'Skip apps');
+    seen.push(monkeyProp(renderer));
+    press(renderer, 'Start tests');
+    for (let i = 0; i < 6; i++) {
+      seen.push(monkeyProp(renderer));
+      press(renderer, 'Skip this one');
+    }
+    seen.push(monkeyProp(renderer));
+    expect(seen).toEqual([
+      'wave',
+      'map',
+      'alarm-clock',
+      'grade-sign',
+      'trophy',
+      'tape-measure',
+      'phone',
+      'phone',
+      'clipboard',
+      'stopwatch',
+      'tally-counter',
+      'ruler',
+      'hourglass',
+      'one-foot-up',
+      'sweatband',
+      'party-hat',
+    ]);
+    act(() => renderer.unmount());
+  });
+
   it('goes back to where you came from', () => {
     const renderer = render();
     answerRequired(renderer);
@@ -286,6 +349,16 @@ describe('the step order', () => {
       expect(line).not.toMatch(/[–—]|let's|journey|unlock|empower|seamless/i),
     );
     expect(lines.filter(line => line.includes('!'))).toEqual([lineFor('done')]);
+  });
+
+  it('gives every step its own monkey prop', () => {
+    const steps: StepId[] = [...STEP_ORDER, 'consent:strava', 'consent:garmin'];
+    steps.forEach(step => expect(MONKEY_PROPS).toHaveProperty([propFor(step)]));
+    // Consent screens keep the phone from the apps step.
+    expect(propFor('consent:strava')).toBe(propFor('apps'));
+    // Along the main path no two steps look the same.
+    const props = STEP_ORDER.map(propFor);
+    expect(new Set(props).size).toBe(props.length);
   });
 
   it('remembers where you came from, for the hop', () => {

@@ -77,7 +77,10 @@ export function mirror(rows: readonly string[]): string[] {
   return rows.map(row => row.split('').reverse().join(''));
 }
 
-/** Writes `patch` over `rows` at (x, y). '.' in the patch keeps the pixel. */
+/**
+ * Writes `patch` over `rows` at (x, y). '.' in the patch keeps the pixel
+ * underneath and '_' erases it.
+ */
 export function overlay(
   rows: readonly string[],
   patch: readonly string[],
@@ -89,7 +92,7 @@ export function overlay(
     line.split('').forEach((key, dx) => {
       const row = out[y + dy];
       if (key !== '.' && row && x + dx < row.length) {
-        row[x + dx] = key;
+        row[x + dx] = key === '_' ? '.' : key;
       }
     });
   });

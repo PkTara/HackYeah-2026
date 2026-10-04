@@ -3,12 +3,17 @@ import {
   GAZELLE_FRAMES,
   HAND_HEIGHT,
   HAND_WIDTH,
+  HOLD_HAND,
   ICONS,
   LEFT_HAND_FINGERS,
+  MONKEY_PROPS,
+  PROP_SLOT,
   SPRITE_COLORS,
+  VINE_ARM,
   handRows,
   monkeyRows,
   type MonkeyPose,
+  type MonkeyProp,
 } from '../pixel/sprites';
 
 const POSES: MonkeyPose[] = ['idle', 'blink', 'cheer'];
@@ -117,6 +122,138 @@ describe('monkeyRows', () => {
 
   it('ignores cosmetics it does not know', () => {
     expect(monkeyRows('idle', ['top-hat'])).toEqual(monkeyRows('idle'));
+  });
+});
+
+describe('MONKEY_PROPS', () => {
+  const PROPS = Object.keys(MONKEY_PROPS) as MonkeyProp[];
+  const inRegion = (
+    r: Readonly<{ x0: number; x1: number; y0: number; y1: number }>,
+    x: number,
+    y: number,
+  ) => x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1;
+  /** Every non-transparent pixel of a prop's patches, in sprite pixels. */
+  const pixelsOf = (prop: MonkeyProp) =>
+    MONKEY_PROPS[prop].patches.flatMap(patch =>
+      patch.rows.flatMap((row, dy) =>
+        [...row].flatMap((key, dx) =>
+          key === '.' ? [] : [{ x: patch.x + dx, y: patch.y + dy, key }],
+        ),
+      ),
+    );
+
+  it('has a dozen or more props to go round the onboarding steps', () => {
+    expect(PROPS.length).toBeGreaterThanOrEqual(12);
+  });
+
+  it.each(PROPS)('draws %s with patches whose rows share one width', prop => {
+    MONKEY_PROPS[prop].patches.forEach(patch => {
+      expect(patch.rows.length).toBeGreaterThan(0);
+      expect(new Set(patch.rows.map(row => row.length)).size).toBe(1);
+    });
+  });
+
+  it('uses only sprite colours, plus the eraser', () => {
+    const unknown = PROPS.flatMap(prop =>
+      pixelsOf(prop)
+        .filter(p => p.key !== '_' && !(p.key in SPRITE_COLORS))
+        .map(p => `${p.key} in ${prop}`),
+    );
+    expect(unknown).toEqual([]);
+  });
+
+  it.each(POSES)('keeps every prop inside the 32x28 frame (%s)', pose => {
+    PROPS.forEach(prop => {
+      expect(`${prop}: ${size(monkeyRows(pose, [], prop))}`).toBe(
+        `${prop}: 32x28`,
+      );
+      pixelsOf(prop).forEach(({ x, y }) => {
+        expect({
+          prop,
+          inside: inRegion({ x0: 0, x1: 31, y0: 0, y1: 27 }, x, y),
+        }).toEqual({ prop, inside: true });
+      });
+    });
+  });
+
+  it('keeps held props in the slot in front of the tummy', () => {
+    const outside = PROPS.filter(prop => MONKEY_PROPS[prop].arm === 'hold')
+      .flatMap(prop => pixelsOf(prop).map(p => ({ prop, ...p })))
+      .filter(p => !inRegion(PROP_SLOT, p.x, p.y))
+      .map(p => `${p.prop} at ${p.x},${p.y}`);
+    expect(outside).toEqual([]);
+  });
+
+  it.each(POSES)(
+    'never touches the arm and fist that hold the vine (%s)',
+    pose => {
+      const plain = monkeyRows(pose);
+      const touched = PROPS.flatMap(prop =>
+        changes(plain, monkeyRows(pose, [], prop))
+          .filter(c => inRegion(VINE_ARM, c.x, c.y))
+          .map(c => `${prop} at ${c.x},${c.y}`),
+      );
+      expect(touched).toEqual([]);
+    },
+  );
+
+  it.each(PROPS)('changes how the monkey looks with %s', prop => {
+    POSES.forEach(pose => {
+      expect(
+        changes(monkeyRows(pose), monkeyRows(pose, [], prop)).length,
+      ).toBeGreaterThan(0);
+    });
+  });
+
+  it.each(PROPS)('keeps %s in place on every frame: idle, blink and hop', prop => {
+    const hand = MONKEY_PROPS[prop].arm === 'hold';
+    const handBox = {
+      x0: HOLD_HAND.x,
+      x1: HOLD_HAND.x + HOLD_HAND.rows[0].length - 1,
+      y0: HOLD_HAND.y,
+      y1: HOLD_HAND.y + HOLD_HAND.rows.length - 1,
+    };
+    POSES.forEach(pose => {
+      const rows = monkeyRows(pose, [], prop);
+      const moved = pixelsOf(prop)
+        .filter(p => !(hand && inRegion(handBox, p.x, p.y)))
+        .filter(p => rows[p.y][p.x] !== (p.key === '_' ? '.' : p.key))
+        .map(p => `${p.x},${p.y}`);
+      expect({ pose, moved }).toEqual({ pose, moved: [] });
+    });
+  });
+
+  it('draws the holding hand over the held prop on every frame', () => {
+    PROPS.filter(prop => MONKEY_PROPS[prop].arm === 'hold').forEach(prop => {
+      POSES.forEach(pose => {
+        const rows = monkeyRows(pose, [], prop);
+        HOLD_HAND.rows.forEach((line, dy) =>
+          [...line].forEach((key, dx) => {
+            if (key !== '.') {
+              expect(rows[HOLD_HAND.y + dy][HOLD_HAND.x + dx]).toBe(key);
+            }
+          }),
+        );
+      });
+    });
+  });
+
+  it('holds with the arm that is free, without the old dangling hand', () => {
+    const held = monkeyRows('idle', [], 'stopwatch');
+    // The idle hand hangs at the bottom left; holding brings it in front.
+    expect(monkeyRows('idle')[23].slice(2, 6)).toBe('OTTO');
+    expect(held[23].slice(0, 6)).toBe('......');
+  });
+
+  it('waves with the idle face: open eyes, not the cheering grin', () => {
+    const wave = monkeyRows('idle', [], 'wave');
+    const face = (rows: readonly string[]) =>
+      rows.slice(10, 18).map(row => row.slice(8, 19));
+    expect(face(wave)).toEqual(face(monkeyRows('idle')));
+    // The raised arm from the cheer frame; its motion marks sit to the left.
+    const arm = (rows: readonly string[]) =>
+      rows.slice(14, 21).map(row => row.slice(2, 8));
+    expect(arm(wave)).toEqual(arm(monkeyRows('cheer')));
   });
 });
 

@@ -255,3 +255,10 @@ The Codex design-drafting step used the `superpowers:using-superpowers` and `sup
 
 **Not verified:** a real camera, Android or iOS native builds, and runtime permission dialogs on a phone.
 
+### 22. A prop for each onboarding step (2026-10-04)
+
+**Prompt:** "Add slight changes to monkey appearance for each question in the tutorial. For example, it holds a tape measure when asking for measurements. Or it holds a clock when asking for 'how long'."
+
+**Output:** The guide monkey holds or wears something different on every setup step: a wave, map, alarm clock, V-grade tag, trophy, tape measure, phone (apps and consent), clipboard, stopwatch, tally counter, ruler, hourglass, eyes shut with one foot up, a sweatband and a party hat. The props are pixel patches in `packages/ui/src/pixel/sprites.ts` (`MONKEY_PROPS`), drawn over the monkey with the same `overlay` as the cosmetics; held props swap in a bent arm and draw the fist on top, so they stay in the hand while it blinks and hops. `propFor` in `packages/app/src/onboarding/flow.ts` maps each step to its prop. No new libraries, models or APIs.
+
+**Validation:** Jest checks that every prop stays in its slot, uses palette colours, never touches the arm that holds the vine, keeps the 32x28 frame, and stays put in every pose; that every step has its own prop; and that stepping through the flow shows the expected prop. Every step was screenshotted in Chromium at 390 px in light and dark mode and at 1280 px.
