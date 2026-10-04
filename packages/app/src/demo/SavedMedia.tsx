@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { AppText, Panel, Tag } from '@hackyeah/ui';
+import { StyleSheet, View } from 'react-native';
+import { AppText, Button, Panel, Tag } from '@hackyeah/ui';
 import { useDemo } from './DemoProvider';
 
 type Saved = {
@@ -16,6 +17,7 @@ export function SavedMedia({ kind }: { kind: 'hands' | 'assessments' }) {
   const demo = useDemo();
   const [records, setRecords] = useState<Saved[]>([]);
   const [error, setError] = useState('');
+  const [open, setOpen] = useState(false);
   useEffect(() => {
     let mounted = true;
     if (!demo.settings.enabled || !demo.storage) {
@@ -60,7 +62,22 @@ export function SavedMedia({ kind }: { kind: 'hands' | 'assessments' }) {
       title={kind === 'hands' ? 'Demo hand journal' : 'Demo camera results'}
       badge={<Tag text="Demo profile" />}
     >
-      {records.map((r, i) => (
+      {/* Your own entries start folded away. */}
+      <View style={styles.row}>
+        <AppText style={styles.grow}>
+          {records.length === 1 ? '1 entry' : `${records.length} entries`}
+        </AppText>
+        {records.length ? (
+          <Button
+            title={open ? 'Hide' : 'Show'}
+            variant="secondary"
+            small
+            accessibilityLabel={open ? 'Hide demo entries' : 'Show demo entries'}
+            onPress={() => setOpen(!open)}
+          />
+        ) : null}
+      </View>
+      {(open ? records : []).map((r, i) => (
         <AppText key={i}>
           {kind === 'hands'
             ? `${r.side === 'left' ? 'Left' : 'Right'} ${r.region?.replace(
@@ -84,3 +101,8 @@ export function SavedMedia({ kind }: { kind: 'hands' | 'assessments' }) {
     </Panel>
   );
 }
+
+const styles = StyleSheet.create({
+  row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  grow: { flex: 1 },
+});

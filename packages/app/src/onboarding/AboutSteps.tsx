@@ -32,7 +32,8 @@ export function WelcomeStep() {
         ]}
       />
       <AppText variant="caption" muted>
-        Only the first four questions are needed. Skip the rest any time.
+        Only the first four are needed. Anything skipped can be added later
+        on the Data tab.
       </AppText>
     </Panel>
   );
@@ -203,7 +204,7 @@ export function BodyStep({
         explanation={{
           summary: 'Manual height and arm span',
           status: 'app_rule',
-          rule: 'Record the two measurements in whole centimetres. The Tests screen derives ape index as arm span minus height.',
+          rule: 'Record the two measurements in whole centimetres. The Data tab shows ape index as arm span minus height.',
           evidence: [
             {
               id: 'reach-input',

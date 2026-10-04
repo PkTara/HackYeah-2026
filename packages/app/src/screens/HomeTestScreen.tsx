@@ -95,12 +95,15 @@ function HomeTest() {
             setDraft(value === null ? undefined : { value, method });
           }}
         />
-        <Button
-          title={saved ? 'Saved' : 'Save result'}
-          icon="check"
-          disabled={!draft || Boolean(saved)}
-          onPress={save}
-        />
+        {/* Once saved, the note carries the next step instead. */}
+        {saved ? null : (
+          <Button
+            title="Save result"
+            icon="check"
+            disabled={!draft}
+            onPress={save}
+          />
+        )}
         {message ? (
           <SavedNote
             title={message.title}

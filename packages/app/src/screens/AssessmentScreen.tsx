@@ -69,18 +69,26 @@ export function AssessmentScreen() {
     });
   // A completion override exists only while reviewing.
   const reviewing = completion !== undefined;
+  const header = (
+    <PageHeader
+      title={title}
+      subtitle={
+        metric === 'shoulder_reach'
+          ? 'Raise your arms in front of the camera, hold, then review.'
+          : 'Stand wide in front of the camera, hold, then review.'
+      }
+    />
+  );
   return (
     <TabScreen completion={completion}>
       <View style={styles.page}>
-        {reviewing ? null : <Crumbs />}
-        <PageHeader
-          title={title}
-          subtitle={
-            metric === 'shoulder_reach'
-              ? 'Raise your arms in front of the camera, hold, then review.'
-              : 'Stand wide in front of the camera, hold, then review.'
-          }
-        />
+        {/* In review, the review's own breadcrumb leads and the title follows. */}
+        {reviewing ? null : (
+          <>
+            <Crumbs />
+            {header}
+          </>
+        )}
         {media ? (
           <LiveAssessment
             media={media}
@@ -99,6 +107,7 @@ export function AssessmentScreen() {
             onSave={save}
             onCompletionChange={setCompletion}
             crumbs={crumbs}
+            header={header}
             next={[
               {
                 title: 'See your results',

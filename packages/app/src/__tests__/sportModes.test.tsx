@@ -107,7 +107,11 @@ describe('gazelle mode', () => {
     press(renderer, 'Switch to gazelle mode', 'Log');
     press(renderer, 'Easy', 'Trail', '5 km', '30 min', 'Finished', 'Save run');
     await settle();
-    expect(screenText(renderer)).toContain('Saved: ');
+    // The note says what changed; today's runs start folded away.
+    expect(screenText(renderer)).toContain('Saved ');
+    expect(screenText(renderer)).toMatch(/Easy: \d+ of \d+ finished\./);
+    expect(screenText(renderer)).toContain('1 run logged today.');
+    press(renderer, "Show today's runs");
     expect(screenText(renderer)).toContain('6:00 /km');
     act(() => renderer.unmount());
   });
@@ -177,6 +181,7 @@ describe('dolphin mode', () => {
       'Save swim',
     );
     await settle();
+    press(renderer, "Show today's swims");
     expect(screenText(renderer)).toContain('2:30 /100 m');
     act(() => renderer.unmount());
   });

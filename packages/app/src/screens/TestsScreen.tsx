@@ -99,7 +99,7 @@ export function TestsScreen() {
   const body = (
     <Group
       title="Body and reach"
-      icon="profile"
+      icon="ruler"
       purpose="Typed in from a tape measure or a force gauge. Optional."
       state="ready"
     >
@@ -296,6 +296,7 @@ function ResetDemo() {
         variant="danger"
         small
         onPress={press}
+        style={styles.start}
         accessibilityHint={
           armed ? undefined : 'Asks for a second tap before anything is removed'
         }
@@ -322,4 +323,5 @@ const styles = StyleSheet.create({
   },
   grow: { flex: 1 },
   buttons: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  start: { alignSelf: 'flex-start' },
 });

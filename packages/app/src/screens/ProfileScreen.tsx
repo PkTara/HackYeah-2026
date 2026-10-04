@@ -58,6 +58,7 @@ import { useGame } from '../state/GameProvider';
 import { ActivitySummary } from './ActivityScreen';
 import { AssessmentSummary } from '../components/AssessmentSummary';
 import { PetsPanel } from '../components/PetsPanel';
+import { StateLabel } from '../components/StateLabel';
 
 const STEPS = XP_PER_LEVEL / XP_PER_QUEST;
 
@@ -86,20 +87,45 @@ export function ProfileScreen() {
   // Recent climbs. Wide screens show them under the quest, so both columns
   // end at about the same height. Phones keep them after Style.
   const recentPanel = (
-    <DataRow
-      title="Recent climbs"
-      subtitle={
-        recent.length
-          ? `${state.logs.length} observations · Latest: ${
-              recent[0].grade
-            } ${TERRAIN_NAME[recent[0].terrain].toLowerCase()} · ${shortDate(
-              recent[0].date,
-            )}`
-          : 'No climbs logged yet.'
-      }
-      accessibilityLabel="Open climbing log"
-      onPress={() => reset('Log')}
-    />
+    <Panel title="Your records" icon="log">
+      <AppText variant="caption" muted>
+        What this profile is built from. Add more on the Data tab.
+      </AppText>
+      <View>
+        <DataRow
+          title="Recent climbs"
+          subtitle={
+            recent.length
+              ? `${state.logs.length} climbs. Latest ${
+                  recent[0].grade
+                } ${TERRAIN_NAME[recent[0].terrain].toLowerCase()}, ${shortDate(
+                  recent[0].date,
+                )}`
+              : 'No climbs logged yet.'
+          }
+          accessibilityLabel="Open climbing log"
+          onPress={() => reset('Log')}
+        />
+        <AssessmentSummary
+          compact
+          onOpen={metric => navigate('MeasurementDetail', { metric })}
+          records={state.assessments}
+          metrics={[
+            'leg_spread',
+            'shoulder_reach_left',
+            'shoulder_reach_right',
+            'finger_force',
+          ]}
+        />
+        <ActivitySummary hideUnavailable divider={false} />
+      </View>
+      <Button
+        title="Add data"
+        variant="secondary"
+        small
+        onPress={() => reset('Data')}
+      />
+    </Panel>
   );
 
   return (
@@ -186,8 +212,9 @@ export function ProfileScreen() {
               </AppText>
             )}
             <AppText variant="caption" muted>
-              Local rule from logged climbs only. Independent of server quest
-              selection. Not a grade prediction.
+              {state.assigned !== undefined
+                ? 'From your logged climbs only. Independent of server quest selection, so the quest below can differ.'
+                : 'From your logged climbs only. Not a grade prediction.'}
             </AppText>
             <Button
               title="View evidence"
@@ -244,11 +271,6 @@ export function ProfileScreen() {
                   Why: {quest.quest.why}
                 </AppText>
 
-                <AppText variant="caption" muted>
-                  {state.assigned !== undefined
-                    ? 'The server selected this quest. Its saved decision is separate from the local wall focus.'
-                    : 'Selected on this device from logged climbs, finger flags and quest progress.'}
-                </AppText>
               </>
             ) : (
               <AppText>
@@ -346,8 +368,8 @@ export function ProfileScreen() {
               </DecisionHelp>
             ) : (
               <AppText variant="caption" muted>
-                No finger discomfort is marked. Open the hand journal to check
-                in.
+                Nothing flagged. If a finger is sore, mark it on Hands and
+                finger-loading quests wait.
               </AppText>
             )}
             <Button
@@ -441,32 +463,23 @@ export function ProfileScreen() {
                 marginVertical: 4,
               }}
             />
-            <DecisionHelp
-              label="Movement radar"
-              explanation={explainExampleRadar(EXAMPLE_MOVES)}
-            >
-              <PixelText text="Movement radar" />
-            </DecisionHelp>
+            <View style={styles.radarHead}>
+              <DecisionHelp
+                label="Movement radar"
+                explanation={explainExampleRadar(EXAMPLE_MOVES)}
+              >
+                <PixelText text="Movement radar" />
+              </DecisionHelp>
+              <StateLabel state="later" />
+            </View>
             <MovementRadar axes={EXAMPLE_MOVES} example />
             <AppText variant="caption" muted>
-              Not scored yet. These axes need movement evidence before they show
-              real values.
+              Not scored yet. It needs movement evidence before it shows real
+              values.
             </AppText>
           </Panel>
 
           {wide ? null : recentPanel}
-          <ActivitySummary />
-          <AssessmentSummary
-            compact
-            onOpen={metric => navigate('MeasurementDetail', { metric })}
-            records={state.assessments}
-            metrics={[
-              'leg_spread',
-              'shoulder_reach_left',
-              'shoulder_reach_right',
-              'finger_force',
-            ]}
-          />
 
           <PetsPanel />
         </Column>
@@ -605,6 +618,12 @@ const styles = StyleSheet.create({
   grow: { flex: 1 },
   rule: { height: PX },
   tallyRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  radarHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
   choices: { gap: spacing.sm + 2 },
   choicesSide: { flexDirection: 'row', gap: spacing.sm + 2 },
 });

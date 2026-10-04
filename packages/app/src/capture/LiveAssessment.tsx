@@ -69,6 +69,8 @@ export type LiveAssessmentProps = {
   onCompletionChange?: (completion: AssessmentCompletion | undefined) => void;
   /** The page's breadcrumb trail, continued by the review's own steps. */
   crumbs?: readonly Crumb[];
+  /** The page title, which the review shows under its breadcrumb. */
+  header?: ReactNode;
   /** Where to go after a save. */
   next?: readonly NextStep[];
   now?: () => number;
@@ -82,6 +84,7 @@ export function LiveAssessment({
   onCompletionChange,
   simulated,
   crumbs,
+  header,
   next,
   now = Date.now,
 }: LiveAssessmentProps) {
@@ -98,7 +101,7 @@ export function LiveAssessment({
     }
   }, []);
   const onGeometry = useCallback(
-    (next: PreviewGeometry) => setGeometry(next),
+    (value: PreviewGeometry) => setGeometry(value),
     [],
   );
   const stability = useRef(initialStability(metric));
@@ -447,6 +450,7 @@ export function LiveAssessment({
         onCompletionChange={onCompletionChange}
         camera={tray()}
         crumbs={crumbs}
+        header={header}
         next={next}
       />
     );

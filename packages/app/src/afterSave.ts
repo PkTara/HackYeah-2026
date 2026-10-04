@@ -120,11 +120,9 @@ export function sessionSaved(
     kindTally.logged < MIN_SESSIONS
       ? `${kindName}: ${kindTally.finished} of ${
           kindTally.logged
-        } finished. ${plural(
-          MIN_SESSIONS - kindTally.logged,
-          'more',
-          'more',
-        )} and the ${pet} can compare it.`
+        } finished. ${
+          MIN_SESSIONS - kindTally.logged
+        } more and the ${pet} can compare it.`
       : `${kindName}: ${kindTally.finished} of ${kindTally.logged} finished.`;
   const focus =
     before.sessionKind === after.sessionKind

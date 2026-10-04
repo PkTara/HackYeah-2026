@@ -33,7 +33,7 @@ export function measurementText(result: PoseResultDto, metric: LiveMetric) {
 /** The value as the camera box shows it: short enough for the pixel font. */
 export function measurementShort(result: PoseResultDto, metric: LiveMetric) {
   return metric === 'shoulder_reach'
-    ? `L ${Math.round(result.left_value!)}°  R ${Math.round(
+    ? `L ${Math.round(result.left_value!)}°\nR ${Math.round(
         result.right_value!,
       )}°`
     : `${Math.round(result.value!)}°`;
@@ -62,6 +62,7 @@ export function AssessmentReview({
   onCompletionChange,
   camera,
   crumbs = [],
+  header,
   next = [],
 }: {
   result: PoseResultDto;
@@ -84,6 +85,8 @@ export function AssessmentReview({
    * review reads as one breadcrumb. Its last step goes back to capture.
    */
   crumbs?: readonly Crumb[];
+  /** The page title, shown under the breadcrumb. */
+  header?: ReactNode;
   /** Where to go after a save, e.g. the saved results. */
   next?: readonly NextStep[];
 }) {
@@ -133,6 +136,7 @@ export function AssessmentReview({
             : []),
         ]}
       />
+      {header}
       {/* Wide screens: the captured reading on the left, the result beside it. */}
       <Columns>
         <Column>{camera}</Column>

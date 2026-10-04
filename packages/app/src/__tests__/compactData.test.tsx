@@ -92,8 +92,10 @@ it('filters measurement details by metric and keeps legacy leg media off shoulde
     JSON.stringify([{ date: '2026-10-03', value: 123, simulated: true }]),
   );
   await press(screen, 'Open shoulder reach');
+  // Legacy leg media never appears on shoulder details, even folded.
+  expect(control(screen, 'Show demo entries')).toBeUndefined();
   expect(text(screen)).not.toContain('Leg spread: 123');
-  await press(screen, 'Back to Data', 'Open leg spread');
+  await press(screen, 'Back to Data', 'Open leg spread', 'Show demo entries');
   expect(text(screen)).toContain('Leg spread: 123');
   await act(async () => screen.unmount());
 });

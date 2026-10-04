@@ -64,7 +64,7 @@ export function AssessmentCameraTray({
     : error
     ? `${error} Check camera access, then try Record again.`
     : !consent
-    ? 'Allow live camera analysis in Settings before recording.'
+    ? 'Camera analysis is turned off for this app.'
     : active
     ? 'Allow camera access when prompted. Your preview will appear here.'
     : reviewing
@@ -115,7 +115,7 @@ export function AssessmentCameraTray({
           >
             <PixelText
               text={reading.value}
-              scale={3}
+              scale={reading.value.includes('\n') ? 2 : 3}
               color={colors.onPrimary}
               accessible={false}
             />
@@ -135,7 +135,7 @@ export function AssessmentCameraTray({
             </AppText>
             <PixelText
               text={captured.value}
-              scale={6}
+              scale={captured.value.includes('\n') ? 5 : 6}
               heading
               color={colors.onBackground}
               shadow={colors.outline}

@@ -197,9 +197,9 @@ export function DoneStep({ result }: { result: OnboardingResult | null }) {
         )}
       </Fact>
       <AppText variant="caption" muted>
-        All of it is what you told the monkey. A connected server can use your
-        goal to prioritize quests. Local quests use climb logs, finger flags and
-        quest progress.
+        Next: log a climb after your next session. Your focus and first quest
+        come from the climbs you log. Change any of this later on the Data
+        tab.
       </AppText>
     </Panel>
   );

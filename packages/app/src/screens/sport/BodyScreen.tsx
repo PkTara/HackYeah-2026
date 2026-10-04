@@ -2,6 +2,7 @@ import { StyleSheet, View } from 'react-native';
 import type { Side } from '@hackyeah/core';
 import {
   AppText,
+  Button,
   Chip,
   Column,
   Columns,
@@ -15,6 +16,8 @@ import { PageHeader } from '../../components/PageHeader';
 import { TabScreen } from '../../components/TabScreen';
 import { SIDE_NAME } from '../../labels';
 import { bodyFlagText, flagLabel } from '../../sports';
+import { useNavigation } from '../../navigation/Navigator';
+import type { RouteName } from '../../navigation/routes';
 import { useSport } from '../../state/SportProvider';
 
 const SIDES: readonly Side[] = ['left', 'right'];
@@ -27,6 +30,7 @@ const SIDES: readonly Side[] = ['left', 'right'];
  */
 export function BodyScreen() {
   const { sport, view, state, today, setFlag } = useSport();
+  const { reset } = useNavigation<RouteName>();
   const flagged = (side: Side, part: string) =>
     state.flags.some(f => f.side === side && f.part === part);
   const Pet = sport.pet === 'dolphin' ? Dolphin : Gazelle;
@@ -78,8 +82,17 @@ export function BodyScreen() {
               </AppText>
             ))}
             <AppText variant="caption" muted>
-              Quests that load it are paused. Tap a spot again to clear it.
+              Quests that load it are paused and another is offered. Tap a spot
+              again to clear it.
             </AppText>
+            <Button
+              title="See your quest"
+              variant="secondary"
+              small
+              style={styles.start}
+              accessibilityLabel="See the quest on your profile"
+              onPress={() => reset('SportProfile')}
+            />
           </>
         )}
       </Panel>
@@ -103,4 +116,5 @@ const styles = StyleSheet.create({
   inline: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   note: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   grow: { flex: 1 },
+  start: { alignSelf: 'flex-start' },
 });

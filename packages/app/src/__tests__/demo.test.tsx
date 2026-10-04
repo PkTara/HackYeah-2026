@@ -64,6 +64,8 @@ it('saves a simulated hand journal entry, updates its finger flag and shows the 
   await press(screen, 'Pain 3');
   await press(screen, 'Save to journal');
   await press(screen, 'Hands');
+  await act(async () => {});
+  await press(screen, 'Show demo entries');
   expect(text(screen)).toContain('Left index finger: pain 3');
   const saved = await createLocalBackend(demoStorage(c.storage)).load();
   expect(saved.flags).toContainEqual(

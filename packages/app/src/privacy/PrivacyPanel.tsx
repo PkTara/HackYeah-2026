@@ -12,9 +12,7 @@ export function PrivacyPanel() {
       badge={<Tag text="Optional" tone="muted" />}
     >
       <AppText>
-        Choose once for this app. You can change these in Settings. Recording an
-        assessment sends live frames for analysis; the server does not retain
-        those frames.
+        Each is off until you turn it on, and you can change it here any time.
       </AppText>
       <CheckRow
         name="Live camera analysis"
@@ -34,10 +32,10 @@ export function PrivacyPanel() {
           privacy.update({ handPhotos: !privacy.choices.handPhotos })
         }
       />
-      <AppText variant="caption">
-        The camera starts only when you choose it. Revoking analysis permission
-        stops active uploads. Hand-photo permission is separate from transient
-        analysis.
+      <AppText variant="caption" muted>
+        The camera only starts when you press Record. Analysis frames are not
+        kept by the server, and turning analysis off stops any upload in
+        progress.
       </AppText>
       {privacy.error ? (
         <AppText accessibilityRole="alert">{privacy.error}</AppText>

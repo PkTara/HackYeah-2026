@@ -35,10 +35,6 @@ export function SettingsScreen() {
             })
           }
         />
-        <AppText variant="caption">
-          Turning off a camera permission stops active uploads. Existing saved
-          records are managed through your profile.
-        </AppText>
       </Panel>
     </TabScreen>
   );
