@@ -28,7 +28,7 @@ function look(theme: Theme, variant: PanelVariant) {
     case 'banana':
       return { fill: c.primary, light: '#FFE58A', shade: c.primaryShade, lift: PX * 2, tone: { text: c.onPrimary, textMuted: '#5C4513' } };
     case 'wood':
-      return { fill: c.bark, light: '#8A5A33', shade: c.barkDark, lift: PX * 2, tone: { text: '#FFF4DC', textMuted: '#E8CFA6' } };
+      return { fill: c.bark, light: c.barkLight, shade: c.barkDark, lift: PX * 2, tone: { text: '#FFF4DC', textMuted: '#E8CFA6' } };
     case 'quiet':
       return { fill: c.surface, light: undefined, shade: undefined, lift: 0, tone: { text: c.text, textMuted: c.textMuted } };
     case 'alert':

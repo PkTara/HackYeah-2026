@@ -112,9 +112,9 @@ export function trailFor(route: RouteName, params: Params): Crumb[] {
         ? [tab('Hands'), fingerCrumb(params), here]
         : [tab('Hands'), here];
     }
-    case 'RunEvidence':
+    case 'SportEvidence':
       return [
-        { route: 'Run', label: 'Profile' },
+        { route: 'SportProfile', label: 'Profile' },
         { route, params, label: 'Evidence' },
       ];
     case 'Test': {

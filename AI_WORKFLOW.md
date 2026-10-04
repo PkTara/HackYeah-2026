@@ -389,3 +389,26 @@ The Codex design-drafting step used the `superpowers:using-superpowers` and `sup
 **What the agent did (Claude Code):** `RunProvider` sits inside the demo-aware `GameProvider`, under the music and sound providers, so the music key shows and keeps playing in gazelle mode. Gazelle mode keeps the navigation and setup restore from entry 28 for the monkey only; a kept stack is used only in the mode it came from. The monkey tabs keep Data in place of Tests. Logging a run plays `success` and a gazelle quest plays `success` or `levelUp`, like the monkey. Runs stay on the device and are not part of the demo profile, so the demo caption is hidden in gazelle mode. The finger strength test now wraps its screen in a `RunProvider`, as the app does, because the tab bar reads the pet mode.
 
 **Validation:** `npm run check` (993 Jest tests, including a new sound test for a logged run), `npm run backend:check`, the web build and the Android bundle. Playwright at 390 and 1280 px: switch to gazelle mode, play music, log a run with sounds, see the savanna profile, switch back to the monkey, the Settings switch and the setup props, with demo mode on and after a reload; no console errors. No new libraries, models or APIs.
+### 32. Dolphin mode, and one engine for the sport modes (2026-10-04)
+
+**Prompt:** "Cook on a dolphin mode, for swimming." Built on branch `claude/dolphin-mode`, which starts from `claude/gazelle-mode`.
+
+**Output:**
+- Gazelle mode was turned into a generic sport mode so the dolphin did not mean a third copy of the code. `packages/core/src/sport.ts` holds the shared rules (tallies, the focus rule, quest picking, reducer, weekly distance). `sports/running.ts` and `sports/swimming.ts` define each sport: three kinds, places, sore spots, unit, quests, unlocks, sample data and pace.
+- Swimming: freestyle, breaststroke and backstroke in a pool, lake or sea, distances in metres and pace per 100 m. Draft quests (breathe every three, glide for two, still head, stroke counts) and a body check-in. Shoulder to ankle flags pause swimming quests.
+- `packages/data/src/sports.ts`: one on-device backend for both sports. `packages/app`: `SportProvider` (`useSport()`), generic Profile, Log, sore-spot and Evidence screens with per-sport words and icons in `sports.ts`, and a shared Pets panel with all three pets.
+- `packages/ui`: a dolphin sprite (drawn from shapes in a small script, then pasted in as text like the other sprites) with a swim cap and goggles as unlocks, an ocean palette and scene (buoys per step, a palm island finish, coral and seaweed), stroke, water and goggle icons, `FramePet` shared by the gazelle and dolphin, and `SportHero` for both worlds. The wooden panels' top bevel became a theme colour so the ocean can repaint it.
+
+**Tools:** Claude Code (Anthropic) wrote the code, tests and pixel art. Playwright with the preinstalled Chromium rendered sprite previews and screenshots of the web build. No new libraries.
+
+**Validation:** `npm run check` passes (typecheck, lint with no errors, Jest including the shared engine, both sports' rules, the backend, both scenes and App-level tests for switching, levelling, logging and flags in both modes). Web build and Android release bundle build. Checked visually at 390 px (day and night) and 1280 px.
+
+**Limits:** Swimming quest text is draft and needs a coach's review. Flags are the swimmer's own notes, not a diagnosis. No pose analysis for swimming, no watch import and no server support for either sport yet.
+
+### 33. Dolphin mode on the merged app (2026-10-04)
+
+**Prompt:** "Merge the new dolphin mode into this branch."
+
+**What the agent did (Claude Code):** applied the dolphin commit (entry 32) on top of entry 31 as one squashed commit. `RunProvider` gave way to `SportProvider`, which now plays the same sounds as entry 31 (`success` for a logged session, `success` or `levelUp` for a quest). The kept navigation stack now remembers its pet mode, because the gazelle and the dolphin share routes, so switching between them still starts on the new pet's profile. The monkey tabs keep Data, the demo caption stays hidden in both sport modes, and the finger strength test wraps its screen in a `SportProvider`.
+
+**Validation:** `npm run check` (1043 Jest tests), `npm run backend:check`, the web build and the Android bundle. Playwright at 1280 px: skip setup, switch to the dolphin, log a 1500 m swim, switch to the gazelle and back to the monkey, then reload; all three worlds draw with the music key and there are no console errors. No new libraries, models or APIs.

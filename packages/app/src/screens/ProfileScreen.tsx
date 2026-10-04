@@ -13,11 +13,9 @@ import {
   Button,
   Column,
   Columns,
-  Gazelle,
   Icon,
   JungleHero,
   Meter,
-  Monkey,
   MovementRadar,
   PX,
   Panel,
@@ -46,7 +44,7 @@ import type { RouteName } from '../navigation/routes';
 import { useGame } from '../state/GameProvider';
 import { IntegrationsPanel } from '../demo/IntegrationsPanel';
 import { AssessmentSummary } from '../components/AssessmentSummary';
-import { useRun } from '../state/RunProvider';
+import { PetsPanel } from '../components/PetsPanel';
 
 const STEPS = XP_PER_LEVEL / XP_PER_QUEST;
 
@@ -393,47 +391,6 @@ export function ProfileScreen() {
 
       <ResetProfile />
     </TabScreen>
-  );
-}
-
-/** One pet per sport. The monkey is active here; tap to switch to the gazelle. */
-function PetsPanel() {
-  const { pet } = useGame();
-  const { pet: gazelle, setMode } = useRun();
-  return (
-    <Panel title="Pets">
-      <View style={{ flexDirection: 'row', gap: 12 }}>
-        <View style={{ flex: 1, alignItems: 'center', gap: 6 }}>
-          <View style={{ height: 60, justifyContent: 'flex-end' }}>
-            <Monkey scale={2} cosmetics={pet.cosmetics} still />
-          </View>
-          <PixelText text="Monkey" />
-          <AppText variant="caption" muted>
-            Climbing, level {pet.level}
-          </AppText>
-          {/* Wrapped so the tag centres like the rest of the column. */}
-          <View>
-            <Tag text="Active" tone="new" />
-          </View>
-        </View>
-        <View style={{ flex: 1, alignItems: 'center', gap: 6 }}>
-          <View style={{ height: 60, justifyContent: 'flex-end' }}>
-            <Gazelle scale={2} cosmetics={gazelle.cosmetics} still />
-          </View>
-          <PixelText text="Gazelle" />
-          <AppText variant="caption" muted>
-            Running, level {gazelle.level}
-          </AppText>
-          <Button
-            title="Run"
-            variant="secondary"
-            small
-            onPress={() => setMode('gazelle')}
-            accessibilityLabel="Switch to gazelle mode"
-          />
-        </View>
-      </View>
-    </Panel>
   );
 }
 

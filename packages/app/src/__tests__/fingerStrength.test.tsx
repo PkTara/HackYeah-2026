@@ -1,10 +1,10 @@
 import ReactTestRenderer, { act } from 'react-test-renderer';
 import { Breadcrumbs } from '@hackyeah/ui';
 import { emptyGame } from '@hackyeah/core';
-import { createLocalBackend, createLocalRunBackend } from '@hackyeah/data';
+import { createLocalBackend, createLocalSportBackend } from '@hackyeah/data';
 import { createMemoryStore } from '@hackyeah/platform';
 import { GameProvider } from '../state/GameProvider';
-import { RunProvider } from '../state/RunProvider';
+import { SportProvider } from '../state/SportProvider';
 import { Navigator } from '../navigation/Navigator';
 import { DemoProvider } from '../demo/DemoProvider';
 import { DEMO_SETTINGS_KEY, demoDefaults } from '../demo/settings';
@@ -59,12 +59,12 @@ async function render(demo = false, persistence?: Promise<void>) {
       <DemoProvider storage={storage}>
         <GameProvider backend={backend}>
           {/* The app always provides runs; the tab bar reads the pet mode. */}
-          <RunProvider backend={createLocalRunBackend(createMemoryStore())}>
+          <SportProvider backend={createLocalSportBackend(createMemoryStore())}>
             <Navigator
               initialRoute="FingerStrength"
               screens={{ FingerStrength: FingerStrengthScreen }}
             />
-          </RunProvider>
+          </SportProvider>
         </GameProvider>
       </DemoProvider>,
     );

@@ -31,9 +31,9 @@ export {
   type MediaFetch,
 } from './media';
 export {
-  createLocalRunBackend,
+  createLocalSportBackend,
   MODE_STORAGE_KEY,
-  RUN_STORAGE_KEY,
-  type RunBackend,
-} from './runs';
+  sportStorageKey,
+  type SportBackend,
+} from './sports';
 export * from './wire';

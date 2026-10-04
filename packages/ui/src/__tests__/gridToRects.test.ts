@@ -3,6 +3,7 @@ import { textRows } from '../pixel/font';
 import { gridToRects, PixelCanvas, type PixelRect } from '../pixel/raster';
 import { jungleScene } from '../pixel/scene';
 import {
+  DOLPHIN_FRAMES,
   GAZELLE_FRAMES,
   ICONS,
   LEFT_HAND_FINGERS,
@@ -87,6 +88,7 @@ for (const side of ['left', 'right'] as const) {
 }
 
 GAZELLE_FRAMES.forEach((frame, i) => add(`gazelle frame ${i}`, frame));
+DOLPHIN_FRAMES.forEach((frame, i) => add(`dolphin frame ${i}`, frame));
 
 add('text CLIMBING MONKEY', textRows('CLIMBING MONKEY'));
 add('two lines of text', textRows('Level 2\nXP 40/50'));

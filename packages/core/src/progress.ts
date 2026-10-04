@@ -6,7 +6,13 @@
 export const XP_PER_QUEST = 10;
 export const XP_PER_LEVEL = 50;
 
-export type Cosmetic = 'headband' | 'chalk-bag' | 'race-bib' | 'medal';
+export type Cosmetic =
+  | 'headband'
+  | 'chalk-bag'
+  | 'race-bib'
+  | 'medal'
+  | 'swim-cap'
+  | 'goggles';
 
 export type Unlock = Readonly<{ id: Cosmetic; level: number; name: string }>;
 
@@ -22,8 +28,14 @@ export const GAZELLE_COSMETICS: readonly Unlock[] = [
   { id: 'medal', level: 3, name: 'Gold medal' },
 ];
 
+/** Unlocked when the dolphin reaches the level. */
+export const DOLPHIN_COSMETICS: readonly Unlock[] = [
+  { id: 'swim-cap', level: 2, name: 'Swim cap' },
+  { id: 'goggles', level: 3, name: 'Pair of goggles' },
+];
+
 /** Which pet, and so which sport, the app is showing. */
-export type PetMode = 'monkey' | 'gazelle';
+export type PetMode = 'monkey' | 'gazelle' | 'dolphin';
 
 export type PetStatus = Readonly<{
   xp: number;

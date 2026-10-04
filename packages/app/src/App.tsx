@@ -3,13 +3,13 @@ import { View } from 'react-native';
 import { ScreenCornerContext, WorldContext } from '@hackyeah/ui';
 import {
   createBackend,
-  createLocalRunBackend,
+  createLocalSportBackend,
   createMedia,
   createLocalBackend,
   type ClimbingBackend,
   type MediaClient,
   type BackendConfig,
-  type RunBackend,
+  type SportBackend,
 } from '@hackyeah/data';
 import {
   capabilities as platformCapabilities,
@@ -24,17 +24,24 @@ import { StatusGate } from './components/StatusGate';
 import { SyncNotice } from './components/SyncNotice';
 import { Navigator, type NavigationEntry } from './navigation/Navigator';
 import { OnboardingGate } from './onboarding/OnboardingGate';
-import { isGazelleRoute, screens, type RouteName } from './navigation/routes';
+import { isSportRoute, screens, type RouteName } from './navigation/routes';
 import { GameProvider } from './state/GameProvider';
 import { DemoProvider, useDemo } from './demo/DemoProvider';
 import { DemoControls } from './demo/DemoControls';
 import { demoSeed } from './demo/seed';
-import { emptyGame, toLocalDate } from '@hackyeah/core';
+import { emptyGame, toLocalDate, type PetMode } from '@hackyeah/core';
 import { scopedStorage } from './demo/settings';
 import { createDemoMedia } from './demo/media';
 import { simulatedCamera } from './demo/camera';
 import { PrivacyProvider } from './privacy/PrivacyProvider';
-import { RunProvider, useRun } from './state/RunProvider';
+import { SPORT_VIEWS } from './sports';
+import { SportProvider, useSport } from './state/SportProvider';
+
+/** The last navigation stack and the mode it was in. */
+type KeptStack = Readonly<{
+  mode: PetMode | null;
+  stack: readonly NavigationEntry<RouteName>[];
+}>;
 
 type Props = {
   /** Override platform services, e.g. with fakes in tests. */
@@ -45,10 +52,10 @@ type Props = {
    */
   backend?: ClimbingBackend;
   /**
-   * Gazelle mode's runs and the saved pet mode. Defaults to on-device
-   * storage; the server does not know about running yet.
+   * The sport modes' data (running, swimming) and the saved pet mode.
+   * Defaults to on-device storage; the server does not know these sports yet.
    */
-  runBackend?: RunBackend;
+  sportBackend?: SportBackend;
   /**
    * Camera uploads: pose analysis and hand photos. Defaults to createMedia()
    * (the server at API_BASE_URL, or none). Pass null for no server.
@@ -65,7 +72,7 @@ type Props = {
 export function App({
   capabilities = platformCapabilities,
   backend,
-  runBackend,
+  sportBackend,
   media,
   today,
   initialRoute = 'Profile',
@@ -77,7 +84,7 @@ export function App({
         <AppRuntime
           capabilities={capabilities}
           backend={backend}
-          runBackend={runBackend}
+          sportBackend={sportBackend}
           media={media}
           today={today}
           initialRoute={initialRoute}
@@ -91,22 +98,20 @@ export function App({
 function AppRuntime({
   capabilities = platformCapabilities,
   backend,
-  runBackend,
+  sportBackend,
   media,
   today,
   initialRoute = 'Profile',
   backendConfig,
 }: Props) {
   const demo = useDemo();
-  const navigationStack = useRef<readonly NavigationEntry<RouteName>[]>([
-    { route: initialRoute, params: {} },
-  ]);
-  const rememberStack = useCallback(
-    (stack: readonly NavigationEntry<RouteName>[]) => {
-      navigationStack.current = stack;
-    },
-    [],
-  );
+  // The navigation stack survives the GameProvider remount on a demo switch.
+  // Before the first navigation it belongs to no mode, so the start route
+  // comes from initialRoute.
+  const navigationStack = useRef<KeptStack>({ mode: null, stack: [] });
+  const rememberStack = useCallback((kept: KeptStack) => {
+    navigationStack.current = kept;
+  }, []);
   const setupOpen = useRef(false);
   const rememberSetup = useCallback((open: boolean) => {
     setupOpen.current = open;
@@ -123,9 +128,9 @@ function AppRuntime({
     () => backend ?? createBackend(capabilities.storage, backendConfig),
     [backend, capabilities.storage, backendConfig],
   );
-  const runs = useMemo(
-    () => runBackend ?? createLocalRunBackend(capabilities.storage),
-    [runBackend, capabilities.storage],
+  const sports = useMemo(
+    () => sportBackend ?? createLocalSportBackend(capabilities.storage),
+    [sportBackend, capabilities.storage],
   );
   const camera = useMemo(
     () =>
@@ -207,7 +212,7 @@ function AppRuntime({
                 backend={activeData}
                 today={today}
               >
-                <RunProvider backend={runs} today={today}>
+                <SportProvider backend={sports} today={today}>
                   <ModeShell
                     initialRoute={initialRoute}
                     navigationStack={navigationStack.current}
@@ -215,7 +220,7 @@ function AppRuntime({
                     setupOpen={setupOpen.current}
                     onSetupChange={rememberSetup}
                   />
-                </RunProvider>
+                </SportProvider>
               </GameProvider>
             </ScreenCornerContext.Provider>
           </SfxProvider>
@@ -227,9 +232,9 @@ function AppRuntime({
 
 /**
  * Draws the app in the active pet's world: the jungle for the monkey, the
- * savanna for the gazelle. Switching mode starts a fresh navigation stack on
- * that mode's profile. A stack kept across a demo remount is only restored
- * in the mode it belongs to.
+ * savanna for the gazelle, the ocean for the dolphin. Switching mode starts a
+ * fresh navigation stack on that mode's profile. A stack kept across a demo
+ * remount is only restored in the mode it belongs to.
  */
 function ModeShell({
   initialRoute,
@@ -239,27 +244,33 @@ function ModeShell({
   onSetupChange,
 }: {
   initialRoute: RouteName;
-  navigationStack: readonly NavigationEntry<RouteName>[];
-  onStackChange: (stack: readonly NavigationEntry<RouteName>[]) => void;
+  navigationStack: KeptStack;
+  onStackChange: (kept: KeptStack) => void;
   setupOpen: boolean;
   onSetupChange: (open: boolean) => void;
 }) {
-  const { mode, status } = useRun();
+  const { mode, status, sport } = useSport();
+  const rememberStack = useCallback(
+    (stack: readonly NavigationEntry<RouteName>[]) =>
+      onStackChange({ mode, stack }),
+    [mode, onStackChange],
+  );
   if (status === 'loading') {
     return null; // a quick storage read; avoids flashing the wrong world
   }
-  const gazelle = mode === 'gazelle';
+  const monkey = mode === 'monkey';
   // A deep link only applies when it belongs to the mode being shown.
   const start =
-    isGazelleRoute(initialRoute) === gazelle
+    isSportRoute(initialRoute) !== monkey
       ? initialRoute
-      : gazelle
-      ? 'Run'
-      : 'Profile';
+      : monkey
+      ? 'Profile'
+      : 'SportProfile';
+  // The gazelle and the dolphin share routes, so the kept stack is matched by
+  // mode, not by route.
   const kept =
-    navigationStack.length > 0 &&
-    isGazelleRoute(navigationStack[0].route) === gazelle
-      ? navigationStack
+    navigationStack.mode === mode && navigationStack.stack.length > 0
+      ? navigationStack.stack
       : undefined;
   const navigator = (
     <Navigator<RouteName>
@@ -267,16 +278,16 @@ function ModeShell({
       initialRoute={start}
       screens={screens}
       initialStack={kept}
-      onStackChange={onStackChange}
+      onStackChange={rememberStack}
     />
   );
   return (
-    <WorldContext.Provider value={gazelle ? 'savanna' : 'jungle'}>
+    <WorldContext.Provider
+      value={monkey ? 'jungle' : SPORT_VIEWS[sport.id].world}
+    >
       <View style={{ flex: 1 }}>
         <StatusGate>
-          {gazelle ? (
-            navigator
-          ) : (
+          {monkey ? (
             // Setup asks about climbing, so only the monkey runs it.
             <OnboardingGate
               restoreSetup={setupOpen}
@@ -284,6 +295,8 @@ function ModeShell({
             >
               {navigator}
             </OnboardingGate>
+          ) : (
+            navigator
           )}
         </StatusGate>
         <CelebrationOverlay />
