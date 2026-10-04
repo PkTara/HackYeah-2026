@@ -4,10 +4,6 @@ import {
   type Finger,
   type HandFlag,
   type HoldType,
-  type LegFlag,
-  type LegPart,
-  type RunType,
-  type Surface,
   type Movement,
   type Side,
   type Spot,
@@ -119,65 +115,3 @@ export function flagText(flag: HandFlag, today: string): string {
 }
 
 export const GRADES = ['V0', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7'] as const;
-
-// Gazelle mode.
-
-export const RUN_TYPE_NAME: Record<RunType, string> = {
-  easy: 'Easy',
-  tempo: 'Tempo',
-  long: 'Long',
-};
-
-export const RUN_TYPE_ICON: Record<RunType, IconName> = {
-  easy: 'easy',
-  tempo: 'tempo',
-  long: 'long',
-};
-
-/** One line on what each run type means, for the log form. */
-export const RUN_TYPE_HINT: Record<RunType, string> = {
-  easy: 'Relaxed, you could chat the whole way.',
-  tempo: 'Steady-hard, a few words at a time.',
-  long: 'Your longest run of the week, at an easy pace.',
-};
-
-export const SURFACE_NAME: Record<Surface, string> = {
-  road: 'Road',
-  trail: 'Trail',
-  track: 'Track',
-};
-
-export const SURFACE_ICON: Record<Surface, IconName> = {
-  road: 'road',
-  trail: 'trail',
-  track: 'track',
-};
-
-export const LEG_PART_NAME: Record<LegPart, string> = {
-  hip: 'Hip',
-  knee: 'Knee',
-  shin: 'Shin',
-  calf: 'Calf',
-  ankle: 'Ankle',
-  foot: 'Foot',
-};
-
-/** "Left knee" */
-export function legLabel(side: Side, part: LegPart): string {
-  return `${SIDE_NAME[side]} ${LEG_PART_NAME[part].toLowerCase()}`;
-}
-
-/** "Left knee. Flagged yesterday." */
-export function legFlagText(flag: LegFlag, today: string): string {
-  return `${legLabel(flag.side, flag.part)}. Flagged ${ageLabel(flag.date, today)}.`;
-}
-
-/** "5 km easy" or "12.5 km long" */
-export function runName(run: { km: number; type: RunType }): string {
-  return `${run.km} km ${RUN_TYPE_NAME[run.type].toLowerCase()}`;
-}
-
-/** Distances offered on the log form, in km. */
-export const RUN_DISTANCES = [3, 5, 8, 10, 12, 15, 18, 21.1, 25] as const;
-/** Moving times offered on the log form, in minutes. */
-export const RUN_MINUTES = [15, 20, 30, 40, 50, 60, 75, 90, 120] as const;

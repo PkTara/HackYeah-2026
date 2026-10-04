@@ -1,5 +1,6 @@
 import { mirror } from '../pixel/raster';
 import {
+  DOLPHIN_FRAMES,
   GAZELLE_FRAMES,
   HAND_HEIGHT,
   HAND_WIDTH,
@@ -247,7 +248,7 @@ describe('GAZELLE_FRAMES', () => {
 });
 
 describe('SPRITE_COLORS', () => {
-  it('has a colour for every key the monkey, hands and gazelle use', () => {
+  it('has a colour for every key the monkey, hands, gazelle and dolphin use', () => {
     const used = new Map<string, Set<string>>();
     const note = (name: string, rows: readonly string[]) => {
       for (const key of keysOf(rows)) {
@@ -269,6 +270,7 @@ describe('SPRITE_COLORS', () => {
       note(`${side} sore hand`, handRows(side, FINGERS));
     }
     GAZELLE_FRAMES.forEach((frame, i) => note(`gazelle ${i}`, frame));
+    DOLPHIN_FRAMES.forEach((frame, i) => note(`dolphin ${i}`, frame));
     const missing = [...used].map(
       ([key, names]) => `${key} in ${[...names].join(', ')}`,
     );

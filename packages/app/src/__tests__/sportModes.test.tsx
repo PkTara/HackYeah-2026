@@ -2,8 +2,8 @@ import ReactTestRenderer, { act } from 'react-test-renderer';
 import { sampleGame, type GameState } from '@hackyeah/core';
 import {
   MODE_STORAGE_KEY,
-  RUN_STORAGE_KEY,
   createLocalBackend,
+  sportStorageKey,
 } from '@hackyeah/data';
 import { createMemoryStore, type Capabilities } from '@hackyeah/platform';
 import { App } from '../App';
@@ -85,7 +85,7 @@ describe('gazelle mode', () => {
       'gazelle',
     );
     const saved = JSON.parse(
-      (await capabilities.storage.getItem(RUN_STORAGE_KEY)) ?? '{}',
+      (await capabilities.storage.getItem(sportStorageKey('run'))) ?? '{}',
     );
     expect(saved.completed).toEqual([
       'sample-run-first-log',
@@ -118,6 +118,81 @@ describe('gazelle mode', () => {
     await settle();
     const text = screenText(renderer);
     expect(text).toContain('Leg check-in');
+    expect(text).toContain('Paused');
+    act(() => renderer.unmount());
+  });
+});
+
+describe('dolphin mode', () => {
+  it('switches to the dolphin from the monkey and from the gazelle', async () => {
+    const renderer = await renderApp();
+    press(renderer, 'Switch to dolphin mode');
+    let text = screenText(renderer);
+    expect(text).toContain('Still head'); // backstroke is the sample focus
+    expect(text).toContain('Back');
+    expect(text).not.toContain('Quiet feet');
+
+    press(renderer, 'Switch to gazelle mode');
+    expect(screenText(renderer)).toContain('Even splits');
+    press(renderer, 'Switch to dolphin mode');
+    text = screenText(renderer);
+    expect(text).toContain('Still head');
+    act(() => renderer.unmount());
+  });
+
+  it('levels the dolphin on its own XP and unlocks the swim cap', async () => {
+    const capabilities = createFakeCapabilities();
+    const renderer = await renderApp(capabilities);
+    press(renderer, 'Switch to dolphin mode');
+
+    // The sample starts the dolphin at 30 XP. Two quests reach level 2.
+    press(renderer, 'Done');
+    press(renderer, 'Done');
+    expect(screenText(renderer)).toContain('swim cap');
+    press(renderer, 'Nice');
+    await settle();
+    expect(screenText(renderer)).toContain('Lvl 2');
+    act(() => renderer.unmount());
+
+    const swim = JSON.parse(
+      (await capabilities.storage.getItem(sportStorageKey('swim'))) ?? '{}',
+    );
+    expect(swim.completed).toContain('back-still-head');
+    // The gazelle has not moved.
+    expect(
+      await capabilities.storage.getItem(sportStorageKey('run')),
+    ).toBeNull();
+  });
+
+  it('logs a swim with pace per 100 m', async () => {
+    const renderer = await renderApp();
+    press(renderer, 'Switch to dolphin mode', 'Log');
+    press(
+      renderer,
+      'Free',
+      'Pool',
+      '1000 m',
+      '25 min',
+      'Finished',
+      'Save swim',
+    );
+    await settle();
+    expect(screenText(renderer)).toContain('2:30 /100 m');
+    act(() => renderer.unmount());
+  });
+
+  it('pauses swimming quests while a shoulder is flagged', async () => {
+    const renderer = await renderApp();
+    press(
+      renderer,
+      'Switch to dolphin mode',
+      'Body',
+      'Right shoulder',
+      'Profile',
+    );
+    await settle();
+    const text = screenText(renderer);
+    expect(text).toContain('Body check-in');
     expect(text).toContain('Paused');
     act(() => renderer.unmount());
   });

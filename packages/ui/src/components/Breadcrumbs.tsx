@@ -124,7 +124,7 @@ export function Breadcrumbs({ crumbs }: { crumbs: readonly Crumb[] }) {
               >
                 {(state: PressState) => (
                   <PixelBox
-                    fill={state.hovered ? '#8A5A33' : c.bark}
+                    fill={state.hovered ? c.barkLight : c.bark}
                     outline={state.focused ? c.primary : c.outline}
                     light={state.pressed ? undefined : '#8A5A33'}
                     shade={c.barkDark}

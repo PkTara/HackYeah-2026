@@ -1,10 +1,11 @@
 import { StyleSheet, View } from 'react-native';
-import { LEG_PARTS, type Side } from '@hackyeah/core';
+import type { Side } from '@hackyeah/core';
 import {
   AppText,
   Chip,
   Column,
   Columns,
+  Dolphin,
   Gazelle,
   Panel,
   PixelText,
@@ -12,44 +13,45 @@ import {
 } from '@hackyeah/ui';
 import { PageHeader } from '../../components/PageHeader';
 import { TabScreen } from '../../components/TabScreen';
-import { LEG_PART_NAME, SIDE_NAME, legFlagText, legLabel } from '../../labels';
-import { useRun } from '../../state/RunProvider';
+import { SIDE_NAME } from '../../labels';
+import { bodyFlagText, flagLabel } from '../../sports';
+import { useSport } from '../../state/SportProvider';
 
 const SIDES: readonly Side[] = ['left', 'right'];
 
 /**
- * The gazelle's version of the Hands tab: mark where a leg is sore. A flag
- * pauses running quests and offers a check-in instead. It is the runner's own
- * note, not a diagnosis, and never changes the running profile.
+ * The sport version of the Hands tab: mark where it is sore (legs for the
+ * gazelle, shoulders to ankles for the dolphin). A flag pauses quests that
+ * load the body and offers a check-in instead. It is the athlete's own note,
+ * not a diagnosis, and never changes the profile.
  */
-export function LegsScreen() {
-  const { state, today, setLegFlag } = useRun();
-  const flagged = (side: Side, part: (typeof LEG_PARTS)[number]) =>
-    state.legFlags.some(f => f.side === side && f.part === part);
+export function BodyScreen() {
+  const { sport, view, state, today, setFlag } = useSport();
+  const flagged = (side: Side, part: string) =>
+    state.flags.some(f => f.side === side && f.part === part);
+  const Pet = sport.pet === 'dolphin' ? Dolphin : Gazelle;
 
   return (
     <TabScreen>
       <PageHeader
-        title="Legs"
-        subtitle="Tap anywhere that is sore. The gazelle eases off until you clear it."
+        title={view.bodyTab}
+        subtitle={`Tap anywhere that is sore. The ${view.pet} eases off until you clear it.`}
       />
 
       <Columns>
         {SIDES.map(side => (
           <Column key={side}>
-            <Panel title={`${SIDE_NAME[side]} leg`}>
+            <Panel title={`${SIDE_NAME[side]} side`}>
               <View style={styles.grid}>
-                {LEG_PARTS.map(part => (
+                {sport.bodyParts.map(part => (
                   <View key={part} style={styles.cell}>
                     <Chip
-                      label={LEG_PART_NAME[part]}
+                      label={view.bodyPartName[part]}
                       selected={flagged(side, part)}
-                      accessibilityLabel={`${legLabel(side, part)}${
+                      accessibilityLabel={`${flagLabel(view, side, part)}${
                         flagged(side, part) ? ', flagged' : ''
                       }`}
-                      onPress={() =>
-                        setLegFlag(side, part, !flagged(side, part))
-                      }
+                      onPress={() => setFlag(side, part, !flagged(side, part))}
                     />
                   </View>
                 ))}
@@ -59,10 +61,10 @@ export function LegsScreen() {
         ))}
       </Columns>
 
-      <Panel variant={state.legFlags.length > 0 ? 'alert' : 'quiet'}>
-        {state.legFlags.length === 0 ? (
+      <Panel variant={state.flags.length > 0 ? 'alert' : 'quiet'}>
+        {state.flags.length === 0 ? (
           <View style={styles.inline}>
-            <Gazelle scale={2} still />
+            <Pet scale={2} still />
             <AppText style={styles.grow}>
               Nothing flagged. Every quest is open.
             </AppText>
@@ -70,13 +72,13 @@ export function LegsScreen() {
         ) : (
           <>
             <PixelText text="Flagged" />
-            {state.legFlags.map(f => (
+            {state.flags.map(f => (
               <AppText key={`${f.side}-${f.part}`}>
-                {legFlagText(f, today)}
+                {bodyFlagText(view, f, today)}
               </AppText>
             ))}
             <AppText variant="caption" muted>
-              Running quests are paused. Tap a spot again to clear it.
+              Quests that load it are paused. Tap a spot again to clear it.
             </AppText>
           </>
         )}

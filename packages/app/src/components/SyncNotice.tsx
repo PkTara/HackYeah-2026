@@ -1,15 +1,16 @@
 import { StyleSheet, View } from 'react-native';
 import { AppText, Button, PixelBox, useTheme, ToneContext } from '@hackyeah/ui';
 import { useGame } from '../state/GameProvider';
-import { useRun } from '../state/RunProvider';
+import { useSport } from '../state/SportProvider';
 
 /** A banner when a change could not be saved to the backend. */
 export function SyncNotice() {
   const theme = useTheme();
   const game = useGame();
-  const run = useRun();
-  // The active mode's notice; the other pet's screens are not showing.
-  const { syncError, dismissSyncError } = run.mode === 'gazelle' ? run : game;
+  const sport = useSport();
+  // The active mode's notice; the other pets' screens are not showing.
+  const { syncError, dismissSyncError } =
+    sport.mode === 'monkey' ? game : sport;
   if (!syncError) {
     return null;
   }
@@ -29,7 +30,12 @@ export function SyncNotice() {
           <AppText variant="caption" style={styles.text}>
             {syncError}
           </AppText>
-          <Button title="OK" small variant="secondary" onPress={dismissSyncError} />
+          <Button
+            title="OK"
+            small
+            variant="secondary"
+            onPress={dismissSyncError}
+          />
         </PixelBox>
       </ToneContext.Provider>
     </View>

@@ -2,11 +2,11 @@ import { useMemo } from 'react';
 import { View } from 'react-native';
 import {
   createBackend,
-  createLocalRunBackend,
+  createLocalSportBackend,
   createMedia,
   type ClimbingBackend,
   type MediaClient,
-  type RunBackend,
+  type SportBackend,
 } from '@hackyeah/data';
 import {
   capabilities as platformCapabilities,
@@ -20,9 +20,10 @@ import { StatusGate } from './components/StatusGate';
 import { SyncNotice } from './components/SyncNotice';
 import { Navigator } from './navigation/Navigator';
 import { OnboardingGate } from './onboarding/OnboardingGate';
-import { isGazelleRoute, screens, type RouteName } from './navigation/routes';
+import { isSportRoute, screens, type RouteName } from './navigation/routes';
 import { GameProvider } from './state/GameProvider';
-import { RunProvider, useRun } from './state/RunProvider';
+import { SPORT_VIEWS } from './sports';
+import { SportProvider, useSport } from './state/SportProvider';
 
 type Props = {
   /** Override platform services, e.g. with fakes in tests. */
@@ -33,10 +34,10 @@ type Props = {
    */
   backend?: ClimbingBackend;
   /**
-   * Gazelle mode's runs and the saved pet mode. Defaults to on-device
-   * storage; the server does not know about running yet.
+   * The sport modes' data (running, swimming) and the saved pet mode.
+   * Defaults to on-device storage; the server does not know these sports yet.
    */
-  runBackend?: RunBackend;
+  sportBackend?: SportBackend;
   /**
    * Camera uploads: pose analysis and hand photos. Defaults to createMedia()
    * (the server at API_BASE_URL, or none). Pass null for no server.
@@ -51,7 +52,7 @@ type Props = {
 export function App({
   capabilities = platformCapabilities,
   backend,
-  runBackend,
+  sportBackend,
   media,
   today,
   initialRoute = 'Profile',
@@ -60,9 +61,9 @@ export function App({
     () => backend ?? createBackend(capabilities.storage),
     [backend, capabilities.storage],
   );
-  const runs = useMemo(
-    () => runBackend ?? createLocalRunBackend(capabilities.storage),
-    [runBackend, capabilities.storage],
+  const sports = useMemo(
+    () => sportBackend ?? createLocalSportBackend(capabilities.storage),
+    [sportBackend, capabilities.storage],
   );
   const camera = useMemo(
     () => (media === undefined ? createMedia(capabilities.storage) : media),
@@ -72,9 +73,9 @@ export function App({
     <CapabilitiesContext.Provider value={capabilities}>
       <MediaContext.Provider value={camera}>
         <GameProvider backend={data} today={today}>
-          <RunProvider backend={runs} today={today}>
+          <SportProvider backend={sports} today={today}>
             <ModeShell initialRoute={initialRoute} />
-          </RunProvider>
+          </SportProvider>
         </GameProvider>
       </MediaContext.Provider>
     </CapabilitiesContext.Provider>
@@ -83,41 +84,36 @@ export function App({
 
 /**
  * Draws the app in the active pet's world: the jungle for the monkey, the
- * savanna for the gazelle. Switching mode starts a fresh navigation stack on
- * that mode's profile.
+ * savanna for the gazelle, the ocean for the dolphin. Switching mode starts a
+ * fresh navigation stack on that mode's profile.
  */
 function ModeShell({ initialRoute }: { initialRoute: RouteName }) {
-  const { mode, status } = useRun();
+  const { mode, status, sport } = useSport();
   if (status === 'loading') {
     return null; // a quick storage read; avoids flashing the wrong world
   }
-  const gazelle = mode === 'gazelle';
+  const monkey = mode === 'monkey';
   // A deep link only applies when it belongs to the mode being shown.
   const start =
-    isGazelleRoute(initialRoute) === gazelle
+    isSportRoute(initialRoute) !== monkey
       ? initialRoute
-      : gazelle
-      ? 'Run'
-      : 'Profile';
+      : monkey
+      ? 'Profile'
+      : 'SportProfile';
+  const navigator = (
+    <Navigator<RouteName> key={mode} initialRoute={start} screens={screens} />
+  );
   return (
-    <WorldContext.Provider value={gazelle ? 'savanna' : 'jungle'}>
+    <WorldContext.Provider
+      value={monkey ? 'jungle' : SPORT_VIEWS[sport.id].world}
+    >
       <View style={{ flex: 1 }}>
         <StatusGate>
-          {gazelle ? (
-            <Navigator<RouteName>
-              key={mode}
-              initialRoute={start}
-              screens={screens}
-            />
-          ) : (
+          {monkey ? (
             // Setup asks about climbing, so only the monkey runs it.
-            <OnboardingGate>
-              <Navigator<RouteName>
-                key={mode}
-                initialRoute={start}
-                screens={screens}
-              />
-            </OnboardingGate>
+            <OnboardingGate>{navigator}</OnboardingGate>
+          ) : (
+            navigator
           )}
         </StatusGate>
         <CelebrationOverlay />

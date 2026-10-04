@@ -1,29 +1,23 @@
 import { StyleSheet, View } from 'react-native';
 import {
-  SURFACES,
   XP_PER_LEVEL,
   XP_PER_QUEST,
-  paceText,
-  runTallies,
   shortDate,
-  surfaceTallies,
-  weekKm,
-  type RunType,
+  talliesBy,
+  weekDistance,
 } from '@hackyeah/core';
 import {
   AppText,
   Button,
   Column,
   Columns,
-  Gazelle,
   Icon,
   Meter,
-  Monkey,
   Panel,
   Pips,
   PixelText,
   RateTriangle,
-  SavannaHero,
+  SportHero,
   Tag,
   useContentWidth,
   useLayout,
@@ -31,99 +25,101 @@ import {
   type TriangleCorner,
   type TriangleStat,
 } from '@hackyeah/ui';
+import { PetsPanel } from '../../components/PetsPanel';
 import { TabScreen } from '../../components/TabScreen';
-import {
-  RUN_TYPE_ICON,
-  RUN_TYPE_NAME,
-  SURFACE_ICON,
-  SURFACE_NAME,
-  legFlagText,
-  runName,
-} from '../../labels';
 import { useNavigation } from '../../navigation/Navigator';
 import type { RouteName } from '../../navigation/routes';
-import { useGame } from '../../state/GameProvider';
-import { useRun } from '../../state/RunProvider';
+import { bodyFlagText, sessionName } from '../../sports';
+import { useSport } from '../../state/SportProvider';
 
 const STEPS = XP_PER_LEVEL / XP_PER_QUEST;
 
-// Clockwise from the top, like the monkey's walls.
-const CORNERS: readonly [
-  TriangleCorner<RunType>,
-  TriangleCorner<RunType>,
-  TriangleCorner<RunType>,
-] = [
-  { key: 'easy', name: 'Easy', icon: 'easy' },
-  { key: 'tempo', name: 'Tempo', icon: 'tempo' },
-  { key: 'long', name: 'Long', icon: 'long' },
-];
-
 /**
- * Gazelle mode's profile, laid out like the monkey's: level, then the one
- * focus and one quest on the left, the running profile on the right.
+ * A sport mode's profile (the gazelle's or the dolphin's), laid out like the
+ * monkey's: level, then the one focus and one quest on the left, the profile
+ * built from logged sessions on the right.
  */
-export function GazelleProfileScreen() {
+export function SportProfileScreen() {
   const theme = useTheme();
   const width = useContentWidth();
   const { navigate, reset } = useNavigation<RouteName>();
-  const { state, today, focus, quest, pet, completeQuest, skipQuest } =
-    useRun();
+  const {
+    sport,
+    view,
+    state,
+    today,
+    focus,
+    quest,
+    pet,
+    completeQuest,
+    skipQuest,
+  } = useSport();
   const wide = useLayout().columns === 2;
 
-  const types = runTallies(state.runs);
-  const surfaces = surfaceTallies(state.runs);
-  const stats = Object.fromEntries(
-    CORNERS.map(({ key }) => [
-      key,
-      {
-        logged: types[key].logged,
-        done: types[key].finished,
-        rate: types[key].rate,
-      },
+  const kinds = talliesBy(state.logs, 'kind', sport.kinds);
+  const places = talliesBy(state.logs, 'place', sport.places);
+  const corner = (k: string): TriangleCorner<string> => ({
+    key: k,
+    name: view.kindName[k],
+    icon: view.kindIcon[k],
+  });
+  const [top, right, left] = sport.kinds;
+  const corners = [corner(top), corner(right), corner(left)] as const;
+  const stats: Record<string, TriangleStat> = Object.fromEntries(
+    sport.kinds.map(k => [
+      k,
+      { logged: kinds[k].logged, done: kinds[k].finished, rate: kinds[k].rate },
     ]),
-  ) as Record<RunType, TriangleStat>;
-  const hasSample = state.runs.some(r => r.sample);
+  );
+  const hasSample = state.logs.some(l => l.sample);
   const questsToGo = STEPS - pet.xpInLevel / XP_PER_QUEST;
-  const recent = [...state.runs].reverse().slice(0, 4);
-  const focusName = RUN_TYPE_NAME[focus.type].toLowerCase();
+  const recent = [...state.logs].reverse().slice(0, 4);
+  const focusName = view.kindName[focus.sessionKind].toLowerCase();
 
   const recentPanel = (
     <Panel title="Recent" icon="log">
       {recent.length === 0 ? (
-        <AppText>No runs logged yet.</AppText>
+        <AppText>No {view.sessions} logged yet.</AppText>
       ) : (
-        recent.map(run => (
-          <View key={run.id} style={styles.inline}>
-            <Icon name={RUN_TYPE_ICON[run.type]} />
-            <View style={styles.grow}>
-              <AppText>
-                {runName(run)}, {SURFACE_NAME[run.surface].toLowerCase()}
-              </AppText>
-              <AppText variant="caption" muted>
-                {shortDate(run.date)}
-                {paceText(run.km, run.minutes)
-                  ? `, ${paceText(run.km, run.minutes)}`
-                  : ''}
-                {run.sample ? ' (example)' : ''}
-              </AppText>
+        recent.map(log => {
+          const pace = sport.pace(log.distance, log.minutes);
+          return (
+            <View key={log.id} style={styles.inline}>
+              <Icon name={view.kindIcon[log.kind]} />
+              <View style={styles.grow}>
+                <AppText>
+                  {sessionName(view, log)},{' '}
+                  {view.placeName[log.place].toLowerCase()}
+                </AppText>
+                <AppText variant="caption" muted>
+                  {shortDate(log.date)}
+                  {pace ? `, ${pace}` : ''}
+                  {log.sample ? ' (example)' : ''}
+                </AppText>
+              </View>
+              <Tag
+                text={log.finished ? 'Finished' : 'Cut short'}
+                tone={log.finished ? 'new' : 'muted'}
+              />
             </View>
-            <Tag
-              text={run.finished ? 'Finished' : 'Cut short'}
-              tone={run.finished ? 'new' : 'muted'}
-            />
-          </View>
-        ))
+          );
+        })
       )}
-      <Button title="Log a run" icon="log" onPress={() => reset('RunLog')} />
+      <Button
+        title={`Log a ${view.session}`}
+        icon="log"
+        onPress={() => reset('SportLog')}
+      />
     </Panel>
   );
 
   return (
     <TabScreen
       hero={
-        <SavannaHero
+        <SportHero
+          world={view.world}
           width={width}
-          title={'Running\nGazelle'}
+          title={view.title}
           step={pet.xpInLevel / XP_PER_QUEST}
           steps={STEPS}
           cosmetics={pet.cosmetics}
@@ -131,7 +127,7 @@ export function GazelleProfileScreen() {
         />
       }
     >
-      {/* Gazelle level and XP */}
+      {/* Pet level and XP */}
       <Panel variant="wood">
         <View style={styles.inlineWide}>
           <PixelText text={`Lvl ${pet.level}`} scale={4} heading />
@@ -162,37 +158,43 @@ export function GazelleProfileScreen() {
           {/* The one thing to work on */}
           <Panel variant="banana" title="Your focus">
             <View style={styles.inline}>
-              <Icon name={RUN_TYPE_ICON[focus.type]} scale={3} />
-              <PixelText text={RUN_TYPE_NAME[focus.type]} scale={4} heading />
+              <Icon name={view.kindIcon[focus.sessionKind]} scale={3} />
+              <PixelText
+                text={view.kindName[focus.sessionKind]}
+                scale={4}
+                heading
+              />
             </View>
             {focus.kind === 'practice' ? (
               <AppText>
                 You finished {focus.tally.finished} of the {focus.tally.logged}{' '}
-                {focusName} runs you logged as planned. That is your lowest of
-                the three run types.
+                {focusName} {view.sessions} you logged as planned. That is your
+                lowest of the three {view.kindPlural}.
               </AppText>
             ) : (
               <AppText>
                 Only {focus.tally.logged} {focusName}{' '}
-                {focus.tally.logged === 1 ? 'run' : 'runs'} logged. Log 3 and
-                the gazelle can compare it with the other run types.
+                {focus.tally.logged === 1 ? view.session : view.sessions}{' '}
+                logged. Log 3 and the {view.pet} can compare it with the others.
               </AppText>
             )}
             <AppText variant="caption" muted>
-              From your logged runs only. Not a race time prediction.
+              From your logged {view.sessions} only. {view.notA}
             </AppText>
             <Button
               title="View evidence"
               variant="secondary"
               small
-              onPress={() => navigate('RunEvidence', { type: focus.type })}
+              onPress={() =>
+                navigate('SportEvidence', { kind: focus.sessionKind })
+              }
             />
           </Panel>
 
-          {/* Quest from the gazelle */}
+          {/* Quest from the pet */}
           <Panel
             title="Quest"
-            icon="shoe"
+            icon={view.questIcon}
             badge={<Tag text={`+${XP_PER_QUEST} XP`} tone="new" />}
           >
             {quest.quest ? (
@@ -216,8 +218,8 @@ export function GazelleProfileScreen() {
               </>
             ) : (
               <AppText>
-                Nothing left for this focus. Log your next run and the gazelle
-                will find a new quest.
+                Nothing left for this focus. Log your next {view.session} and
+                the {view.pet} will find a new quest.
               </AppText>
             )}
 
@@ -234,7 +236,7 @@ export function GazelleProfileScreen() {
                 <Tag text="Paused" tone="paused" />
                 <AppText variant="caption">
                   {quest.paused.map(q => q.title).join(', ')} waits until your
-                  flagged leg is cleared. Running loads your legs.
+                  flagged spot is cleared. {view.loadNote}
                 </AppText>
               </View>
             ) : null}
@@ -246,7 +248,7 @@ export function GazelleProfileScreen() {
                     title="Done"
                     icon="check"
                     onPress={() => completeQuest(quest.quest!.id)}
-                    accessibilityHint={`Marks the quest done and gives your gazelle ${XP_PER_QUEST} XP`}
+                    accessibilityHint={`Marks the quest done and gives your ${view.pet} ${XP_PER_QUEST} XP`}
                   />
                 </View>
                 {quest.options.length > 1 ? (
@@ -263,22 +265,22 @@ export function GazelleProfileScreen() {
             ) : null}
           </Panel>
 
-          {/* Active leg flags change what the gazelle suggests */}
-          {state.legFlags.length > 0 ? (
-            <Panel variant="alert" title="Legs" icon="flag">
-              {state.legFlags.map(f => (
+          {/* Active flags change what the pet suggests */}
+          {state.flags.length > 0 ? (
+            <Panel variant="alert" title={view.bodyTab} icon="flag">
+              {state.flags.map(f => (
                 <AppText key={`${f.side}-${f.part}`}>
-                  {legFlagText(f, today)}
+                  {bodyFlagText(view, f, today)}
                 </AppText>
               ))}
               <AppText variant="caption" muted>
-                Running quests are paused. Your running profile stays the same.
+                Quests that load it are paused. Your profile stays the same.
               </AppText>
               <Button
-                title="Update legs"
+                title={`Update ${view.bodyTab.toLowerCase()}`}
                 variant="secondary"
                 small
-                onPress={() => reset('Legs')}
+                onPress={() => reset('SportBody')}
               />
             </Panel>
           ) : null}
@@ -287,55 +289,57 @@ export function GazelleProfileScreen() {
         </Column>
 
         <Column>
-          {/* Run type triangle */}
+          {/* Kind triangle */}
           <Panel
-            title="Runs"
+            title={
+              view.sessions.charAt(0).toUpperCase() + view.sessions.slice(1)
+            }
             badge={hasSample ? <Tag text="Example" /> : undefined}
           >
             <RateTriangle
-              corners={CORNERS}
+              corners={corners}
               stats={stats}
               verb="finished"
-              unit="runs"
-              focus={focus.type}
-              onSelect={t => navigate('RunEvidence', { type: t })}
+              unit={view.sessions}
+              focus={focus.sessionKind}
+              onSelect={k => navigate('SportEvidence', { kind: k })}
             />
             <AppText variant="caption" muted>
-              Each corner grows with the share of logged runs you finished as
-              planned. Tap a corner to see the runs.
+              Each corner grows with the share of logged {view.sessions} you
+              finished as planned. Tap a corner to see them.
             </AppText>
           </Panel>
 
-          {/* Distance and surfaces */}
-          <Panel title="Ground">
+          {/* Distance and places */}
+          <Panel title={view.placeLabel}>
             <View style={styles.between}>
               <PixelText text="This week" />
               <AppText variant="caption" muted>
-                {weekKm(state.runs, today)} km in 7 days
+                {weekDistance(state.logs, today)} {view.unit} in 7 days
               </AppText>
             </View>
-            {SURFACES.map(s => (
-              <View key={s} style={styles.surface}>
+            {sport.places.map(p => (
+              <View key={p} style={styles.place}>
                 <View style={styles.between}>
                   <View style={styles.fact}>
-                    <Icon name={SURFACE_ICON[s]} />
-                    <PixelText text={SURFACE_NAME[s]} />
+                    <Icon name={view.placeIcon[p]} />
+                    <PixelText text={view.placeName[p]} />
                   </View>
                   <AppText variant="caption" muted>
-                    {surfaces[s].finished} of {surfaces[s].logged} finished,{' '}
-                    {surfaces[s].km} km
+                    {places[p].finished} of {places[p].logged} finished,{' '}
+                    {places[p].distance} {view.unit}
                   </AppText>
                 </View>
                 <Pips
-                  results={state.runs
-                    .filter(r => r.surface === s)
-                    .map(r => r.finished)}
-                  accessibilityLabel={`${SURFACE_NAME[s]}: ${surfaces[s].finished} of ${surfaces[s].logged} finished`}
+                  results={state.logs
+                    .filter(l => l.place === p)
+                    .map(l => l.finished)}
+                  accessibilityLabel={`${view.placeName[p]}: ${places[p].finished} of ${places[p].logged} finished`}
                 />
               </View>
             ))}
             <AppText variant="caption" muted>
-              Where you ran, one square per run. Filled squares were finished as
+              One square per {view.session}. Filled squares were finished as
               planned.
             </AppText>
           </Panel>
@@ -346,68 +350,27 @@ export function GazelleProfileScreen() {
         </Column>
       </Columns>
 
-      <ResetRuns />
+      <ResetSport />
     </TabScreen>
   );
 }
 
-/** One pet per sport. The gazelle is active here; tap to go back to the monkey. */
-function PetsPanel() {
-  const { pet: monkey } = useGame();
-  const { pet, setMode } = useRun();
-  return (
-    <Panel title="Pets">
-      <View style={styles.pets}>
-        <View style={styles.pet}>
-          <View style={styles.petArt}>
-            <Monkey scale={2} cosmetics={monkey.cosmetics} still />
-          </View>
-          <PixelText text="Monkey" />
-          <AppText variant="caption" muted>
-            Climbing, level {monkey.level}
-          </AppText>
-          <Button
-            title="Climb"
-            variant="secondary"
-            small
-            onPress={() => setMode('monkey')}
-            accessibilityLabel="Switch to monkey mode"
-          />
-        </View>
-        <View style={styles.pet}>
-          <View style={styles.petArt}>
-            <Gazelle scale={2} cosmetics={pet.cosmetics} still />
-          </View>
-          <PixelText text="Gazelle" />
-          <AppText variant="caption" muted>
-            Running, level {pet.level}
-          </AppText>
-          {/* Wrapped so the tag centres like the rest of the column. */}
-          <View>
-            <Tag text="Active" tone="new" />
-          </View>
-        </View>
-      </View>
-    </Panel>
-  );
-}
-
-/** Clears gazelle mode only, in one tap; the monkey's profile is untouched. */
-function ResetRuns() {
-  const { resetRuns } = useRun();
+/** Clears this pet only, in one tap; the other pets keep everything. */
+function ResetSport() {
+  const { view, resetSport } = useSport();
   return (
     <Panel variant="quiet">
       <View style={styles.inline}>
         <AppText variant="caption" style={styles.grow}>
-          Start the gazelle over: deletes your runs, leg flags and gazelle
-          quests. The monkey keeps everything.
+          Start the {view.pet} over: deletes your {view.sessions}, flagged spots
+          and {view.pet} quests. The other pets keep everything.
         </AppText>
         <Button
-          title="Reset runs"
+          title={`Reset ${view.sessions}`}
           icon="bin"
           variant="secondary"
           small
-          onPress={resetRuns}
+          onPress={resetSport}
         />
       </View>
     </Panel>
@@ -429,8 +392,5 @@ const styles = StyleSheet.create({
   fact: { flexDirection: 'row', gap: 6, alignItems: 'center' },
   paused: { borderWidth: 3, padding: 10, gap: 6 },
   choices: { flexDirection: 'row', gap: 10 },
-  surface: { gap: 6 },
-  pets: { flexDirection: 'row', gap: 12 },
-  pet: { flex: 1, alignItems: 'center', gap: 6 },
-  petArt: { height: 60, justifyContent: 'flex-end' },
+  place: { gap: 6 },
 });

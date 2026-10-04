@@ -21,6 +21,7 @@ export {
   type FingerMapSpot,
   type FingerPart,
 } from './components/FingerMap';
+export { Dolphin } from './components/Dolphin';
 export { Gazelle } from './components/Gazelle';
 export { Icon } from './components/Icon';
 export { JungleHero } from './components/JungleHero';
@@ -34,7 +35,7 @@ export { Panel, type PanelVariant } from './components/Panel';
 export { PixelArt } from './components/PixelArt';
 export { PixelBox } from './components/PixelBox';
 export { PixelText } from './components/PixelText';
-export { SavannaHero } from './components/SavannaHero';
+export { SportHero } from './components/SportHero';
 export { Screen } from './components/Screen';
 export {
   Column,

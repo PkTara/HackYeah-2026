@@ -23,6 +23,7 @@ const palette = {
     leaf: '#3E8E4A',
     leafLight: '#7BC255',
     bark: '#6B4423',
+    barkLight: '#8A5A33',
     barkDark: '#4A2E17',
     danger: '#C93A27',
     onDanger: '#FFFFFF',
@@ -48,6 +49,7 @@ const palette = {
     leaf: '#4FA35B',
     leafLight: '#8CD066',
     bark: '#7A5030',
+    barkLight: '#8A5A33',
     barkDark: '#4A2E17',
     danger: '#FF7A61',
     onDanger: '#22180F',
@@ -96,8 +98,51 @@ const savanna = {
   },
 } as const;
 
-/** Which world the app is drawn in: the monkey's jungle or the gazelle's savanna. */
-export type World = 'jungle' | 'savanna';
+/**
+ * Ocean palette for dolphin mode: deep water behind everything, cream signs
+ * by day and dark sea-blue signs by night. The key colour is coral.
+ */
+const ocean = {
+  light: {
+    ...palette.light,
+    background: '#17507A', // open water behind everything
+    backgroundDeep: '#0C3352',
+    onBackground: '#FFF4DC',
+    onBackgroundMuted: '#A9D6EE',
+    surfaceShade: '#E2E0CC',
+    textMuted: '#4F5A60',
+    primary: '#FF8A65', // coral
+    primaryShade: '#D9603C',
+    leaf: '#2E9C8A', // sea green
+    leafLight: '#6FD3C0',
+    bark: '#3E5F7A', // weathered dock wood
+    barkLight: '#5A7C98',
+    barkDark: '#263F55',
+    chartEdge: '#17507A',
+  },
+  dark: {
+    ...palette.dark,
+    background: '#0A2236',
+    backgroundDeep: '#04121E',
+    onBackground: '#F4E9CF',
+    onBackgroundMuted: '#8EB8CF',
+    surface: '#163A55',
+    surfaceLight: '#1F4A6A',
+    surfaceShade: '#0F2B40',
+    textMuted: '#A9C3D2',
+    primary: '#FF8A65',
+    primaryShade: '#C9542F',
+    leaf: '#2E9C8A',
+    leafLight: '#6FD3C0',
+    bark: '#3E5F7A',
+    barkLight: '#5A7C98',
+    barkDark: '#263F55',
+    chartEdge: '#A9E4F5',
+  },
+} as const;
+
+/** Which world the app is drawn in: one per pet. */
+export type World = 'jungle' | 'savanna' | 'ocean';
 
 /** The app sets this from the pet mode; every themed component follows. */
 export const WorldContext = createContext<World>('jungle');
@@ -127,7 +172,12 @@ export type Theme = {
 };
 
 export function getTheme(scheme: ColorScheme, world: World = 'jungle'): Theme {
-  const colors = world === 'savanna' ? savanna[scheme] : palette[scheme];
+  const colors =
+    world === 'savanna'
+      ? savanna[scheme]
+      : world === 'ocean'
+        ? ocean[scheme]
+        : palette[scheme];
   return { scheme, colors, spacing, radius, typography };
 }
 

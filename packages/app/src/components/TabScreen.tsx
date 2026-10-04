@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { XP_PER_LEVEL, XP_PER_QUEST } from '@hackyeah/core';
 import {
   AppText,
+  Dolphin,
   Gazelle,
   Meter,
   Monkey,
@@ -10,17 +11,24 @@ import {
   PixelText,
   Screen,
   TabBar,
+  type IconName,
   type Tab,
 } from '@hackyeah/ui';
 import { useNavigation } from '../navigation/Navigator';
 import type { RouteName } from '../navigation/routes';
 import { trailFor } from '../navigation/trail';
 import { useGame } from '../state/GameProvider';
-import { useRun } from '../state/RunProvider';
+import { useSport } from '../state/SportProvider';
 
 type TabRoute = Extract<
   RouteName,
-  'Profile' | 'Log' | 'Hands' | 'Tests' | 'Run' | 'RunLog' | 'Legs'
+  | 'Profile'
+  | 'Log'
+  | 'Hands'
+  | 'Tests'
+  | 'SportProfile'
+  | 'SportLog'
+  | 'SportBody'
 >;
 
 const TABS: readonly Tab<TabRoute>[] = [
@@ -30,11 +38,19 @@ const TABS: readonly Tab<TabRoute>[] = [
   { key: 'Tests', label: 'Tests', icon: 'tests' },
 ];
 
-/** Gazelle mode: same shape, with Legs in place of Hands and no Tests yet. */
-const GAZELLE_TABS: readonly Tab<TabRoute>[] = [
-  { key: 'Run', label: 'Profile', icon: 'profile' },
-  { key: 'RunLog', label: 'Log', icon: 'log' },
-  { key: 'Legs', label: 'Legs', icon: 'shoe' },
+/** A sport mode: same shape, with its sore-spot tab in place of Hands. */
+function sportTabs(bodyTab: string, bodyIcon: IconName): Tab<TabRoute>[] {
+  return [
+    { key: 'SportProfile', label: 'Profile', icon: 'profile' },
+    { key: 'SportLog', label: 'Log', icon: 'log' },
+    { key: 'SportBody', label: bodyTab, icon: bodyIcon },
+  ];
+}
+
+const SPORT_TAB_KEYS: readonly RouteName[] = [
+  'SportProfile',
+  'SportLog',
+  'SportBody',
 ];
 
 type Props = {
@@ -43,7 +59,8 @@ type Props = {
 };
 
 const isTab = (route: RouteName | undefined): route is TabRoute =>
-  [...TABS, ...GAZELLE_TABS].some(t => t.key === route);
+  route !== undefined &&
+  (TABS.some(t => t.key === route) || SPORT_TAB_KEYS.includes(route));
 
 /**
  * Screen with app navigation: a tab bar at the bottom on phones, a side rail
@@ -52,14 +69,15 @@ const isTab = (route: RouteName | undefined): route is TabRoute =>
  */
 export function TabScreen({ children, hero }: Props) {
   const { root, reset } = useNavigation<RouteName>();
-  const { mode } = useRun();
-  const tabs = mode === 'gazelle' ? GAZELLE_TABS : TABS;
+  const { mode, view } = useSport();
+  const tabs =
+    mode === 'monkey' ? TABS : sportTabs(view.bodyTab, view.bodyIcon);
   const home = trailFor(root, {})[0]?.route;
   const active: TabRoute = isTab(root)
     ? root
     : isTab(home)
-      ? home
-      : tabs[0].key;
+    ? home
+    : tabs[0].key;
   return (
     <Screen
       hero={hero}
@@ -81,16 +99,18 @@ export function TabScreen({ children, hero }: Props) {
 
 function RailHeader() {
   const { pet } = useGame();
-  const { mode, pet: gazelle } = useRun();
+  const { mode, view, pet: sportPet } = useSport();
   return (
     <View style={{ gap: 10 }}>
       {mode === 'gazelle' ? (
-        <Gazelle scale={3} cosmetics={gazelle.cosmetics} />
+        <Gazelle scale={3} cosmetics={sportPet.cosmetics} />
+      ) : mode === 'dolphin' ? (
+        <Dolphin scale={3} cosmetics={sportPet.cosmetics} />
       ) : (
         <Monkey scale={3} cosmetics={pet.cosmetics} />
       )}
       <PixelText
-        text={mode === 'gazelle' ? 'Running\nGazelle' : 'Climbing\nMonkey'}
+        text={mode === 'monkey' ? 'Climbing\nMonkey' : view.title}
         heading
         scale={3}
         shadow="#22180F"
@@ -102,8 +122,8 @@ function RailHeader() {
 /** The active pet's level, at the bottom of the rail. */
 function RailLevel() {
   const { pet: monkey } = useGame();
-  const { mode, pet: gazelle } = useRun();
-  const pet = mode === 'gazelle' ? gazelle : monkey;
+  const { mode, pet: sportPet } = useSport();
+  const pet = mode === 'monkey' ? monkey : sportPet;
   const steps = XP_PER_LEVEL / XP_PER_QUEST;
   return (
     <View style={{ gap: 6 }}>

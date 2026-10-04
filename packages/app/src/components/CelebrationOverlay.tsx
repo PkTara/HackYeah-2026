@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import {
   AppText,
   Button,
+  Dolphin,
   Gazelle,
   Monkey,
   Panel,
@@ -11,7 +12,7 @@ import {
   useTheme,
 } from '@hackyeah/ui';
 import { useGame } from '../state/GameProvider';
-import { useRun } from '../state/RunProvider';
+import { useSport } from '../state/SportProvider';
 
 /**
  * Reward feedback after a quest. Plain XP shows a short toast; a level-up
@@ -21,9 +22,10 @@ export function CelebrationOverlay() {
   const theme = useTheme();
   const width = useContentWidth();
   const game = useGame();
-  const run = useRun();
-  const gazelle = run.mode === 'gazelle';
-  const { celebration, dismissCelebration, pet } = gazelle ? run : game;
+  const sport = useSport();
+  const monkey = sport.mode === 'monkey';
+  const { celebration, dismissCelebration, pet } = monkey ? game : sport;
+  const petName = monkey ? 'monkey' : sport.view.pet;
 
   useEffect(() => {
     if (celebration && !celebration.level) {
@@ -64,7 +66,7 @@ export function CelebrationOverlay() {
       style={[
         StyleSheet.absoluteFill,
         styles.dim,
-        gazelle ? styles.dimSavanna : null,
+        monkey ? null : { backgroundColor: DIM[sport.view.world] },
       ]}
     >
       <View style={{ width: Math.min(width, 420) - 32 }}>
@@ -76,12 +78,19 @@ export function CelebrationOverlay() {
               heading
               shadow={theme.colors.primaryShade}
             />
-            {gazelle ? (
+            {sport.mode === 'gazelle' ? (
               <Gazelle
                 scale={5}
                 cosmetics={pet.cosmetics}
                 celebrate
                 accessibilityLabel="Your gazelle, leaping"
+              />
+            ) : sport.mode === 'dolphin' ? (
+              <Dolphin
+                scale={4}
+                cosmetics={pet.cosmetics}
+                celebrate
+                accessibilityLabel="Your dolphin, leaping"
               />
             ) : (
               <Monkey
@@ -93,10 +102,10 @@ export function CelebrationOverlay() {
             )}
             <AppText style={{ textAlign: 'center' }}>
               {celebration.unlocked
-                ? `Your ${gazelle ? 'gazelle' : 'monkey'} found a ${celebration.unlocked.toLowerCase()}. It is wearing it now.`
-                : gazelle
-                  ? 'Your gazelle crossed the finish line onto a new stretch of savanna.'
-                  : 'Your monkey climbed into a new part of the canopy.'}
+                ? `Your ${petName} found a ${celebration.unlocked.toLowerCase()}. It is wearing it now.`
+                : monkey
+                ? 'Your monkey climbed into a new part of the canopy.'
+                : sport.view.levelUp}
             </AppText>
             <Button title="Nice" onPress={dismissCelebration} />
           </View>
@@ -105,6 +114,12 @@ export function CelebrationOverlay() {
     </View>
   );
 }
+
+/** The level-up backdrop in each sport's world (the jungle's is in styles). */
+const DIM = {
+  savanna: 'rgba(20, 11, 6, 0.72)',
+  ocean: 'rgba(4, 18, 30, 0.72)',
+} as const;
 
 const styles = StyleSheet.create({
   toastWrap: {
@@ -120,5 +135,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dimSavanna: { backgroundColor: 'rgba(20, 11, 6, 0.72)' },
 });

@@ -1,13 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import {
-  RUN_TYPES,
-  SURFACES,
-  paceText,
-  type RunLog,
-  type RunType,
-  type Surface,
-} from '@hackyeah/core';
+import type { SessionLog } from '@hackyeah/core';
 import {
   AppText,
   Button,
@@ -22,45 +15,29 @@ import {
 import { useCapabilities } from '../../capabilities';
 import { PageHeader } from '../../components/PageHeader';
 import { TabScreen } from '../../components/TabScreen';
-import {
-  RUN_DISTANCES,
-  RUN_MINUTES,
-  RUN_TYPE_HINT,
-  RUN_TYPE_ICON,
-  RUN_TYPE_NAME,
-  SURFACE_ICON,
-  SURFACE_NAME,
-  runName,
-} from '../../labels';
 import { useNavigation } from '../../navigation/Navigator';
 import type { RouteName } from '../../navigation/routes';
-import { useRun } from '../../state/RunProvider';
+import { sessionName } from '../../sports';
+import { useSport } from '../../state/SportProvider';
 
 /** How long "Saved: ..." stays under the button. */
 const CONFIRM_MS = 2500;
 
-type Draft = Omit<RunLog, 'id' | 'date'>;
-
-/** "5 km easy, road, 6:12 /km" */
-function describe(run: Draft) {
-  const pace = paceText(run.km, run.minutes);
-  return `${runName(run)}, ${SURFACE_NAME[run.surface].toLowerCase()}${
-    pace ? `, ${pace}` : ''
-  }`;
-}
+type Draft = Omit<SessionLog, 'id' | 'date'>;
 
 /**
- * Post-run check-in, the gazelle's version of the climb log: pick run type,
- * ground, distance, time and whether it went as planned, then save.
+ * Post-session check-in, the sport version of the climb log: pick the kind
+ * (run type or stroke), where, distance, time and whether it went as
+ * planned, then save.
  */
-export function RunLogScreen() {
+export function SportLogScreen() {
   const { reset } = useNavigation<RouteName>();
   const { haptics } = useCapabilities();
-  const { state, today, logRun, removeRun } = useRun();
+  const { sport, view, state, today, logSession, removeSession } = useSport();
 
-  const [type, setType] = useState<RunType | null>(null);
-  const [surface, setSurface] = useState<Surface | null>(null);
-  const [km, setKm] = useState<number | null>(null);
+  const [kind, setKind] = useState<string | null>(null);
+  const [place, setPlace] = useState<string | null>(null);
+  const [distance, setDistance] = useState<number | null>(null);
   const [minutes, setMinutes] = useState<number | null>(null);
   const [finished, setFinished] = useState<boolean | null>(null);
   const [saved, setSaved] = useState<Draft | null>(null);
@@ -73,14 +50,22 @@ export function RunLogScreen() {
     return () => clearTimeout(timer);
   }, [saved]);
 
+  /** "5 km easy, road, 6:12 /km" */
+  const describe = (log: Draft) => {
+    const pace = sport.pace(log.distance, log.minutes);
+    return `${sessionName(view, log)}, ${view.placeName[
+      log.place
+    ].toLowerCase()}${pace ? `, ${pace}` : ''}`;
+  };
+
   const draft: Draft | null =
-    type && surface && km && minutes && finished !== null
-      ? { type, surface, km, minutes, finished }
+    kind && place && distance && minutes && finished !== null
+      ? { kind, place, distance, minutes, finished }
       : null;
   const missing = [
-    !type && 'run type',
-    !surface && 'ground',
-    !km && 'distance',
+    !kind && view.kindLabel.toLowerCase(),
+    !place && view.placeLabel.toLowerCase(),
+    !distance && 'distance',
     !minutes && 'time',
     finished === null && 'result',
   ].filter(Boolean);
@@ -89,50 +74,50 @@ export function RunLogScreen() {
     if (!draft) {
       return;
     }
-    logRun(draft);
+    logSession(draft);
     haptics.tap();
     setSaved(draft);
     setFinished(null);
   };
 
-  const todays = state.runs.filter(run => run.date === today).reverse();
+  const todays = state.logs.filter(log => log.date === today).reverse();
 
   return (
     <TabScreen>
-      <PageHeader title="Log" subtitle="Tap it in while you cool down." />
+      <PageHeader title="Log" subtitle={view.logSubtitle} />
 
       <Columns>
         <Column>
-          <Panel title="Log a run">
+          <Panel title={`Log a ${view.session}`}>
             <View style={styles.form}>
-              <Group label="Run type">
+              <Group label={view.kindLabel}>
                 <View style={styles.row}>
-                  {RUN_TYPES.map(t => (
-                    <View key={t} style={styles.cell}>
+                  {sport.kinds.map(k => (
+                    <View key={k} style={styles.cell}>
                       <Chip
                         tall
-                        icon={RUN_TYPE_ICON[t]}
-                        label={RUN_TYPE_NAME[t]}
-                        selected={type === t}
-                        onPress={() => setType(t)}
+                        icon={view.kindIcon[k]}
+                        label={view.kindName[k]}
+                        selected={kind === k}
+                        onPress={() => setKind(k)}
                       />
                     </View>
                   ))}
                 </View>
                 <AppText variant="caption" muted>
-                  {type ? RUN_TYPE_HINT[type] : 'Pick the one that fits best.'}
+                  {kind ? view.kindHint[kind] : 'Pick the one that fits best.'}
                 </AppText>
               </Group>
 
-              <Group label="Ground">
+              <Group label={view.placeLabel}>
                 <View style={styles.row}>
-                  {SURFACES.map(s => (
-                    <View key={s} style={styles.cell}>
+                  {sport.places.map(p => (
+                    <View key={p} style={styles.cell}>
                       <Chip
-                        icon={SURFACE_ICON[s]}
-                        label={SURFACE_NAME[s]}
-                        selected={surface === s}
-                        onPress={() => setSurface(s)}
+                        icon={view.placeIcon[p]}
+                        label={view.placeName[p]}
+                        selected={place === p}
+                        onPress={() => setPlace(p)}
                       />
                     </View>
                   ))}
@@ -141,12 +126,12 @@ export function RunLogScreen() {
 
               <Group label="Distance">
                 <View style={[styles.row, styles.wrap]}>
-                  {RUN_DISTANCES.map(d => (
+                  {view.distances.map(d => (
                     <View key={d} style={styles.numberCell}>
                       <Chip
-                        label={`${d} km`}
-                        selected={km === d}
-                        onPress={() => setKm(d)}
+                        label={`${d} ${view.unit}`}
+                        selected={distance === d}
+                        onPress={() => setDistance(d)}
                       />
                     </View>
                   ))}
@@ -155,7 +140,7 @@ export function RunLogScreen() {
 
               <Group label="Time">
                 <View style={[styles.row, styles.wrap]}>
-                  {RUN_MINUTES.map(m => (
+                  {view.minutes.map(m => (
                     <View key={m} style={styles.numberCell}>
                       <Chip
                         label={`${m} min`}
@@ -188,14 +173,14 @@ export function RunLogScreen() {
                   </View>
                 </View>
                 <AppText variant="caption" muted>
-                  Finished means you ran it as planned. Cutting short is fine,
-                  it just tells the gazelle what to help with.
+                  Finished means you did it as planned. Cutting short is fine,
+                  it just tells the {view.pet} what to help with.
                 </AppText>
               </Group>
             </View>
 
             <Button
-              title="Save run"
+              title={`Save ${view.session}`}
               icon="check"
               disabled={!draft}
               onPress={save}
@@ -209,7 +194,7 @@ export function RunLogScreen() {
                   <View style={styles.inline}>
                     <Icon name="check" />
                     <AppText variant="caption">
-                      Saved: {runName(saved)},{' '}
+                      Saved: {sessionName(view, saved)},{' '}
                       {saved.finished ? 'finished' : 'cut short'}.
                     </AppText>
                   </View>
@@ -227,24 +212,24 @@ export function RunLogScreen() {
         <Column>
           <Panel title="Today" icon="log">
             {todays.length === 0 ? (
-              <AppText>No runs logged today yet.</AppText>
+              <AppText>No {view.sessions} logged today yet.</AppText>
             ) : (
-              todays.map(run => (
-                <View key={run.id} style={styles.inline}>
-                  <Icon name={RUN_TYPE_ICON[run.type]} />
+              todays.map(log => (
+                <View key={log.id} style={styles.inline}>
+                  <Icon name={view.kindIcon[log.kind]} />
                   <View style={styles.rowText}>
-                    <AppText>{describe(run)}</AppText>
+                    <AppText>{describe(log)}</AppText>
                     <Tag
-                      text={run.finished ? 'Finished' : 'Cut short'}
-                      tone={run.finished ? 'new' : 'muted'}
+                      text={log.finished ? 'Finished' : 'Cut short'}
+                      tone={log.finished ? 'new' : 'muted'}
                     />
                   </View>
                   <Button
                     title="Remove"
                     variant="secondary"
                     small
-                    accessibilityLabel={`Remove ${describe(run)}`}
-                    onPress={() => removeRun(run.id)}
+                    accessibilityLabel={`Remove ${describe(log)}`}
+                    onPress={() => removeSession(log.id)}
                   />
                 </View>
               ))
@@ -253,13 +238,13 @@ export function RunLogScreen() {
 
           <Panel variant="quiet">
             <View style={styles.inline}>
-              <AppText style={styles.grow}>Legs feeling it?</AppText>
+              <AppText style={styles.grow}>Anything sore?</AppText>
               <Button
-                title="Check legs"
+                title={`Check ${view.bodyTab.toLowerCase()}`}
                 variant="secondary"
                 small
-                onPress={() => reset('Legs')}
-                accessibilityHint="Opens the Legs tab"
+                onPress={() => reset('SportBody')}
+                accessibilityHint={`Opens the ${view.bodyTab} tab`}
               />
             </View>
           </Panel>
@@ -285,7 +270,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 8 },
   wrap: { flexWrap: 'wrap' },
   cell: { flex: 1 },
-  // Three or four per row on any phone width.
+  // Three per row on any phone width.
   numberCell: { flexBasis: '28%', flexGrow: 1 },
   status: { minHeight: 24, justifyContent: 'center' },
   inline: { flexDirection: 'row', alignItems: 'center', gap: 10 },

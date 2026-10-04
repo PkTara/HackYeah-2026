@@ -10,10 +10,10 @@ import { HomeTestScreen } from '../screens/HomeTestScreen';
 import { LogScreen } from '../screens/LogScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { TestsScreen } from '../screens/TestsScreen';
-import { GazelleProfileScreen } from '../screens/gazelle/GazelleProfileScreen';
-import { LegsScreen } from '../screens/gazelle/LegsScreen';
-import { RunEvidenceScreen } from '../screens/gazelle/RunEvidenceScreen';
-import { RunLogScreen } from '../screens/gazelle/RunLogScreen';
+import { BodyScreen } from '../screens/sport/BodyScreen';
+import { SportEvidenceScreen } from '../screens/sport/SportEvidenceScreen';
+import { SportLogScreen } from '../screens/sport/SportLogScreen';
+import { SportProfileScreen } from '../screens/sport/SportProfileScreen';
 
 export const screens = {
   // Tabs
@@ -34,22 +34,27 @@ export const screens = {
   /** Hand journal photo. Optional params: side and finger, to start there. */
   HandCapture: HandCaptureScreen,
 
-  // Gazelle mode tabs
-  Run: GazelleProfileScreen,
-  RunLog: RunLogScreen,
-  Legs: LegsScreen,
-  // Pushed on top of a gazelle tab
-  /** Params: type, a run type from core's RUN_TYPES. */
-  RunEvidence: RunEvidenceScreen,
+  // Sport mode tabs (gazelle and dolphin). They show the active sport.
+  SportProfile: SportProfileScreen,
+  SportLog: SportLogScreen,
+  SportBody: BodyScreen,
+  // Pushed on top of a sport tab
+  /** Params: kind, one of the active sport's three kinds. */
+  SportEvidence: SportEvidenceScreen,
 } satisfies Record<string, ComponentType>;
 
 export type RouteName = keyof typeof screens;
 
-/** Routes that belong to gazelle mode; everything else is the monkey's. */
-const GAZELLE_ROUTES: readonly RouteName[] = ['Run', 'RunLog', 'Legs', 'RunEvidence'];
+/** Routes of the sport modes; everything else is the monkey's. */
+const SPORT_ROUTES: readonly RouteName[] = [
+  'SportProfile',
+  'SportLog',
+  'SportBody',
+  'SportEvidence',
+];
 
-export function isGazelleRoute(name: RouteName): boolean {
-  return GAZELLE_ROUTES.includes(name);
+export function isSportRoute(name: RouteName): boolean {
+  return SPORT_ROUTES.includes(name);
 }
 
 export function isRouteName(name: string): name is RouteName {
