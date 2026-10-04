@@ -63,6 +63,42 @@ export function TestsScreen() {
       <Columns>
         <Column>
           <AppText variant="caption" muted>
+            Strength
+          </AppText>
+          {homeRows(['pull-ups', 'push-ups', 'plank', 'one-leg-balance'])}
+        </Column>
+        <Column>
+          <AppText variant="caption" muted>
+            Flexibility
+          </AppText>
+          <AssessmentSummary
+            compact
+            records={state.assessments}
+            metrics={[
+              'leg_spread',
+              'shoulder_reach_left',
+              'shoulder_reach_right',
+            ]}
+            onOpen={metric => navigate('MeasurementDetail', { metric })}
+          />
+          {homeRows(['sit-and-reach'])}
+        </Column>
+        <Column>
+          <AppText variant="caption" muted>
+            Finger strength
+          </AppText>
+          <AssessmentSummary
+            compact
+            records={state.assessments}
+            metrics={['finger_force']}
+            onOpen={metric => navigate('MeasurementDetail', { metric })}
+          />
+          {homeRows(['dead-hang'])}
+        </Column>
+      </Columns>
+      <Columns>
+        <Column>
+          <AppText variant="caption" muted>
             Body & reach
           </AppText>
           <DataRow
@@ -77,32 +113,8 @@ export function TestsScreen() {
             accessibilityLabel="Open body and reach"
             onPress={() => navigate('BodyReach')}
           />
-          <AppText variant="caption" muted>
-            Strength & endurance
-          </AppText>
-          <AssessmentSummary
-            compact
-            records={state.assessments}
-            metrics={['finger_force']}
-            onOpen={metric => navigate('MeasurementDetail', { metric })}
-          />
-          {homeRows(['dead-hang', 'pull-ups', 'push-ups', 'plank'])}
         </Column>
         <Column>
-          <AppText variant="caption" muted>
-            Mobility & movement
-          </AppText>
-          <AssessmentSummary
-            compact
-            records={state.assessments}
-            metrics={[
-              'leg_spread',
-              'shoulder_reach_left',
-              'shoulder_reach_right',
-            ]}
-            onOpen={metric => navigate('MeasurementDetail', { metric })}
-          />
-          {homeRows(['sit-and-reach', 'one-leg-balance'])}
           <AppText variant="caption" muted>
             Activity & recovery
           </AppText>

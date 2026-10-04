@@ -371,6 +371,6 @@ it('can enter demo mode on first launch before doing onboarding', async () => {
   await press(screen, 'Back to Setup');
   expect(text(screen)).toContain('A few quick questions');
   await press(screen, 'Skip setup');
-  expect(text(screen)).toContain('Strength & endurance');
+  expect(text(screen)).toContain('Strength');
   await act(async () => screen.unmount());
 });

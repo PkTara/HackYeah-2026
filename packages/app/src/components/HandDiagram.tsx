@@ -88,12 +88,14 @@ export function HandDiagram({ side, sore, onOpen }: Props) {
                       ? c.text
                       : flagged
                       ? c.danger
-                      : c.info,
-                  borderStyle:
-                    flagged || focused === finger || pressed || hovered
-                      ? 'solid'
-                      : 'dotted',
-                  borderWidth: focused === finger || pressed ? 3 : 2,
+                      : 'transparent',
+                  borderStyle: 'solid',
+                  borderWidth:
+                    focused === finger || pressed
+                      ? 3
+                      : flagged || hovered
+                      ? 2
+                      : 0,
                 },
               ]}
             >
