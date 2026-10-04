@@ -64,7 +64,8 @@ type GameApi = Readonly<{
 
   completeQuest: (id: string) => void;
   skipQuest: (id: string) => void;
-  logClimb: (log: Omit<ClimbLog, 'id' | 'date'>) => void;
+  /** Saves a climb dated today and returns its new id. */
+  logClimb: (log: Omit<ClimbLog, 'id' | 'date'>) => string;
   removeClimb: (id: string) => void;
   /**
    * Flags a finger with exactly these spots (ids from core's spots.ts).
@@ -296,6 +297,7 @@ export function GameProvider({ children, backend, today: fixedToday }: Props) {
         const log: ClimbLog = { ...input, id: newId(), date: today };
         play('success');
         commit({ type: 'logClimb', log }, () => backend.addClimb(log));
+        return log.id;
       },
       removeClimb: id =>
         commit({ type: 'removeClimb', id }, () => backend.removeClimb(id)),

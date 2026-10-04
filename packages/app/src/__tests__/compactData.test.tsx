@@ -74,6 +74,9 @@ it('shows only a compact recent-climb row on Profile and links to the log', asyn
   expect(control(screen, 'Open climbing log')).toBeDefined();
   expect(control(screen, 'Log a climb')).toBeUndefined();
   await press(screen, 'Open climbing log');
+  // The Log tab opens on the climbs; the form is one tap away.
+  expect(control(screen, 'Save climb')).toBeUndefined();
+  await press(screen, 'Log climb');
   expect(control(screen, 'Save climb')).toBeDefined();
   await act(async () => screen.unmount());
 });

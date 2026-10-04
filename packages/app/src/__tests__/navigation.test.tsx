@@ -1,9 +1,15 @@
 import ReactTestRenderer, { act } from 'react-test-renderer';
 import { Text } from 'react-native';
-import { Navigator, stackBackTo, useNavigation } from '../navigation/Navigator';
+import {
+  Navigator,
+  stackBackTo,
+  useNavigation,
+  type TrailStep,
+} from '../navigation/Navigator';
 import { trailFor } from '../navigation/trail';
 
 type Route = 'Hands' | 'Finger' | 'Anatomy' | 'Profile';
+type LogRoute = 'Profile' | 'Evidence' | 'Log' | 'LogClimb';
 const entry = (route: Route, params: Record<string, string> = {}) => ({
   route,
   params,
@@ -96,6 +102,35 @@ describe('Navigator.backTo', () => {
     expect(api.canGoBack).toBe(false);
     act(() => renderer.unmount());
   });
+
+  it('openTrail starts a fresh stack along the trail', () => {
+    let api!: ReturnType<typeof useNavigation<LogRoute>>;
+    function Probe() {
+      api = useNavigation<LogRoute>();
+      return <Text>{api.route}</Text>;
+    }
+    const screens = {
+      Profile: Probe,
+      Evidence: Probe,
+      Log: Probe,
+      LogClimb: Probe,
+    };
+    let renderer!: ReactTestRenderer.ReactTestRenderer;
+    act(() => {
+      renderer = ReactTestRenderer.create(
+        <Navigator<LogRoute> initialRoute="Profile" screens={screens} />,
+      );
+    });
+    act(() => api.navigate('Evidence', { terrain: 'slab' }));
+    act(() => api.openTrail(trailFor('LogClimb', {}) as TrailStep<LogRoute>[]));
+    // The Log tab is now the root, so going back lands on the list.
+    expect(api.route).toBe('LogClimb');
+    expect(api.root).toBe('Log');
+    act(() => api.goBack());
+    expect(api.route).toBe('Log');
+    expect(api.canGoBack).toBe(false);
+    act(() => renderer.unmount());
+  });
 });
 
 describe('trailFor', () => {
@@ -126,6 +161,11 @@ describe('trailFor', () => {
     ]);
     expect(labels('About')).toEqual(['Data', 'About']);
     expect(labels('Test', { id: 'dead-hang' })).toEqual(['Data', 'Dead hang']);
+    expect(labels('LogClimb')).toEqual(['Log', 'Log a climb']);
+    expect(labels('SportLogSession', { session: 'swim' })).toEqual([
+      'Log',
+      'Log a swim',
+    ]);
   });
 
   it('places utilities, live measurements and finger force under canonical Data breadcrumbs', () => {

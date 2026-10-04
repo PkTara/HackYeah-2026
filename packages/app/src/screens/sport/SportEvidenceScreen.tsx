@@ -4,28 +4,28 @@ import {
   MIN_SESSIONS,
   ageLabel,
   explainSportFocus,
+  sessionRecord,
   shortDate,
   talliesBy,
-  type SessionLog,
 } from '@hackyeah/core';
 import {
   AppText,
   Button,
   Chip,
   Icon,
-  PX,
   Panel,
   PixelText,
   SampleMark,
   Tag,
-  useTheme,
 } from '@hackyeah/ui';
 import { DecisionHelp } from '../../components/DecisionHelp';
 import { Crumbs } from '../../components/Crumbs';
 import { PageHeader } from '../../components/PageHeader';
+import { RecordRow } from '../../components/RecordRow';
 import { TabScreen } from '../../components/TabScreen';
 import { useNavigation } from '../../navigation/Navigator';
 import type { RouteName } from '../../navigation/routes';
+import { trailFor } from '../../navigation/trail';
 import { useSport } from '../../state/SportProvider';
 
 /**
@@ -33,7 +33,7 @@ import { useSport } from '../../state/SportProvider';
  * statement on the profile can be checked against what was actually logged.
  */
 export function SportEvidenceScreen() {
-  const { params, reset } = useNavigation<RouteName>();
+  const { params, openTrail } = useNavigation<RouteName>();
   const { sport, view, state, today, focus } = useSport();
   const [kind, setKind] = useState<string>(
     () => sport.kinds.find(k => k === params.kind) ?? focus.sessionKind,
@@ -145,52 +145,22 @@ export function SportEvidenceScreen() {
             No {name.toLowerCase()} {view.sessions} logged yet.
           </AppText>
         ) : (
-          logs.map(log => <SessionRow key={log.id} log={log} />)
+          logs.map(log => (
+            <RecordRow
+              key={log.id}
+              record={sessionRecord(log, view, sport.pace)}
+            />
+          ))
         )}
         <Button
           title={`Log a ${view.session}`}
           icon="log"
-          onPress={() => reset('SportLog')}
+          onPress={() =>
+            openTrail(trailFor('SportLogSession', { session: view.session }))
+          }
         />
       </Panel>
     </TabScreen>
-  );
-}
-
-function SessionRow({ log }: { log: SessionLog }) {
-  const { colors: c } = useTheme();
-  const { sport, view } = useSport();
-  const pace = sport.pace(log.distance, log.minutes);
-  return (
-    <View style={styles.session}>
-      <View
-        style={[
-          styles.distance,
-          { backgroundColor: c.surfaceShade, borderColor: c.outline },
-        ]}
-      >
-        <PixelText
-          text={`${Math.round(log.distance)}`}
-          scale={log.distance >= 1000 ? 2 : 3}
-        />
-        <AppText variant="caption">{view.unit}</AppText>
-      </View>
-      <View style={styles.grow}>
-        <AppText>
-          {view.placeName[log.place]}, {log.minutes} min
-        </AppText>
-        <AppText variant="caption" muted>
-          {shortDate(log.date)}
-          {pace ? `, ${pace}` : ''}
-        </AppText>
-      </View>
-      <View>
-        <Tag
-          text={log.finished ? 'Finished' : 'Cut short'}
-          tone={log.finished ? 'new' : 'muted'}
-        />
-      </View>
-    </View>
   );
 }
 
@@ -198,12 +168,4 @@ const styles = StyleSheet.create({
   switcher: { flexDirection: 'row', gap: 8 },
   grow: { flex: 1 },
   inline: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  session: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  distance: {
-    width: 56,
-    height: 52,
-    borderWidth: PX,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 });

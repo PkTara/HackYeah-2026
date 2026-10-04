@@ -4,7 +4,6 @@ import {
   RESEARCH_SOURCES,
   isDecisionFlow,
   type DecisionExplanation,
-  type EvidenceRecord,
   type ResearchSource,
 } from '@hackyeah/core';
 import {
@@ -12,18 +11,16 @@ import {
   Disclosure,
   Divider,
   HelpMark,
-  Icon,
   PX,
   PixelBox,
   PixelText,
   SampleMark,
   Sheet,
-  Tag,
-  isIconName,
   useTheme,
   useUiSound,
 } from '@hackyeah/ui';
 import { DecisionFlow, TeamStamp } from './DecisionFlow';
+import { RecordRow } from './RecordRow';
 
 /** Above this many records, only the first few show until asked. */
 const SHORT_INPUTS = 3;
@@ -247,7 +244,11 @@ function Inputs({ explanation }: { explanation: DecisionExplanation }) {
       ) : null}
       <View style={styles.records}>
         {shown.map((record, index) => (
-          <Record key={`${record.id}-${index}`} record={record} />
+          <RecordRow
+            key={`${record.id}-${index}`}
+            record={record}
+            testID={`record-${record.id}`}
+          />
         ))}
       </View>
       {evidence.length > SHORT_INPUTS ? (
@@ -309,90 +310,6 @@ function MoreKey({
         </>
       )}
     </Pressable>
-  );
-}
-
-/**
- * One record as a short row: a badge (grade, distance) or an icon, two lines
- * of words, the date and an outcome stamp. Records without a drawn form,
- * such as server snapshots, show their label and detail. Either way a
- * screen reader hears the full label and detail.
- */
-function Record({ record }: { record: EvidenceRecord }) {
-  const c = useTheme().colors;
-  const { view } = record;
-  const spoken = `${record.label}. ${record.detail}`;
-  if (!view) {
-    return (
-      <View
-        accessible
-        accessibilityLabel={spoken}
-        testID={`record-${record.id}`}
-        style={styles.plain}
-      >
-        <AppText variant="caption" style={styles.strong}>
-          {record.label}
-        </AppText>
-        {record.detail ? (
-          <AppText variant="caption">{record.detail}</AppText>
-        ) : null}
-      </View>
-    );
-  }
-  const icon = isIconName(view.icon) ? view.icon : undefined;
-  return (
-    <View
-      accessible
-      accessibilityLabel={spoken}
-      testID={`record-${record.id}`}
-      style={styles.record}
-    >
-      <View
-        style={[
-          styles.badge,
-          { backgroundColor: c.surfaceShade, borderColor: c.outline },
-        ]}
-      >
-        {view.badge ? (
-          <>
-            <PixelText
-              text={view.badge}
-              scale={view.badge.length > 2 ? 2 : 3}
-              accessible={false}
-            />
-            {view.badgeNote ? (
-              <AppText variant="caption" style={styles.badgeNote}>
-                {view.badgeNote}
-              </AppText>
-            ) : null}
-          </>
-        ) : icon ? (
-          <Icon name={icon} scale={3} />
-        ) : null}
-      </View>
-      <View style={styles.grow}>
-        <View style={styles.titleRow}>
-          {view.badge && icon ? <Icon name={icon} /> : null}
-          <AppText variant="caption" style={[styles.strong, styles.anchor]}>
-            {view.title}
-          </AppText>
-        </View>
-        {view.note ? <AppText variant="caption">{view.note}</AppText> : null}
-        {view.when ? (
-          <AppText variant="caption" muted>
-            {view.when}
-          </AppText>
-        ) : null}
-      </View>
-      {view.outcome ? (
-        <View>
-          <Tag
-            text={view.outcome.text}
-            tone={view.outcome.done ? 'new' : 'muted'}
-          />
-        </View>
-      ) : null}
-    </View>
   );
 }
 
@@ -503,20 +420,8 @@ function StudyDetails({ source }: { source: ResearchSource }) {
 const styles = StyleSheet.create({
   anchorRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 4 },
   anchor: { flexShrink: 1 },
-  grow: { flex: 1 },
   section: { gap: 8 },
   records: { gap: 10 },
-  plain: { gap: 2 },
-  record: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  badge: {
-    width: 46,
-    minHeight: 46,
-    borderWidth: PX,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeNote: { lineHeight: 14 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legend: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   more: {
     flexDirection: 'row',

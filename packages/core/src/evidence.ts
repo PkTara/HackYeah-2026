@@ -28,6 +28,7 @@ import {
   type SportQuest,
 } from './sport';
 import { shortDate } from './dates';
+import { newestFirst } from './logRange';
 import type { DecisionFlow, FlowIcon, FlowInput, FlowNode } from './flow';
 import { spotsFor } from './spots';
 import {
@@ -160,15 +161,9 @@ const unavailable: DecisionExplanation = {
   limitations: ['Your current climbs cannot show why it was picked back then.'],
 };
 
-/** Newest first, as the Evidence page lists them; same-day logs by entry. */
-function newestFirst<T extends Readonly<{ date: string }>>(
-  logs: readonly T[],
-): T[] {
-  return [...logs].reverse().sort((a, b) => b.date.localeCompare(a.date));
-}
-
-function climbEvidence(logs: readonly ClimbLog[]): EvidenceRecord[] {
-  return newestFirst(logs).map(log => ({
+/** One climb as a record row, for the Log and Evidence lists and Why? sheets. */
+export function climbRecord(log: ClimbLog): EvidenceRecord {
+  return {
     id: log.id,
     label: `Climb, ${log.date}${log.sample ? ' (example)' : ''}`,
     detail: `${capital(log.terrain)}, ${
@@ -193,7 +188,12 @@ function climbEvidence(logs: readonly ClimbLog[]): EvidenceRecord[] {
       outcome: { text: log.sent ? 'Sent' : 'Not yet', done: log.sent },
       ...(log.sample ? { sample: true } : {}),
     },
-  }));
+  };
+}
+
+/** Climbs as records, newest first, as the Evidence page lists them. */
+function climbEvidence(logs: readonly ClimbLog[]): EvidenceRecord[] {
+  return newestFirst(logs).map(climbRecord);
 }
 
 /** "6 vertical climbs: 2 sent, 4 not yet." */
@@ -1254,11 +1254,17 @@ export type SportWords = Readonly<{
   kindPlural?: string;
 }>;
 
-function sessionEvidence(
-  logs: readonly SessionLog[],
+/**
+ * One session as a record row. Lists that have the sport's pace rule pass
+ * it, so the second line ends with the pace: "Road, 30 min, 6:00 /km".
+ */
+export function sessionRecord(
+  log: SessionLog,
   words: SportWords,
-): EvidenceRecord[] {
-  return newestFirst(logs).map(log => ({
+  pace?: (distance: number, minutes: number) => string | null,
+): EvidenceRecord {
+  const paceText = pace?.(log.distance, log.minutes);
+  return {
     id: log.id,
     label: `${capital(words.session)}, ${log.date}${
       log.sample ? ' (example)' : ''
@@ -1276,14 +1282,21 @@ function sessionEvidence(
       title: words.kindName[log.kind] ?? capital(log.kind),
       note: `${words.placeName[log.place] ?? capital(log.place)}, ${
         log.minutes
-      } min`,
+      } min${paceText ? `, ${paceText}` : ''}`,
       outcome: {
         text: log.finished ? 'Finished' : 'Cut short',
         done: log.finished,
       },
       ...(log.sample ? { sample: true } : {}),
     },
-  }));
+  };
+}
+
+function sessionEvidence(
+  logs: readonly SessionLog[],
+  words: SportWords,
+): EvidenceRecord[] {
+  return newestFirst(logs).map(log => sessionRecord(log, words));
 }
 
 /** "9 runs: 6 finished, 3 cut short." */

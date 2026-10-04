@@ -71,6 +71,13 @@ export function trailFor(route: RouteName, params: Params): Crumb[] {
     }
     case 'Evidence':
       return [tab('Profile'), { route, params, label: 'Evidence' }];
+    case 'LogClimb':
+      return [tab('Log'), { route, label: 'Log a climb' }];
+    case 'SportLogSession':
+      return [
+        { route: 'SportLog', label: 'Log' },
+        { route, params, label: `Log a ${params.session || 'session'}` },
+      ];
     case 'About': {
       if (params.from === 'Settings') {
         const settingsParams = { ...params };

@@ -10,6 +10,7 @@ import { FingerScreen } from '../screens/FingerScreen';
 import { HandCaptureScreen } from '../screens/HandCaptureScreen';
 import { HandsScreen } from '../screens/HandsScreen';
 import { HomeTestScreen } from '../screens/HomeTestScreen';
+import { LogClimbScreen } from '../screens/LogClimbScreen';
 import { LogScreen } from '../screens/LogScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { TestsScreen } from '../screens/TestsScreen';
@@ -18,6 +19,7 @@ import { FingerStrengthScreen } from '../screens/FingerStrengthScreen';
 import { BodyScreen } from '../screens/sport/BodyScreen';
 import { SportEvidenceScreen } from '../screens/sport/SportEvidenceScreen';
 import { SportLogScreen } from '../screens/sport/SportLogScreen';
+import { SportLogSessionScreen } from '../screens/sport/SportLogSessionScreen';
 import { SportProfileScreen } from '../screens/sport/SportProfileScreen';
 
 export const screens = {
@@ -30,6 +32,8 @@ export const screens = {
   Tests: TestsScreen,
   Data: TestsScreen,
   // Pushed on top of a tab
+  /** The climb form, from the Log tab's "Log climb" button. */
+  LogClimb: LogClimbScreen,
   BodyReach: BodyReachScreen,
   Activity: ActivityScreen,
   MeasurementDetail: MeasurementDetailScreen,
@@ -55,6 +59,8 @@ export const screens = {
   SportLog: SportLogScreen,
   SportBody: BodyScreen,
   // Pushed on top of a sport tab
+  /** The session form. Params: session, the crumb word ("run", "swim"). */
+  SportLogSession: SportLogSessionScreen,
   /** Params: kind, one of the active sport's three kinds. */
   SportEvidence: SportEvidenceScreen,
 } satisfies Record<string, ComponentType>;
@@ -65,6 +71,7 @@ export type RouteName = keyof typeof screens;
 const SPORT_ROUTES: readonly RouteName[] = [
   'SportProfile',
   'SportLog',
+  'SportLogSession',
   'SportBody',
   'SportEvidence',
 ];
