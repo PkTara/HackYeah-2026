@@ -21,13 +21,13 @@ The Codex design-drafting step used the `superpowers:using-superpowers` and `sup
 
 ## AI features in the app
 
-**Camera assessment (server-side pose).** The Tests tab's camera assessment sends a photo, a recorded clip (web) or sampled live frames to the FastAPI backend, which runs MediaPipe Pose Landmarker (a Google model, Apache-2.0, configured with `POSE_MODEL_PATH` and not in Git) and returns the angle between the legs in the picture.
+**Live camera assessments (server-side pose).** The Data tab's leg spread and shoulder reach assessments send sampled live camera frames to the FastAPI backend, which runs MediaPipe Pose Landmarker (a Google model, Apache-2.0, configured with `POSE_MODEL_PATH` and not in Git). Leg spread is the angle between the legs; shoulder reach is the hip, shoulder and elbow angle on each side, with a straight-arm check.
 - Inference flow: remote, on the team's own server. Nothing goes to a third-party service.
-- Data sent and stored: media leaves the device only after the climber ticks "Send for analysis" for that photo or clip; the screen names the server first. The server analyses it in memory and keeps nothing. A result is stored only when the climber reviews it and presses Save, as their own report.
-- Limitations and failures: a projected 2D angle, not a validated flexibility test; camera height, angle and clothing change it, and the screen says so. A capture without visible hips and ankles returns a reason and no number. Without a model the server answers 503 and the screen says so. Without a server the screens say they need one and never show a result.
-- Validation: unit tests with a fake server, backend tests with real decoding, and browser runs against the real model with a public sample photo (log entry 21). Not yet compared with a measured angle.
+- Data sent and stored: frames leave the device only if the climber turns on camera analysis, once, in setup or Settings; the panel says that frames go to the server for analysis. The server analyses them in memory and keeps no frames. A result is stored only when the climber reviews it and presses Save, as their own report.
+- Limitations and failures: a projected 2D angle, not a validated flexibility test; camera height, angle and clothing change it, and the screen says so. Frames without the needed joints return a reason and no number. Without a model the server answers 503 and the screen says so. Without a server the Data tab says the camera needs one and never shows a result. Demo mode can simulate the webcam and the analysis instead (log entry 28).
+- Validation: unit tests with a fake server, backend tests with real decoding, and browser runs against the real model (log entries 21 and 28). Not yet compared with a measured angle.
 
-**Hand photos** are not analysed by any model: they are kept privately on the server with the climber's own entry, after a separate upload and retention consent.
+**Hand photos** are not analysed by any model: they are kept privately on the server with the climber's own entry, only while the separate hand-photo permission (setup or Settings) is on.
 
 `packages/vision` (on-device pose counting, log entry 18) is not wired into the screens yet.
 
