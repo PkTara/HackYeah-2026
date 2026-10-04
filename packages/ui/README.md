@@ -17,13 +17,13 @@ Everything you see in Climbing Monkey is drawn with plain React Native `View`s. 
 | `Button`, `Chip`, `IconButton` | Chunky keys that sink onto their shadow when pressed. `IconButton` is a small icon-only key (the music toggle) with a 44 px touch target. |
 | `Toggle` | An on/off settings switch with ON or OFF written on it (the sound effects switch in Settings). Screen readers hear a switch with its name and state. |
 | `PixelBox` | The stepped-corner rectangle all of the above are built from. |
-| `PixelText`, `Icon`, `PixelArt` | Bitmap text, 12x12 icons, any sprite. |
+| `PixelText`, `Icon`, `PixelArt` | Bitmap text, 12x12 icons, any sprite. Export adds `share` and one icon per reader: `doctor`, `plaster`, `whistle`, `apple`, `house`, `disk`. |
 | `Meter`, `Pips`, `Tag` | Segmented XP bar, one square per logged climb, small state stamps such as EXAMPLE or PAUSED. |
 | `HelpMark`, `Sheet`, `Disclosure`, `SampleMark` | The explanation kit. `HelpMark` is the small superscript ? beside a generated value (44 px touch target, keyboard reachable). `Sheet` is a sign over the page (bottom of the screen on phones, centred on wide screens) that closes with its X key, a tap outside, Escape on the web or Back on Android. `Disclosure` folds optional detail behind a pixel heading with a + or - key. `SampleMark` is a quiet dithered square and caption for sample data, quieter than a Tag. |
 | `TerrainTriangle`, `RateTriangle`, `MovementRadar` | The profile charts, rasterised as pixel art. Unknown values stay dashed and are never drawn as zero. `RateTriangle` is the generic three-corner chart: the monkey's walls, the gazelle's run types and the dolphin's strokes all use it. |
 | `Monkey`, `Gazelle`, `Dolphin`, `JungleHero`, `SportHero` | The pets and the scenes at the top of each profile: the monkey climbs one hold up the trunk per quest; in `SportHero` the gazelle runs to the next marker post (`src/pixel/savanna.ts`) and the dolphin swims to the next buoy (`src/pixel/ocean.ts`). The gazelle and dolphin share `FramePet` (two frames, a bob, a leap on XP). Animation moves in whole pixel steps and stops when the OS asks for reduced motion. |
 | `MonkeyGuide`, `SpeechBubble` | The setup guide: the monkey hangs from a vine holding a prop for the current question (`MONKEY_PROPS` in `src/pixel/sprites.ts`) and talks through a bubble that types out. |
-| `FingerMap`, `CheckRow`, `HandAnatomy`, `LayerSlider` | The finger close-up with tappable spots, a checkbox row, and the layered hand anatomy viewer with its layer slider. |
+| `FingerMap`, `CheckRow`, `HandAnatomy`, `LayerSlider` | The finger close-up with tappable spots, a checkbox row (`plain` shows a whole sentence in plain text, as the Export questions do), and the layered hand anatomy viewer with its layer slider. |
 | `Screen`, `TabBar`, `NavRail`, `Breadcrumbs` | Page shell, the wooden tab bar on phones, the side rail on wide screens, and the trail back from a pushed page. |
 
 ## Sounds

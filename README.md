@@ -17,6 +17,7 @@
 - **Data hub.** The Data tab groups body and reach, mobility and movement (live camera leg-spread and shoulder-reach assessments, which need the server), strength and endurance (home tests, finger strength read from an external instrument) and activity and recovery. Settings (camera-analysis and hand-photo permissions, sound effects) and About open from here.
 - **Demo mode** simulates the profile, health-provider feeds, webcam, pose analysis and photo storage for a presentation. See [Demo mode](#demo-mode).
 - **Gazelle mode** (running) and **dolphin mode** (swimming) apply the same loop to other sports: switch pets from the Pets panel on any profile and the app redraws itself as a savanna or an ocean. Each has a log (run type or stroke, where, distance, time), a three-corner profile, one focus, one quest, sore-spot flags that pause quests, and its own XP and unlocks. Both run on one engine (`packages/core/src/sport.ts`) with a definition per sport (`packages/core/src/sports/`). Their data stays on the device; the server does not know these sports yet.
+- **Export** in every mode: a summary for a doctor, physio, coach, nutritionist or family, your own full record, or a JSON or CSV data file. Each format is laid out for its reader, labels where every number came from, marks example data, says what it is not and never diagnoses. The why behind each layout cites its research. Made on the device; nothing is sent until you share it. Open it from Share your record on any profile or the Data hub.
 - **Music and sound effects** on the web. See [Music and sound](#music-and-sound).
 
 The [Python/FastAPI backend](backend/README.md) holds the authoritative profile, quest and XP rules, with SQLite storage, private hand photos and optional MediaPipe pose analysis of photos, recorded clips and a sampled live camera. The app saves to it when a server address is set (see [Connecting a backend](#connecting-a-backend)); without one everything stays on the device. See the [camera and video guide](docs/camera-video.md) for the capture flows and the [scientific evidence notes](docs/climbing-scientific-evidence.md) for what the research does and does not support.
@@ -42,9 +43,11 @@ apps/
     index.js           Registers @hackyeah/app; nothing else lives here
   web/               Browser host (Vite + react-native-web), renders the same @hackyeah/app
 packages/            Shared code, imported as @hackyeah/<name>
-  core/              Domain logic. Plain TypeScript: no React, no react-native, no I/O
+  core/              Domain logic. Plain TypeScript: no React, no react-native, no I/O.
+                     export/ builds the Export documents and data files
   data/              Where data lives: the backend contract, on-device storage, HTTP client
-  platform/          Capability interfaces + one implementation per OS
+  platform/          Capability interfaces + one implementation per OS (share.ts and
+                     share.web.ts hand Export text to the share sheet, clipboard or a file)
   ui/                Jungle pixel UI kit (react-native primitives only, see its README)
   app/               Screens, navigation, root <App/>
   vision/            On-device pose: pull-up counter, dead hang and plank timers, climbing form
