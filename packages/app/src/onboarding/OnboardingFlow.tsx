@@ -168,8 +168,8 @@ export function OnboardingFlow({ onFinish, onSkip, today }: Props) {
           hint: result
             ? undefined
             : timed
-              ? 'Time it or type your time in first'
-              : 'Count it or type it in first',
+              ? 'Time it or tap the time first'
+              : 'Count it or tap the number first',
           onPress: forward,
         },
       },

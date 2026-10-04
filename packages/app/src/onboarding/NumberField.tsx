@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { Platform, StyleSheet, TextInput, View } from 'react-native';
+import {
+  Platform,
+  StyleSheet,
+  TextInput,
+  View,
+  type TextInputProps,
+} from 'react-native';
 import { AppText, PX, PixelText, useTheme } from '@hackyeah/ui';
 
 type Props = {
@@ -17,6 +23,21 @@ type Props = {
   accessibilityLabel: string;
   onSubmit?: () => void;
 };
+
+/**
+ * The phone keyboard for whole numbers: the number pad, or one with a minus
+ * key when below zero is allowed (the iOS number pad has none).
+ */
+export function numberKeyboard(
+  allowNegative: boolean,
+): Pick<TextInputProps, 'keyboardType' | 'inputMode'> {
+  return allowNegative
+    ? {
+        keyboardType:
+          Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'numeric',
+      }
+    : { keyboardType: 'number-pad', inputMode: 'numeric' };
+}
 
 /**
  * Number box in the pixel style: hard outline, square corners, big digits.
@@ -45,13 +66,7 @@ export function NumberField({
         onSubmitEditing={onSubmit}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        keyboardType={
-          allowNegative
-            ? Platform.OS === 'ios'
-              ? 'numbers-and-punctuation'
-              : 'numeric'
-            : 'number-pad'
-        }
+        {...numberKeyboard(allowNegative)}
         returnKeyType="done"
         maxLength={maxLength}
         accessibilityLabel={accessibilityLabel}

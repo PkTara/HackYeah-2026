@@ -7,11 +7,17 @@ import {
   PX,
   PixelBox,
   PixelText,
+  useReducedMotion,
+  useTicker,
   useTheme,
 } from '@hackyeah/ui';
 
 /** Unlit digits on the dark scoreboard. */
 const DIM_DIGITS = '#6E5A2A';
+/** Digit size on the scoreboard, in device pixels per art pixel. */
+const BOARD_SCALE = 7;
+/** How long the typing caret stays on, then off. */
+const CARET_MS = 530;
 
 /** A banana square with a pixel number, for numbered lists. */
 export function NumberBadge({ n }: { n: number }) {
@@ -79,26 +85,32 @@ export function Fact({ label, children }: { label: string; children: ReactNode }
  * Dark scoreboard with big banana digits, for the stopwatch and counters.
  * Screen readers hear `label` instead of the digits; without a label the
  * board is left to the control around it.
+ *
+ * While `editing`, it sinks onto its shadow with a banana outline and a
+ * blinking block caret after the digits, so the number reads as typed into.
  */
 export function Scoreboard({
   text,
   label,
   caption,
   dim = false,
+  editing = false,
 }: {
   text: string;
   label?: string;
   caption?: string;
   /** Dim digits for "nothing entered yet". */
   dim?: boolean;
+  editing?: boolean;
 }) {
   const { colors: c } = useTheme();
   return (
     <PixelBox
       fill={c.outline}
-      outline={c.outline}
+      outline={editing ? c.primary : c.outline}
       shadow={c.backgroundDeep}
-      lift={PX}
+      lift={editing ? 0 : PX}
+      style={editing ? styles.sunk : null}
       contentStyle={styles.boardInner}
     >
       <View
@@ -108,17 +120,34 @@ export function Scoreboard({
         importantForAccessibility={label ? 'auto' : 'no-hide-descendants'}
         style={styles.boardText}
       >
-        <PixelText
-          text={text}
-          scale={7}
-          color={dim ? DIM_DIGITS : c.primary}
-          accessible={false}
-        />
+        <View>
+          <PixelText
+            text={text}
+            scale={BOARD_SCALE}
+            color={dim ? DIM_DIGITS : c.primary}
+            accessible={false}
+          />
+          {/* Hangs off the right edge, so the digits never move. */}
+          {editing ? <Caret color={c.primary} /> : null}
+        </View>
         {caption ? (
           <PixelText text={caption} color="#E8CFA6" accessible={false} />
         ) : null}
       </View>
     </PixelBox>
+  );
+}
+
+/** A block caret one digit tall. It holds still when the OS asks for less motion. */
+function Caret({ color }: { color: string }) {
+  const reduced = useReducedMotion();
+  const tick = useTicker(CARET_MS, !reduced);
+  const on = reduced || tick % 2 === 0;
+  return (
+    <View
+      testID="scoreboard-caret"
+      style={[styles.caret, on ? { backgroundColor: color } : null]}
+    />
   );
 }
 
@@ -149,4 +178,14 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   boardText: { alignItems: 'center', gap: 8 },
+  // Pressed in: the shadow's depth moves above the board, so nothing below shifts.
+  sunk: { marginTop: PX },
+  caret: {
+    position: 'absolute',
+    left: '100%',
+    top: 0,
+    marginLeft: BOARD_SCALE,
+    width: BOARD_SCALE * 3,
+    height: BOARD_SCALE * 7,
+  },
 });

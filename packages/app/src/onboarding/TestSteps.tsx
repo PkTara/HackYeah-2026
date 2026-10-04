@@ -108,6 +108,7 @@ export function TestStep({
         {test.input === 'stopwatch' ? (
           <Stopwatch
             value={result?.value ?? null}
+            method={result?.method}
             max={limits.max}
             label={test.name}
             onChange={onResult}
@@ -115,6 +116,7 @@ export function TestStep({
         ) : (
           <RepCounter
             value={result?.value ?? null}
+            method={result?.method}
             min={limits.min}
             max={limits.max}
             unit={test.unit}

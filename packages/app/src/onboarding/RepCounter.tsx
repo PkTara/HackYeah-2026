@@ -1,15 +1,17 @@
-import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { parseWholeNumber } from '@hackyeah/core';
-import { AppText, Button, PX, PixelBox, PixelText, useTheme } from '@hackyeah/ui';
+import { parseWholeNumber, type ResultMethod } from '@hackyeah/core';
+import { AppText, PX, PixelBox, PixelText, useTheme } from '@hackyeah/ui';
 import { useCapabilities } from '../capabilities';
+import { BoardInput, useBoardEntry } from './BoardInput';
 import { Scoreboard } from './bits';
-import { NumberField } from './NumberField';
 
 type Props = {
   /** null until the climber counts or types something. */
   value: number | null;
-  onChange: (value: number, method: 'counter' | 'typed') => void;
+  /** How `value` was measured, so Escape can put it back as it was. */
+  method?: ResultMethod;
+  /** null only when Escape puts back "not counted yet". */
+  onChange: (value: number | null, method: ResultMethod) => void;
   min: number;
   max: number;
   /** Word under the number, e.g. "reps" or "cm". */
@@ -21,8 +23,9 @@ type Props = {
 };
 
 /**
- * A big pixel number with minus and plus keys, plus "Type it in" for larger
- * counts. Below zero is allowed when `min` is negative.
+ * A big pixel number with minus and plus keys. Tapping the number types
+ * straight into it, for larger counts. Below zero is allowed when `min` is
+ * negative.
  *
  * It starts at "not counted yet" (a dim 0) rather than a real 0, so tapping
  * past it never saves a result nobody measured. Minus on that first 0 logs a
@@ -30,6 +33,7 @@ type Props = {
  */
 export function RepCounter({
   value,
+  method,
   onChange,
   min,
   max,
@@ -37,30 +41,30 @@ export function RepCounter({
   label,
   describe,
 }: Props) {
+  const { colors: c } = useTheme();
   const { haptics } = useCapabilities();
-  const [typing, setTyping] = useState(false);
-  const [text, setText] = useState(value === null ? '' : String(value));
   const shown = value ?? 0;
+  const entry = useBoardEntry({
+    value,
+    method,
+    onChange,
+    read: text => {
+      if (text === '' || text === '-') {
+        return null;
+      }
+      const n = parseWholeNumber(text);
+      return n !== null && n >= min && n <= max
+        ? n
+        : `Use a whole number from ${min} to ${max}.`;
+    },
+  });
 
   const step = (delta: number) => {
+    entry.clearError();
     const next = Math.max(min, Math.min(max, shown + delta));
     if (next !== value) {
       haptics.tap();
-      setText(String(next));
       onChange(next, 'counter');
-    }
-  };
-
-  const typed = parseWholeNumber(text);
-  const typedError =
-    typed === null || typed < min || typed > max
-      ? `Use a whole number from ${min} to ${max}.`
-      : null;
-  const type = (next: string) => {
-    setText(next);
-    const n = parseWholeNumber(next);
-    if (n !== null && n >= min && n <= max) {
-      onChange(n, 'typed');
     }
   };
 
@@ -76,6 +80,9 @@ export function RepCounter({
       : min === 0
         ? 'Could not do one? That is fine, tap minus to log 0.'
         : 'Tap plus for past your toes, minus for short of them.';
+  const idle = min < 0 && shown > 0 ? `+${shown}` : String(shown);
+  // Until a digit is typed the old number stays, dim, like it is selected.
+  const typing = entry.draft !== null && entry.draft !== '';
 
   return (
     <View style={styles.root}>
@@ -86,23 +93,36 @@ export function RepCounter({
           disabled={value !== null && value <= min}
           accessibilityLabel={`One less, ${label}`}
         />
-        {/* Screen readers can also swipe up and down on the number. */}
-        <View
-          accessible
-          accessibilityRole="adjustable"
-          accessibilityLabel={label}
-          accessibilityValue={{ min, max, now: shown, text: words }}
-          accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
-          onAccessibilityAction={event =>
-            step(event.nativeEvent.actionName === 'increment' ? 1 : -1)
-          }
-          accessibilityLiveRegion="polite"
-          style={styles.grow}
-        >
-          <Scoreboard
-            text={min < 0 && shown > 0 ? `+${shown}` : String(shown)}
-            caption={unit}
-            dim={value === null}
+        <View style={styles.grow}>
+          {/* Screen readers can also swipe up and down on the number. */}
+          <View
+            accessible
+            accessibilityRole="adjustable"
+            accessibilityLabel={label}
+            accessibilityValue={{ min, max, now: shown, text: words }}
+            accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+            onAccessibilityAction={event =>
+              step(event.nativeEvent.actionName === 'increment' ? 1 : -1)
+            }
+            accessibilityLiveRegion="polite"
+          >
+            <Scoreboard
+              text={typing ? entry.draft ?? '' : idle}
+              caption={unit}
+              dim={typing ? false : value === null || entry.editing}
+              editing={entry.editing}
+            />
+          </View>
+          <BoardInput
+            draft={entry.draft}
+            onBegin={entry.begin}
+            onChangeText={entry.change}
+            onEnd={entry.end}
+            allowNegative={min < 0}
+            maxLength={Math.max(String(min).length, String(max).length)}
+            placeholder={words}
+            accessibilityLabel={`${label}, ${unit}, tap to type`}
+            accessibilityHint={`Type a whole number from ${min} to ${max}`}
           />
         </View>
         <CounterKey
@@ -119,36 +139,20 @@ export function RepCounter({
         </AppText>
       ) : null}
 
-      {typing ? (
-        <>
-          <NumberField
-            label="Number"
-            unit={unit}
-            value={text}
-            onChangeText={type}
-            error={text.trim() === '' ? null : typedError}
-            allowNegative={min < 0}
-            accessibilityLabel={`${label} in ${unit}`}
-          />
-          <Button
-            title="Use the buttons"
-            variant="secondary"
-            small
-            onPress={() => {
-              setTyping(false);
-              setText(value === null ? '' : String(value));
-            }}
-          />
-        </>
-      ) : (
-        <Button
-          title="Type it in"
-          variant="secondary"
-          small
-          onPress={() => setTyping(true)}
-          accessibilityHint="Enter the number with the keyboard"
-        />
-      )}
+      <View accessibilityLiveRegion="polite">
+        {entry.error ? (
+          <AppText
+            variant="caption"
+            style={[styles.center, { color: c.danger }]}
+          >
+            {entry.error}
+          </AppText>
+        ) : entry.editing ? null : (
+          <AppText variant="caption" muted style={styles.center}>
+            Tap the number to type it
+          </AppText>
+        )}
+      </View>
     </View>
   );
 }

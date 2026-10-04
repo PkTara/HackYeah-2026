@@ -9,10 +9,12 @@ import {
   connectionsFor,
   describeReach,
   emptyOnboardingDraft,
+  clockFromDigits,
   formatClock,
   formatResult,
   missingDetails,
   parseWholeNumber,
+  secondsFromClockDigits,
   type OnboardingDraft,
 } from '../onboarding';
 
@@ -199,6 +201,26 @@ describe('wording', () => {
       '0:09',
       '1:15',
       '10:00',
+    ]);
+  });
+
+  it('fills typed clock digits in from the right, like a microwave', () => {
+    expect(['', '1', '12', '125', '90', '1000'].map(clockFromDigits)).toEqual([
+      '0:00',
+      '0:01',
+      '0:12',
+      '1:25',
+      '0:90',
+      '10:00',
+    ]);
+    expect(['1', '12', '125', '90', '1000'].map(secondsFromClockDigits)).toEqual(
+      [1, 12, 85, 90, 600],
+    );
+    expect(['', '-1', '1:25', 'abc'].map(secondsFromClockDigits)).toEqual([
+      null,
+      null,
+      null,
+      null,
     ]);
   });
 

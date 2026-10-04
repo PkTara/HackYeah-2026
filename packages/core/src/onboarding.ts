@@ -542,6 +542,28 @@ export function formatClock(seconds: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
+/**
+ * Typed clock digits as the clock draws them, filled in from the right like
+ * a microwave: "1" -> "0:01", "125" -> "1:25". Seconds over 59 stay as
+ * typed ("90" -> "0:90") until the time is saved.
+ */
+export function clockFromDigits(digits: string): string {
+  const padded = digits.padStart(3, '0');
+  return `${Number(padded.slice(0, -2))}:${padded.slice(-2)}`;
+}
+
+/**
+ * Seconds for typed clock digits: "125" is 1:25, so 85. Seconds over 59
+ * carry over, so "90" is 90 (1:30). Null unless it is digits only.
+ */
+export function secondsFromClockDigits(digits: string): number | null {
+  if (!/^\d+$/.test(digits)) {
+    return null;
+  }
+  const n = Number(digits);
+  return Math.floor(n / 100) * 60 + (n % 100);
+}
+
 /** 4 -> "4 cm past your toes", -3 -> "3 cm short of your toes" */
 export function describeReach(cm: number): string {
   if (cm === 0) {

@@ -71,6 +71,19 @@ function type(renderer: Renderer, label: string, text: string) {
   act(() => input.props.onChangeText(text));
 }
 
+/** Taps the big number, types onto it and presses Enter. */
+function typeOnBoard(renderer: Renderer, label: string, text: string) {
+  const input = () =>
+    renderer.root.find(
+      node =>
+        typeof node.props.onFocus === 'function' &&
+        node.props.accessibilityLabel === label,
+    );
+  act(() => input().props.onFocus());
+  act(() => input().props.onChangeText(text));
+  act(() => input().props.onSubmitEditing());
+}
+
 /** All system-font text on screen. Pixel text is drawn, not written. */
 function screenText(renderer: Renderer) {
   return renderer.root
@@ -183,11 +196,11 @@ describe('OnboardingFlow', () => {
     expect(screenText(renderer)).toContain('Connected (demo)');
     press(renderer, 'Not now for Garmin', 'Next');
 
-    // Tests: a timed one typed in, a counted one, the rest skipped.
+    // Tests: a timed one typed onto the clock, a counted one, the rest skipped.
     press(renderer, 'Start tests');
     expect(isDisabled(renderer, 'Next')).toBe(true);
-    press(renderer, 'Type it in');
-    type(renderer, 'Dead hang time in seconds', '34');
+    typeOnBoard(renderer, 'Dead hang time, tap to type', '34');
+    expect(screenText(renderer)).toContain('Your time: 34 s.');
     press(renderer, 'Next');
     expect(isDisabled(renderer, 'Next')).toBe(true); // not counted yet
     press(
