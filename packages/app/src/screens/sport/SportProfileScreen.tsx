@@ -33,6 +33,7 @@ import { ExportEntry } from '../../components/ExportEntry';
 import { PetsPanel } from '../../components/PetsPanel';
 import { TabScreen } from '../../components/TabScreen';
 import { useNavigation } from '../../navigation/Navigator';
+import { trailFor } from '../../navigation/trail';
 import type { RouteName } from '../../navigation/routes';
 import { bodyFlagText, sessionName } from '../../sports';
 import { useSport } from '../../state/SportProvider';
@@ -47,7 +48,7 @@ const STEPS = XP_PER_LEVEL / XP_PER_QUEST;
 export function SportProfileScreen() {
   const theme = useTheme();
   const width = useContentWidth();
-  const { navigate, reset } = useNavigation<RouteName>();
+  const { navigate, reset, openTrail } = useNavigation<RouteName>();
   const {
     sport,
     view,
@@ -113,7 +114,9 @@ export function SportProfileScreen() {
       <Button
         title={`Log a ${view.session}`}
         icon="log"
-        onPress={() => reset('SportLog')}
+        onPress={() =>
+          openTrail(trailFor('SportLogSession', { session: view.session }))
+        }
       />
     </Panel>
   );

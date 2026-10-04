@@ -112,6 +112,7 @@ describe('App', () => {
     press(
       renderer,
       'Log',
+      'Log climb',
       'Vertical',
       'Technical',
       'Powerful',
@@ -140,11 +141,11 @@ describe('App', () => {
       grade: 'V3',
       sent: true,
     });
-    // Today's climbs start folded away; the count is always there.
-    expect(screenText(renderer)).toContain('1 climb logged today.');
-    press(renderer, "Show today's climbs");
+    // Back on the list, the climb shows with every style.
+    press(renderer, 'See your climbs');
+    expect(screenText(renderer)).toContain('1 climb this week: 1 sent.');
     expect(screenText(renderer)).toContain(
-      'V3 vertical, technical, balance, coordination, compression and endurance',
+      'Technical, balance, coordination, compression and endurance, holds not recorded',
     );
     act(() => renderer.unmount());
 

@@ -15,12 +15,20 @@ type Props = {
   icon?: IconName;
   /** Extra element at the right end of the title row, e.g. a Tag. */
   badge?: ReactNode;
+  /**
+   * A small button at the right end of the title row, sticking out of the
+   * top edge like the title tab. The content moves down to make room.
+   * Takes the badge's place.
+   */
+  action?: ReactNode;
   variant?: PanelVariant;
   style?: StyleProp<ViewStyle>;
   children?: ReactNode;
 };
 
 const TAB_OVERHANG = 14;
+/** How far a small Button in the title row reaches below the tab. */
+const ACTION_DROP = 14;
 
 function look(theme: Theme, variant: PanelVariant) {
   const c = theme.colors;
@@ -43,6 +51,7 @@ export function Panel({
   title,
   icon,
   badge,
+  action,
   variant = 'sign',
   style,
   children,
@@ -53,7 +62,7 @@ export function Panel({
   const tabWood = variant !== 'quiet';
 
   return (
-    <View style={[{ marginTop: title ? TAB_OVERHANG : 0 }, style]}>
+    <View style={[{ marginTop: title || action ? TAB_OVERHANG : 0 }, style]}>
       <ToneContext.Provider value={tone}>
         <PixelBox
           fill={l.fill}
@@ -64,14 +73,17 @@ export function Panel({
           lift={l.lift}
           contentStyle={{
             padding: theme.spacing.md,
-            paddingTop: title ? theme.spacing.md + TAB_OVERHANG : theme.spacing.md,
+            paddingTop:
+              theme.spacing.md +
+              (title || action ? TAB_OVERHANG : 0) +
+              (action ? ACTION_DROP : 0),
             gap: theme.spacing.sm + 2,
           }}
         >
           {children}
         </PixelBox>
       </ToneContext.Provider>
-      {title ? (
+      {title || action ? (
         <View
           style={{
             position: 'absolute',
@@ -84,26 +96,39 @@ export function Panel({
             pointerEvents: 'box-none',
           }}
         >
-          <PixelBox
-            fill={tabWood ? theme.colors.bark : theme.colors.surfaceShade}
-            outline={theme.colors.outline}
-            light={tabWood ? '#8A5A33' : undefined}
-            contentStyle={{
-              paddingVertical: PX * 2 + 1,
-              paddingHorizontal: PX * 3,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 6,
-            }}
-          >
-            {icon ? <Icon name={icon} color={tabWood ? '#FFF4DC' : theme.colors.text} /> : null}
-            <PixelText
-              text={title}
-              heading
-              color={tabWood ? '#FFF4DC' : theme.colors.text}
-            />
-          </PixelBox>
-          {badge ? <View style={{ marginTop: 4 }}>{badge}</View> : null}
+          {title ? (
+            <PixelBox
+              fill={tabWood ? theme.colors.bark : theme.colors.surfaceShade}
+              outline={theme.colors.outline}
+              light={tabWood ? '#8A5A33' : undefined}
+              contentStyle={{
+                paddingVertical: PX * 2 + 1,
+                paddingHorizontal: PX * 3,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              {icon ? (
+                <Icon
+                  name={icon}
+                  color={tabWood ? '#FFF4DC' : theme.colors.text}
+                />
+              ) : null}
+              <PixelText
+                text={title}
+                heading
+                color={tabWood ? '#FFF4DC' : theme.colors.text}
+              />
+            </PixelBox>
+          ) : (
+            <View />
+          )}
+          {action ? (
+            <View>{action}</View>
+          ) : badge ? (
+            <View style={{ marginTop: 4 }}>{badge}</View>
+          ) : null}
         </View>
       ) : null}
     </View>

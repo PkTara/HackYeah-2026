@@ -1,50 +1,12 @@
-import { useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import {
-  HOLD_TYPES,
-  MOVEMENTS,
-  TERRAINS,
-  type ClimbLog,
-  type Focus,
-  type HoldType,
-  type Movement,
-  type Terrain,
-} from '@hackyeah/core';
-import {
-  AppText,
-  Button,
-  Chip,
-  Column,
-  Columns,
-  Icon,
-  PX,
-  Panel,
-  PixelBox,
-  PixelText,
-  Tag,
-  useTheme,
-} from '@hackyeah/ui';
-import { climbSaved } from '../afterSave';
-import { useCapabilities } from '../capabilities';
+import { climbRecord, type ClimbLog } from '@hackyeah/core';
+import { AppText } from '@hackyeah/ui';
+import { LogList, type LogItem } from '../components/LogList';
 import { PageHeader } from '../components/PageHeader';
-import { SavedNote } from '../components/SavedNote';
 import { TabScreen } from '../components/TabScreen';
-import {
-  GRADES,
-  HOLD_ICON,
-  HOLD_NAME,
-  MOVEMENT_HINT,
-  MOVEMENT_NAME,
-  TERRAIN_ICON,
-  TERRAIN_NAME,
-  holdsText,
-  styleText,
-} from '../labels';
+import { TERRAIN_NAME, styleText } from '../labels';
 import { useNavigation } from '../navigation/Navigator';
 import type { RouteName } from '../navigation/routes';
 import { useGame } from '../state/GameProvider';
-
-type Draft = Omit<ClimbLog, 'id' | 'date'>;
 
 /** "V3 vertical, controlled and dynamic" */
 function describe(log: ClimbLog) {
@@ -53,360 +15,45 @@ function describe(log: ClimbLog) {
   )}`;
 }
 
-/** Adds the item if missing, removes it if present. */
-function toggle<T>(list: readonly T[], item: T): T[] {
-  return list.includes(item) ? list.filter(x => x !== item) : [...list, item];
-}
-
 /**
- * Post-session check-in: pick wall, style, holds, grade and result, then
- * save. The profile builds the terrain triangle and style tallies from these.
- * After a save, a note says what changed and points to the profile; it stays
- * until the next climb is started.
+ * The Log tab: the climbs you logged, newest first, filtered to today, this
+ * week, this month or all of them. "Log climb" opens Log > Log a climb.
+ * Coming back from a save, the new climb is framed (the `saved` param).
  */
 export function LogScreen() {
-  const { haptics } = useCapabilities();
-  const { reset } = useNavigation<RouteName>();
-  const { state, today, focus, logClimb, removeClimb } = useGame();
-
-  const [terrain, setTerrain] = useState<Terrain | null>(null);
-  const [movements, setMovements] = useState<Movement[]>([]);
-  const [lastStyle, setLastStyle] = useState<Movement | null>(null);
-  const [holds, setHolds] = useState<HoldType[]>([]);
-  const [grade, setGrade] = useState<string | null>(null);
-  const [sent, setSent] = useState<boolean | null>(null);
-  // The last save and the focus before it, until the next climb starts.
-  const [saved, setSaved] = useState<{ draft: Draft; before: Focus } | null>(
-    null,
-  );
-  // Your own records start folded away.
-  const [showToday, setShowToday] = useState(false);
-
-  const draft: Draft | null =
-    terrain && movements.length > 0 && grade && sent !== null
-      ? { terrain, movements, holds, grade, sent }
-      : null;
-  const missing = [
-    !terrain && 'wall',
-    movements.length === 0 && 'style',
-    !grade && 'grade',
-    sent === null && 'result',
-  ].filter(Boolean);
-
-  /** Any change starts the next climb, so the last save's note goes. */
-  const change = (apply: () => void) => {
-    setSaved(null);
-    apply();
-  };
-
-  const save = () => {
-    if (!draft) {
-      return;
-    }
-    logClimb(draft);
-    haptics.tap();
-    setSaved({ draft, before: focus });
-    // Everything but the result stays picked: the next climb is often similar.
-    setSent(null);
-  };
-
-  const todays = state.logs.filter(log => log.date === today).reverse();
-  const message = saved
-    ? climbSaved(saved.draft, state.logs, saved.before, focus)
-    : null;
+  const { params, navigate } = useNavigation<RouteName>();
+  const { state, today, removeClimb } = useGame();
+  const items: LogItem[] = state.logs.map(log => ({
+    id: log.id,
+    date: log.date,
+    done: log.sent,
+    sample: log.sample,
+    name: describe(log),
+    record: climbRecord(log),
+  }));
 
   return (
-    <TabScreen>
+    <TabScreen single>
       <PageHeader
         title="Log"
-        subtitle="One climb at a time. Each one updates your walls, styles and focus."
+        subtitle="Every climb you logged. Each one shapes your walls, styles and focus."
       />
-
-      {/* Wide screens: the form on the left, today's climbs next to it. */}
-      <Columns>
-        <Column>
-          <Panel title="Log a climb">
-            <View style={styles.form}>
-              <Group label="Wall" need="Pick one">
-                <View style={styles.row}>
-                  {TERRAINS.map(t => (
-                    <WallTile
-                      key={t}
-                      terrain={t}
-                      selected={terrain === t}
-                      onPress={() => change(() => setTerrain(t))}
-                    />
-                  ))}
-                </View>
-              </Group>
-
-              <Group label="Style" need="Pick all that apply">
-                <View style={[styles.row, styles.wrap]}>
-                  {MOVEMENTS.map(m => (
-                    <View key={m} style={styles.styleCell}>
-                      <Chip
-                        label={MOVEMENT_NAME[m]}
-                        selected={movements.includes(m)}
-                        onPress={() =>
-                          change(() => {
-                            setLastStyle(m);
-                            setMovements(list => toggle(list, m));
-                          })
-                        }
-                      />
-                    </View>
-                  ))}
-                </View>
-                <AppText variant="caption" muted>
-                  {lastStyle
-                    ? MOVEMENT_HINT[lastStyle]
-                    : 'Tap a style to see what it means.'}
-                </AppText>
-              </Group>
-
-              <Group label="Holds" need="Optional">
-                <View style={[styles.row, styles.wrap]}>
-                  {HOLD_TYPES.map(h => (
-                    <View key={h} style={styles.holdCell}>
-                      <Chip
-                        label={HOLD_NAME[h]}
-                        icon={HOLD_ICON[h]}
-                        selected={holds.includes(h)}
-                        onPress={() =>
-                          change(() => setHolds(list => toggle(list, h)))
-                        }
-                      />
-                    </View>
-                  ))}
-                </View>
-              </Group>
-
-              <Group label="Grade" need="Pick one">
-                <View style={[styles.row, styles.wrap]}>
-                  {GRADES.map(g => (
-                    <View key={g} style={styles.gradeCell}>
-                      <Chip
-                        label={g}
-                        selected={grade === g}
-                        onPress={() => change(() => setGrade(g))}
-                      />
-                    </View>
-                  ))}
-                </View>
-              </Group>
-
-              <Group label="Result" need="Pick one">
-                <View style={styles.row}>
-                  <View style={styles.cell}>
-                    <Chip
-                      label="Sent"
-                      selected={sent === true}
-                      onPress={() => change(() => setSent(true))}
-                    />
-                  </View>
-                  <View style={styles.cell}>
-                    <Chip
-                      label="Not yet"
-                      selected={sent === false}
-                      onPress={() => change(() => setSent(false))}
-                    />
-                  </View>
-                </View>
-              </Group>
-            </View>
-
-            <Button
-              title="Save climb"
-              icon="check"
-              disabled={!draft}
-              onPress={save}
-              accessibilityHint={
-                draft ? undefined : `Still to pick: ${missing.join(', ')}`
-              }
-            />
-            {message ? (
-              <SavedNote
-                title={message.title}
-                lines={message.lines}
-                next={[
-                  {
-                    title: 'See profile',
-                    accessibilityLabel: 'See your profile',
-                    onPress: () => reset('Profile'),
-                  },
-                ]}
-              />
-            ) : (
-              <AppText variant="caption" muted>
-                {missing.length > 0
-                  ? `Still to pick: ${missing.join(', ')}.`
-                  : 'Ready to save.'}
-              </AppText>
-            )}
-          </Panel>
-        </Column>
-
-        <Column>
-          <Panel title="Today" icon="log">
-            <View style={styles.inline}>
-              <AppText style={styles.grow}>
-                {todays.length === 0
-                  ? 'No climbs logged today yet.'
-                  : `${todays.length} ${
-                      todays.length === 1 ? 'climb' : 'climbs'
-                    } logged today.`}
-              </AppText>
-              {todays.length > 0 ? (
-                <Button
-                  title={showToday ? 'Hide' : 'Show'}
-                  variant="secondary"
-                  small
-                  accessibilityLabel={
-                    showToday ? "Hide today's climbs" : "Show today's climbs"
-                  }
-                  onPress={() => setShowToday(!showToday)}
-                />
-              ) : null}
-            </View>
-            {showToday
-              ? todays.map(log => (
-                  <View key={log.id} style={styles.inline}>
-                    <Icon name={TERRAIN_ICON[log.terrain]} />
-                    <View style={styles.rowText}>
-                      <AppText>{describe(log)}</AppText>
-                      {log.holds.length > 0 ? (
-                        <AppText variant="caption" muted>
-                          {holdsText(log.holds)}
-                        </AppText>
-                      ) : null}
-                      <Tag
-                        text={log.sent ? 'Sent' : 'Not yet'}
-                        tone={log.sent ? 'new' : 'muted'}
-                      />
-                    </View>
-                    <Button
-                      title="Remove"
-                      variant="secondary"
-                      small
-                      accessibilityLabel={`Remove ${describe(log)}`}
-                      onPress={() => change(() => removeClimb(log.id))}
-                    />
-                  </View>
-                ))
-              : null}
-            <AppText variant="caption" muted>
-              {state.logs.length} {state.logs.length === 1 ? 'climb' : 'climbs'}{' '}
-              in total. Sore fingers go on the Hands tab.
-            </AppText>
-          </Panel>
-        </Column>
-      </Columns>
+      <LogList
+        items={items}
+        today={today}
+        title="Your climbs"
+        one="climb"
+        many="climbs"
+        doneWord="sent"
+        logTitle="Log climb"
+        onLog={() => navigate('LogClimb')}
+        highlight={params.saved}
+        onRemove={item => removeClimb(item.id)}
+      >
+        <AppText variant="caption" muted>
+          Sore fingers go on the Hands tab.
+        </AppText>
+      </LogList>
     </TabScreen>
   );
 }
-
-/** A labelled set of chips inside the form, with how many to pick. */
-function Group({
-  label,
-  need,
-  children,
-}: {
-  label: string;
-  need: string;
-  children: ReactNode;
-}) {
-  return (
-    <View style={styles.group}>
-      <View style={styles.groupHead}>
-        <PixelText text={label} />
-        <AppText variant="caption" muted>
-          {need}
-        </AppText>
-      </View>
-      {children}
-    </View>
-  );
-}
-
-/**
- * Big wall picture with its name underneath, styled like a Chip. A tall Chip
- * puts the name inside the box, and "Overhang" does not fit in a third of a
- * phone screen.
- */
-function WallTile({
-  terrain,
-  selected,
-  onPress,
-}: {
-  terrain: Terrain;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  const { colors } = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={TERRAIN_NAME[terrain]}
-      aria-selected={selected}
-      onPress={onPress}
-      style={styles.tile}
-    >
-      {({ pressed }) => {
-        const down = pressed || selected;
-        return (
-          <>
-            <PixelBox
-              fill={selected ? colors.primary : colors.surface}
-              outline={colors.outline}
-              light={selected ? undefined : colors.surfaceLight}
-              shade={selected ? undefined : colors.surfaceShade}
-              shadow={colors.backgroundDeep}
-              lift={down ? 0 : PX}
-              style={down ? styles.tileDown : undefined}
-              contentStyle={styles.tileBox}
-            >
-              <Icon
-                name={TERRAIN_ICON[terrain]}
-                scale={4}
-                color={selected ? colors.onPrimary : colors.text}
-              />
-            </PixelBox>
-            <PixelText
-              text={TERRAIN_NAME[terrain]}
-              accessible={false}
-              style={styles.tileLabel}
-            />
-          </>
-        );
-      }}
-    </Pressable>
-  );
-}
-
-const styles = StyleSheet.create({
-  form: { gap: 18 },
-  group: { gap: 8 },
-  groupHead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  row: { flexDirection: 'row', gap: 8 },
-  wrap: { flexWrap: 'wrap' },
-  cell: { flex: 1 },
-  // Two styles per row, leaving room for the longer names.
-  styleCell: { flexBasis: '40%', flexGrow: 1 },
-  // Four grades per row on any phone width.
-  gradeCell: { flexBasis: '20%', flexGrow: 1 },
-  // Two hold types per row: "Volume" plus its icon needs the room.
-  holdCell: { flexBasis: '40%', flexGrow: 1 },
-  tile: { flex: 1, gap: 6 },
-  tileBox: { minHeight: 44, paddingVertical: 10, alignItems: 'center' },
-  // Pressed or picked: the box drops onto its shadow, like Chip.
-  tileDown: { marginTop: PX },
-  tileLabel: { alignSelf: 'center' },
-  inline: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  rowText: { flex: 1, gap: 4 },
-  grow: { flex: 1 },
-});

@@ -9,6 +9,7 @@ import {
   TERRAINS,
   ageLabel,
   cellTally,
+  climbRecord,
   shortDate,
   terrainTallies,
   type ClimbLog,
@@ -30,28 +31,20 @@ import {
 import { DecisionHelp, ExplanationSheet } from '../components/DecisionHelp';
 import { Crumbs } from '../components/Crumbs';
 import { PageHeader } from '../components/PageHeader';
+import { RecordRow } from '../components/RecordRow';
 import { TabScreen } from '../components/TabScreen';
-import {
-  MOVEMENT_NAME,
-  TERRAIN_ICON,
-  TERRAIN_NAME,
-  holdsText,
-  styleText,
-} from '../labels';
+import { MOVEMENT_NAME, TERRAIN_ICON, TERRAIN_NAME } from '../labels';
 import { useNavigation } from '../navigation/Navigator';
 import type { RouteName } from '../navigation/routes';
+import { trailFor } from '../navigation/trail';
 import { useGame } from '../state/GameProvider';
 
 /**
  * The climbs behind one corner of the terrain triangle, so every statement
  * on the profile can be checked against what was actually logged.
  */
-function capitalize(text: string): string {
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
-
 export function EvidenceScreen() {
-  const { params, reset } = useNavigation<RouteName>();
+  const { params, openTrail } = useNavigation<RouteName>();
   const { state, today, focus } = useGame();
   const [terrain, setTerrain] = useState<Terrain>(
     () => TERRAINS.find(t => t === params.terrain) ?? focus.terrain,
@@ -153,9 +146,15 @@ export function EvidenceScreen() {
         {climbs.length === 0 ? (
           <AppText>No {name.toLowerCase()} climbs logged yet.</AppText>
         ) : (
-          climbs.map(log => <ClimbRow key={log.id} log={log} />)
+          climbs.map(log => (
+            <RecordRow key={log.id} record={climbRecord(log)} />
+          ))
         )}
-        <Button title="Log a climb" icon="log" onPress={() => reset('Log')} />
+        <Button
+          title="Log a climb"
+          icon="log"
+          onPress={() => openTrail(trailFor('LogClimb', {}))}
+        />
       </Panel>
     </TabScreen>
   );
@@ -334,40 +333,6 @@ function Cell({
   );
 }
 
-function ClimbRow({ log }: { log: ClimbLog }) {
-  const { colors: c } = useTheme();
-  return (
-    <View style={styles.climb}>
-      <View
-        style={[
-          styles.grade,
-          { backgroundColor: c.surfaceShade, borderColor: c.outline },
-        ]}
-      >
-        <PixelText text={log.grade} scale={3} />
-      </View>
-      <View style={styles.grow}>
-        <AppText>{capitalize(styleText(log.movements))}</AppText>
-        {log.holds.length > 0 ? (
-          <AppText variant="caption" muted>
-            {capitalize(holdsText(log.holds))}
-          </AppText>
-        ) : null}
-        <AppText variant="caption" muted>
-          {shortDate(log.date)}
-        </AppText>
-      </View>
-      {/* Wrapped so the tag centres on the row instead of the top edge. */}
-      <View>
-        <Tag
-          text={log.sent ? 'Sent' : 'Not yet'}
-          tone={log.sent ? 'new' : 'muted'}
-        />
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   switcher: { flexDirection: 'row', gap: 8 },
   grow: { flex: 1 },
@@ -394,12 +359,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dash: { width: PX * 4, height: PX },
-  climb: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  grade: {
-    width: 48,
-    height: 48,
-    borderWidth: PX,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 });

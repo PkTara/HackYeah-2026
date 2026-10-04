@@ -64,7 +64,8 @@ type SportApi = Readonly<{
 
   completeQuest: (id: string) => void;
   skipQuest: (id: string) => void;
-  logSession: (log: Omit<SessionLog, 'id' | 'date'>) => void;
+  /** Saves a session dated today and returns its new id. */
+  logSession: (log: Omit<SessionLog, 'id' | 'date'>) => string;
   removeSession: (id: string) => void;
   /** Flags a sore spot, or clears it. A flag keeps its first date. */
   setFlag: (side: Side, part: string, flagged: boolean) => void;
@@ -254,6 +255,7 @@ export function SportProvider({ children, backend, today: fixedToday }: Props) {
         commit({ type: 'logSession', log }, () =>
           backend.addSession(sport.id, log),
         );
+        return log.id;
       },
       removeSession: id =>
         commit({ type: 'removeSession', id }, () =>
