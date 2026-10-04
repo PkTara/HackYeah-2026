@@ -50,7 +50,8 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     // Keep /*! and @license comments so third-party licences (ZzFX, React)
-    // ship with the minified bundle.
-    rolldownOptions: { output: { legalComments: 'inline' } },
+    // ship with the minified bundle. Vite turns legal comments off when it
+    // minifies, and comments.legal is the setting that overrides that.
+    rolldownOptions: { output: { comments: { legal: true } } },
   },
 }));
