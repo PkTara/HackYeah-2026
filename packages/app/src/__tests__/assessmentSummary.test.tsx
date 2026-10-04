@@ -65,8 +65,8 @@ it('uses shoulder-side labels without a hand suffix while retaining finger-force
     );
   });
   expect(text(screen)).toContain('Finger force · left hand');
-  expect(text(screen)).toContain('Shoulder reach — left');
-  expect(text(screen)).not.toContain('Shoulder reach — left · left hand');
+  expect(text(screen)).toContain('Shoulder reach, left');
+  expect(text(screen)).not.toContain('Shoulder reach, left · left hand');
   await act(async () => screen.unmount());
 });
 
@@ -102,5 +102,36 @@ it('opens dated source history and labels simulated camera measurements', async 
   expect(text(screen)).toContain('390 newtons');
   expect(text(screen)).toContain('2026-10-03');
   expect(text(screen)).toContain('External instrument');
+  await act(async () => screen.unmount());
+});
+
+it('keeps compact latest readings concise and source-labelled while linking to metric details', async () => {
+  const open = jest.fn();
+  let screen!: ReactTestRenderer.ReactTestRenderer;
+  await act(async () => {
+    screen = ReactTestRenderer.create(
+      <AssessmentSummary
+        compact
+        records={[previous, { ...latest, simulated: true }]}
+        metrics={['finger_force']}
+        onOpen={open}
+      />,
+    );
+  });
+  expect(text(screen)).toContain('400 N');
+  expect(text(screen)).toContain('Simulated · External instrument · manual');
+  expect(text(screen)).toContain('2026-10-04');
+  expect(text(screen)).not.toContain('Load cell');
+  expect(text(screen)).not.toContain('Show measurement history');
+  await act(async () =>
+    screen.root
+      .find(
+        n =>
+          n.props.accessibilityLabel === 'Open finger strength' &&
+          typeof n.props.onPress === 'function',
+      )
+      .props.onPress(),
+  );
+  expect(open).toHaveBeenCalledWith('finger_force');
   await act(async () => screen.unmount());
 });

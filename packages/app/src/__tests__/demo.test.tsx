@@ -108,13 +108,15 @@ it('records actual shoulder and instrument features in the isolated demo profile
   await press(screen, 'Demo controls');
   await press(screen, 'Demo mode, Use a separate demo profile.');
   await press(screen, 'Back to Data');
+  await press(screen, 'Open shoulder reach');
   await press(screen, 'Shoulder reach assessment');
   await press(screen, 'Record');
   await advanceFrames(9);
   expect(text(screen)).toContain('Review your result: Left 170° · Right 170°');
   await press(screen, 'Save result');
   await press(screen, 'Back to Data');
-  await press(screen, 'Finger strength');
+  await press(screen, 'Open finger strength');
+  await press(screen, 'Record finger strength');
   await press(screen, 'Fill example reading');
   await press(screen, 'Review result');
   expect(text(screen)).toContain('320 newtons');
@@ -161,10 +163,11 @@ it('records actual shoulder and instrument features in the isolated demo profile
     'Manual assessment examples, Offer example home-test and instrument-force results.',
   );
   await press(screen, 'Back to Data');
-  await press(screen, 'Finger strength');
+  await press(screen, 'Open finger strength');
+  await press(screen, 'Record finger strength');
   expect(text(screen)).not.toContain('Fill example reading');
   await press(screen, 'Back to Data');
-  expect(text(screen)).toContain('Shoulder reach assessment');
+  expect(text(screen)).toContain('Open shoulder reach');
   expect(text(screen)).not.toContain('Preview Shoulder reach');
   await act(async () => screen.unmount());
 });
@@ -197,14 +200,14 @@ it('switches simulated integration feeds independently and keeps them out of nor
   await press(screen, 'Demo controls');
   await press(screen, 'Demo mode, Use a separate demo profile.');
   await press(screen, 'Back to Data');
-  await press(screen, 'Profile');
+  await press(screen, 'Open activity and integrations');
   expect(text(screen)).toContain('Strava: Bouldering, 60 min');
   expect(text(screen)).toContain('Apple Health: Sleep, 7 h 45 min');
   await press(screen, 'Data');
   await press(screen, 'Demo controls');
   await press(screen, 'Strava, Simulate workouts.');
   await press(screen, 'Back to Data');
-  await press(screen, 'Profile');
+  await press(screen, 'Open activity and integrations');
   expect(text(screen)).not.toContain('Strava: Bouldering, 60 min');
   expect(text(screen)).toContain('Apple Health: Sleep, 7 h 45 min');
   await act(async () => screen.unmount());
@@ -249,6 +252,7 @@ it('demonstrates live recording and reviewed saving without a server or webcam',
   await press(screen, 'Demo controls');
   await press(screen, 'Demo mode, Use a separate demo profile.');
   await press(screen, 'Back to Data');
+  await press(screen, 'Open leg spread');
   await press(screen, 'Leg spread assessment');
   await press(screen, 'Record');
   expect(text(screen)).toContain('Simulated camera');
@@ -283,6 +287,7 @@ it('uses the real camera while keeping live analysis simulated when webcam mocki
     'Webcam input, Use an animated sample instead of the real camera.',
   );
   await press(screen, 'Back to Data');
+  await press(screen, 'Open leg spread');
   await press(screen, 'Leg spread assessment');
   await press(screen, 'Record');
   expect(fixture.preview.active).toBe(true);
@@ -302,6 +307,7 @@ it('entering demo mode does not grant either missing privacy preference', async 
   await press(screen, 'Demo controls');
   await press(screen, 'Demo mode, Use a separate demo profile.');
   await press(screen, 'Back to Data');
+  await press(screen, 'Open leg spread');
   await press(screen, 'Leg spread assessment');
   const record = screen.root.find(
     n =>

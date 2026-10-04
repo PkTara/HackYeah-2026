@@ -114,6 +114,7 @@ it('restores assessment parameters and the About opening stack after a camera-so
   await press(s, 'Demo controls');
   await press(s, 'Demo mode, Use a separate demo profile.');
   await press(s, 'Back to Data');
+  await press(s, 'Open shoulder reach');
   await press(s, 'Shoulder reach assessment');
   await press(s, 'Settings');
   await press(s, 'About this build');

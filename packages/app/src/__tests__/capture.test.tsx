@@ -118,6 +118,7 @@ describe('camera assessment', () => {
   it('withheld permission disables Record and Settings returns to the selected assessment', async () => {
     const { fixture, live } = liveFixture({ privacy: false });
     const screen = await render(fixture, 'Data');
+    await press(screen, 'Open shoulder reach');
     await press(screen, 'Shoulder reach assessment');
     expect(control(screen, 'Record').props.disabled).toBe(true);
     await press(screen, 'Record');

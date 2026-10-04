@@ -10,6 +10,7 @@ import {
   type Finger,
   type Side,
 } from '@hackyeah/core';
+import { measurementGroup } from '../components/measurementGroup';
 import { FINGER_NAME, SIDE_NAME, fingerLabel } from '../labels';
 import type { TrailStep } from './Navigator';
 import type { RouteName } from './routes';
@@ -76,10 +77,7 @@ export function trailFor(route: RouteName, params: Params): Crumb[] {
           { route, params, label: 'About' },
         ];
       }
-      return [
-        tab('Data'),
-        { route, params, label: 'About' },
-      ];
+      return [tab('Data'), { route, params, label: 'About' }];
     }
     case 'Settings':
       return [
@@ -90,6 +88,17 @@ export function trailFor(route: RouteName, params: Params): Crumb[] {
           : [tab('Data')]),
         { route, params, label: 'Settings' },
       ];
+    case 'BodyReach':
+      return [tab('Data'), { route, label: 'Body & reach' }];
+    case 'Activity':
+      return [tab('Data'), { route, label: 'Activity & integrations' }];
+    case 'MeasurementDetail': {
+      const group = measurementGroup(params.metric);
+      return [
+        tab('Data'),
+        { route, params: { metric: group.metric }, label: group.title },
+      ];
+    }
     case 'FingerStrength':
       return [tab('Data'), { route, label: 'Finger strength' }];
     case 'Assessment':
