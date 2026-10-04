@@ -255,3 +255,14 @@ The Codex design-drafting step used the `superpowers:using-superpowers` and `sup
 
 **Not verified:** a real camera, Android or iOS native builds, and runtime permission dialogs on a phone.
 
+### 22. Configurable presentation demo (2026-10-04)
+
+**Prompt:** Add demo mode with individually selectable mocks for unavailable integrations and features, including a choice between simulated and real webcam input. Put the controls beside About; commit and push after verification.
+
+**Output:** Shared demo controls on Tests and About, plus setup and backend-failure access; persistent switches for the sample profile, five health-provider feeds, webcam, photo/clip/live analysis, hand-photo storage, home-test examples and unfinished-test previews. Separate demo storage, anonymous API identities and scenario generations preserve the normal profile and keep late saves out of a reset scenario. Mock media keeps its existing consent/review/save flow and uses explicit simulation labels. Saved entries/results appear on Hands/Tests. `docs/demo-mode.md` documents usage and limits.
+
+**AI/process:** Codex implemented the feature using Canon TDD and reviewed it with a code-review subagent. Review identified reset isolation and simulated-input/real-live combinations; regression tests cover the fixes. No new external libraries, models, provider accounts or image-generation tools were used. The sample camera is drawn with React Native Views; provider feeds and measurements are invented, labelled examples.
+
+**Validation:** `npm run check` passed typechecking, lint and 677 Jest tests in 42 suites (14 added demo tests). `npm run web:build` passed. The in-app browser verified selectable controls, simulated preview, reviewed photo analysis/save, live results, clip recording/review/analysis and persistence after refresh. A separate test verifies real-camera selection with simulated analysis at the capability boundary. Existing lint/deprecation and bundle-size warnings remain.
+
+**Limits:** Physical camera permissions, native device builds and real health integrations were not tested or added. Future-test previews are not measurements. Reset starts a new scenario; deletion of previously retained real demo-server captures uses the existing profile-deletion flow before reset.

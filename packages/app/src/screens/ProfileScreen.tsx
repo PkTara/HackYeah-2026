@@ -44,6 +44,7 @@ import {
 import { useNavigation } from '../navigation/Navigator';
 import type { RouteName } from '../navigation/routes';
 import { useGame } from '../state/GameProvider';
+import { IntegrationsPanel } from '../demo/IntegrationsPanel';
 
 const STEPS = XP_PER_LEVEL / XP_PER_QUEST;
 
@@ -373,6 +374,7 @@ export function ProfileScreen() {
           </Panel>
 
           {wide ? null : recentPanel}
+          <IntegrationsPanel />
 
           {/* One pet per sport */}
           <Panel title="Pets">

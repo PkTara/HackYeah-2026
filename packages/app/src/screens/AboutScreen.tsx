@@ -14,6 +14,7 @@ import { Crumbs } from '../components/Crumbs';
 import { PageHeader } from '../components/PageHeader';
 import { TabScreen } from '../components/TabScreen';
 import { useGame } from '../state/GameProvider';
+import { DemoButton } from '../demo/DemoControls';
 
 const PACKAGES = [
   {
@@ -56,6 +57,7 @@ export function AboutScreen() {
         title="About"
         subtitle="Climbing Monkey, a HackYeah 2026 prototype."
       />
+      <DemoButton />
 
       {/* Wide screens put the honest bits under Platform, so the two columns
           come out about even. Phones keep them last, after How it is built. */}

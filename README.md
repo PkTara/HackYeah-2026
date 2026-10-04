@@ -61,6 +61,12 @@ Screens only talk to `useGame()`. It saves through a `ClimbingBackend` from `pac
 
 To use the FastAPI backend, run `npm run backend:setup` once, then `MONKEY_CORS_ORIGINS=http://localhost:5173 npm run backend:start`, and start the web app with `VITE_MONKEY_API_URL=http://127.0.0.1:8000 npm run web`. Without the variable the app keeps everything on the device. Native builds read `API_BASE_URL` in `packages/data/src/config.ts` instead. The same address is used by the camera screens (the camera assessment on the Tests tab and hand photos on the Hands tab); without a server they say they need one. See the [camera and video guide](docs/camera-video.md).
 
+### Demo mode
+
+Open **Tests → Demo controls**, beside **About this build**, and tick **Demo mode**. The controls are also available in About, during setup and when the backend cannot load. Individual checkboxes simulate the profile, health-provider feeds, webcam, pose analysis, hand-photo storage, home-test results and unfinished test previews. Untick **Webcam input** to use your real camera while keeping **Analysis results** simulated. The default demo needs no backend, camera permissions, provider accounts or pose model.
+
+Choices survive refreshes. Demo data, tokens and server identities are separate from your normal profile; switching demo mode off restores it. **Reset demo** starts a fresh presentation scenario. See [the demo guide](docs/demo-mode.md) for the switches and limitations.
+
 ## Setup
 
 ```sh

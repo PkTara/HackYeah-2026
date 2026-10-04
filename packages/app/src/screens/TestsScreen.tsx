@@ -29,6 +29,10 @@ import type { RouteName } from '../navigation/routes';
 import { useSetup } from '../onboarding/OnboardingGate';
 import { useMedia } from '../media';
 import { useGame } from '../state/GameProvider';
+import { DemoButton } from '../demo/DemoControls';
+import { TestPreview } from '../demo/TestPreview';
+import { useDemo } from '../demo/DemoProvider';
+import { SavedMedia } from '../demo/SavedMedia';
 
 const MIN_CM = 100;
 const MAX_CM = 250;
@@ -83,6 +87,7 @@ function signedCm(cm: number): string {
  * assessment (it needs the server), and honest "not built yet" cards.
  */
 export function TestsScreen() {
+  const demo = useDemo();
   const { navigate } = useNavigation<RouteName>();
   const { backendKind } = useGame();
   const { redoSetup } = useSetup();
@@ -103,15 +108,9 @@ export function TestsScreen() {
 
         <Column>
           <CameraPanel />
+          <SavedMedia kind="assessments" />
           {NOT_BUILT.map(test => (
-            <Panel
-              key={test.title}
-              variant="quiet"
-              title={test.title}
-              badge={<Tag text="Soon" tone="muted" />}
-            >
-              <AppText>{test.text}</AppText>
-            </Panel>
+            <TestPreview key={test.title} {...test} />
           ))}
 
           <Panel variant="quiet">
@@ -121,6 +120,7 @@ export function TestsScreen() {
               small
               onPress={() => navigate('About')}
             />
+            <DemoButton />
             <Button
               title="Redo setup"
               variant="secondary"
@@ -128,7 +128,9 @@ export function TestsScreen() {
               onPress={redoSetup}
             />
             {/* Only the on-device demo store can be reset. */}
-            {backendKind === 'local' ? <ResetDemo /> : null}
+            {backendKind === 'local' && !demo.settings.enabled ? (
+              <ResetDemo />
+            ) : null}
           </Panel>
         </Column>
       </Columns>

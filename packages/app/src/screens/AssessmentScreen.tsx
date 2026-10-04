@@ -28,6 +28,7 @@ import { Crumbs } from '../components/Crumbs';
 import { PageHeader } from '../components/PageHeader';
 import { TabScreen } from '../components/TabScreen';
 import { useMedia } from '../media';
+import { useDemo } from '../demo/DemoProvider';
 
 export const NOT_VALIDATED =
   'A projected angle from the camera, not a validated flexibility test.';
@@ -57,6 +58,8 @@ export function AssessmentScreen() {
 }
 
 function Assessment({ media }: { media: MediaClient }) {
+  const demo = useDemo();
+  const simulated = demo.settings.enabled && demo.settings.analysis;
   const c = useCapture('assessment');
   const [consent, setConsent] = useState(false);
   const [reading, setReading] = useState<PoseReading | null>(null);
@@ -114,7 +117,12 @@ function Assessment({ media }: { media: MediaClient }) {
     }
     c.run(
       () => media.saveAssessment(result, confirmed),
-      () => setNotice('Saved to your profile as your own reading.'),
+      () =>
+        setNotice(
+          simulated
+            ? 'Saved simulated result to your demo profile.'
+            : 'Saved to your profile as your own reading.',
+        ),
       'Could not save it. Try again.',
     );
   };
@@ -132,7 +140,12 @@ function Assessment({ media }: { media: MediaClient }) {
 
       <CameraTray capture={c}>
         {c.active ? (
-          <LiveControls capture={c} consent={consent} onPress={goLive} />
+          <LiveControls
+            capture={c}
+            consent={consent}
+            onPress={goLive}
+            simulated={simulated}
+          />
         ) : null}
       </CameraTray>
 
@@ -140,13 +153,17 @@ function Assessment({ media }: { media: MediaClient }) {
 
       {c.capture || c.active ? (
         <Panel title="Send">
-          <ServerNote server={media.server}>
+          <ServerNote server={media.server} simulated={simulated}>
             The server works out the angle and keeps nothing. A result is saved
             only when you press Save.
           </ServerNote>
           <CheckRow
             name="Send for analysis"
-            detail="I consent to sending this capture to the server for analysis."
+            detail={
+              simulated
+                ? 'I agree to simulate this capture locally.'
+                : 'I consent to sending this capture to the server for analysis.'
+            }
             tone="agree"
             checked={consent}
             onPress={toggleConsent}
@@ -198,10 +215,12 @@ function LiveControls({
   capture: c,
   consent,
   onPress,
+  simulated,
 }: {
   capture: Capture;
   consent: boolean;
   onPress: () => void;
+  simulated: boolean;
 }) {
   return (
     <View style={styles.part}>
@@ -214,7 +233,9 @@ function LiveControls({
         onPress={onPress}
       />
       <AppText variant="caption" muted>
-        {c.live
+        {simulated
+          ? 'Live generates example results on this device until stopped.'
+          : c.live
           ? 'Live: about two frames a second go to the server while this runs.'
           : consent
           ? 'Live sends about two frames a second until you stop it.'
@@ -241,12 +262,15 @@ function ResultTray({
   onSave: () => void;
   notice: string;
 }) {
+  const demo = useDemo();
+  const simulated = demo.settings.enabled && demo.settings.analysis;
   const { result, last, valid, total } = reading;
   return (
     <Panel
       title="Result"
       badge={<Tag text={`${valid} of ${total} usable`} tone="muted" />}
     >
+      {simulated ? <Tag text="Simulated result" /> : null}
       {result && result.value !== null ? (
         <>
           <View style={styles.result}>
@@ -266,7 +290,11 @@ function ResultTray({
           <Divider />
           <CheckRow
             name="I have reviewed it"
-            detail="Save it to my profile as my own reading"
+            detail={
+              simulated
+                ? 'Keep this simulated result in the demo profile'
+                : 'Save it to my profile as my own reading'
+            }
             tone="agree"
             checked={confirmed}
             onPress={onConfirm}

@@ -164,20 +164,28 @@ export function ReviewTray({ capture: c }: { capture: Capture }) {
 export function ServerNote({
   server,
   children,
+  simulated = false,
 }: {
   server: string;
   children: ReactNode;
+  simulated?: boolean;
 }) {
   return (
     <View style={styles.note}>
       <Icon name="lock" />
       <AppText variant="caption" style={styles.grow}>
-        Goes to{' '}
-        <AppText variant="caption" style={styles.strong}>
-          {server}
-        </AppText>
-        {'. '}
-        {children}
+        {simulated ? (
+          'Simulated on this device. No capture is uploaded. Saved demo results and entries stay separate from your normal profile.'
+        ) : (
+          <>
+            Goes to{' '}
+            <AppText variant="caption" style={styles.strong}>
+              {server}
+            </AppText>
+            {'. '}
+            {children}
+          </>
+        )}
       </AppText>
     </View>
   );

@@ -11,6 +11,7 @@ import {
   useTheme,
 } from '@hackyeah/ui';
 import { CHAPTERS, PERCHES, chapterOf, perchOf, type StepId } from './flow';
+import { DemoButton } from '../demo/DemoControls';
 
 /** Width of the onboarding column on wide screens. */
 const COLUMN_MAX = 600;
@@ -44,14 +45,28 @@ type Props = {
  * jungle strip with a speech bubble, the step itself, and a footer with
  * Back, Skip and Next. No tab bar or rail while it runs.
  */
-export function StepFrame({ step, from, line, back, skip, next, children }: Props) {
+export function StepFrame({
+  step,
+  from,
+  line,
+  back,
+  skip,
+  next,
+  children,
+}: Props) {
   const theme = useTheme();
   const { width } = useWindowDimensions();
   const layout = useLayout();
   const column = Math.min(COLUMN_MAX, width - layout.gutter * 2);
   const footer =
     back || skip || next ? (
-      <Footer column={column} gutter={layout.gutter} back={back} skip={skip} next={next} />
+      <Footer
+        column={column}
+        gutter={layout.gutter}
+        back={back}
+        skip={skip}
+        next={next}
+      />
     ) : undefined;
 
   return (
@@ -72,8 +87,11 @@ export function StepFrame({ step, from, line, back, skip, next, children }: Prop
       }
       footer={footer}
     >
-      <View style={[styles.column, { maxWidth: column, gap: theme.spacing.lg }]}>
+      <View
+        style={[styles.column, { maxWidth: column, gap: theme.spacing.lg }]}
+      >
         {children}
+        <DemoButton />
       </View>
     </Screen>
   );
@@ -94,8 +112,8 @@ function Progress({
     step === 'welcome'
       ? 'Climbing Monkey'
       : step === 'done'
-        ? 'All done'
-        : `Step ${chapter} of ${CHAPTERS}`;
+      ? 'All done'
+      : `Step ${chapter} of ${CHAPTERS}`;
   return (
     <View
       style={[
@@ -155,7 +173,9 @@ function Footer({
       ]}
     >
       <View style={[styles.footerRow, { maxWidth: column }]}>
-        {back ? <Button title="Back" variant="secondary" onPress={back} /> : null}
+        {back ? (
+          <Button title="Back" variant="secondary" onPress={back} />
+        ) : null}
         {skip ? (
           <Button
             title={skip.label}

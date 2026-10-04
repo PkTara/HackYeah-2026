@@ -36,6 +36,7 @@ import { useMedia } from '../media';
 import { useNavigation } from '../navigation/Navigator';
 import type { RouteName } from '../navigation/routes';
 import { useGame } from '../state/GameProvider';
+import { useDemo } from '../demo/DemoProvider';
 
 export const HAND_CONSENT =
   'I consent to uploading and retaining this hand photo and journal entry.';
@@ -81,6 +82,8 @@ export function HandCaptureScreen() {
 }
 
 function HandCapture({ media }: { media: MediaClient }) {
+  const demo = useDemo();
+  const simulated = demo.settings.enabled && demo.settings.handPhotos;
   const { params } = useNavigation<RouteName>();
   const { state, refresh } = useGame();
   const theme = useTheme();
@@ -137,7 +140,11 @@ function HandCapture({ media }: { media: MediaClient }) {
     c.run(
       () => media.saveHandPhoto(photo, entry, consent),
       () => {
-        setNotice('Saved to your hand journal.');
+        setNotice(
+          simulated
+            ? 'Saved simulated entry to your demo hand journal. No photo was uploaded or retained.'
+            : 'Saved to your hand journal.',
+        );
         refresh(); // a finger entry changes its flag
       },
       'Could not save it. Try again.',
@@ -245,13 +252,17 @@ function HandCapture({ media }: { media: MediaClient }) {
 
       {c.capture ? (
         <Panel title="Save">
-          <ServerNote server={media.server}>
+          <ServerNote server={media.server} simulated={simulated}>
             The photo stays there, private to your profile, until you delete
             your profile.
           </ServerNote>
           <CheckRow
             name="Upload and keep"
-            detail={HAND_CONSENT}
+            detail={
+              simulated
+                ? 'I agree to keep this entry in the demo journal. Photo storage is simulated.'
+                : HAND_CONSENT
+            }
             tone="agree"
             checked={consent}
             onPress={() => setConsent(!consent)}

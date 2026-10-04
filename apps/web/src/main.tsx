@@ -21,7 +21,12 @@ const backend = createBackend(capabilities.storage, server);
 const media = createMedia(capabilities.storage, server);
 
 AppRegistry.registerComponent('HackYeahApp', () => () => (
-  <App initialRoute={initialRoute} backend={backend} media={media} />
+  <App
+    initialRoute={initialRoute}
+    backend={backend}
+    media={media}
+    backendConfig={server}
+  />
 ));
 AppRegistry.runApplication('HackYeahApp', {
   rootTag: document.getElementById('root'),
