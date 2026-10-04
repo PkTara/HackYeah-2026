@@ -54,11 +54,15 @@ describe('Data tab', () => {
     await act(async () => screen.unmount());
   });
 
-  it('a link straight to the camera screen without a server shows no camera', async () => {
+  it('a link straight to the assessment without a server retains a camera placeholder and disables Record', async () => {
     const fixture = setup({ media: false });
     const screen = await render(fixture, 'Assessment');
-    expect(text(screen)).toContain(`The camera assessment ${NEEDS_SERVER}`);
-    expect(control(screen, 'Record')).toBeUndefined();
+    expect(text(screen)).toContain('Connect the analysis service');
+    expect(text(screen)).toContain('Camera off');
+    expect(control(screen, 'Record').props.accessibilityState.disabled).toBe(true);
+    await press(screen, 'Record');
+    expect(fixture.preview.active).toBe(false);
+    expect(fixture.requests).toEqual([]);
     await act(async () => screen.unmount());
   });
 });
