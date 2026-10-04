@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import {
   AppText,
   Button,
+  Gazelle,
   Monkey,
   Panel,
   PixelText,
@@ -10,6 +11,7 @@ import {
   useTheme,
 } from '@hackyeah/ui';
 import { useGame } from '../state/GameProvider';
+import { useRun } from '../state/RunProvider';
 
 /**
  * Reward feedback after a quest. Plain XP shows a short toast; a level-up
@@ -18,7 +20,10 @@ import { useGame } from '../state/GameProvider';
 export function CelebrationOverlay() {
   const theme = useTheme();
   const width = useContentWidth();
-  const { celebration, dismissCelebration, pet } = useGame();
+  const game = useGame();
+  const run = useRun();
+  const gazelle = run.mode === 'gazelle';
+  const { celebration, dismissCelebration, pet } = gazelle ? run : game;
 
   useEffect(() => {
     if (celebration && !celebration.level) {
@@ -55,7 +60,13 @@ export function CelebrationOverlay() {
   }
 
   return (
-    <View style={[StyleSheet.absoluteFill, styles.dim]}>
+    <View
+      style={[
+        StyleSheet.absoluteFill,
+        styles.dim,
+        gazelle ? styles.dimSavanna : null,
+      ]}
+    >
       <View style={{ width: Math.min(width, 420) - 32 }}>
         <Panel variant="banana" title="Level up">
           <View style={{ alignItems: 'center', gap: 12 }}>
@@ -65,16 +76,27 @@ export function CelebrationOverlay() {
               heading
               shadow={theme.colors.primaryShade}
             />
-            <Monkey
-              scale={5}
-              cosmetics={pet.cosmetics}
-              celebrate
-              accessibilityLabel="Your monkey, cheering"
-            />
+            {gazelle ? (
+              <Gazelle
+                scale={5}
+                cosmetics={pet.cosmetics}
+                celebrate
+                accessibilityLabel="Your gazelle, leaping"
+              />
+            ) : (
+              <Monkey
+                scale={5}
+                cosmetics={pet.cosmetics}
+                celebrate
+                accessibilityLabel="Your monkey, cheering"
+              />
+            )}
             <AppText style={{ textAlign: 'center' }}>
               {celebration.unlocked
-                ? `Your monkey found a ${celebration.unlocked.toLowerCase()}. It is wearing it now.`
-                : 'Your monkey climbed into a new part of the canopy.'}
+                ? `Your ${gazelle ? 'gazelle' : 'monkey'} found a ${celebration.unlocked.toLowerCase()}. It is wearing it now.`
+                : gazelle
+                  ? 'Your gazelle crossed the finish line onto a new stretch of savanna.'
+                  : 'Your monkey climbed into a new part of the canopy.'}
             </AppText>
             <Button title="Nice" onPress={dismissCelebration} />
           </View>
@@ -98,4 +120,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  dimSavanna: { backgroundColor: 'rgba(20, 11, 6, 0.72)' },
 });

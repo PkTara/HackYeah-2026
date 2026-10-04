@@ -12,6 +12,10 @@ import { ProfileScreen } from '../screens/ProfileScreen';
 import { TestsScreen } from '../screens/TestsScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { FingerStrengthScreen } from '../screens/FingerStrengthScreen';
+import { GazelleProfileScreen } from '../screens/gazelle/GazelleProfileScreen';
+import { LegsScreen } from '../screens/gazelle/LegsScreen';
+import { RunEvidenceScreen } from '../screens/gazelle/RunEvidenceScreen';
+import { RunLogScreen } from '../screens/gazelle/RunLogScreen';
 
 export const screens = {
   // Tabs
@@ -34,9 +38,24 @@ export const screens = {
   Assessment: AssessmentScreen,
   /** Hand journal photo. Optional params: side and finger, to start there. */
   HandCapture: HandCaptureScreen,
+
+  // Gazelle mode tabs
+  Run: GazelleProfileScreen,
+  RunLog: RunLogScreen,
+  Legs: LegsScreen,
+  // Pushed on top of a gazelle tab
+  /** Params: type, a run type from core's RUN_TYPES. */
+  RunEvidence: RunEvidenceScreen,
 } satisfies Record<string, ComponentType>;
 
 export type RouteName = keyof typeof screens;
+
+/** Routes that belong to gazelle mode; everything else is the monkey's. */
+const GAZELLE_ROUTES: readonly RouteName[] = ['Run', 'RunLog', 'Legs', 'RunEvidence'];
+
+export function isGazelleRoute(name: RouteName): boolean {
+  return GAZELLE_ROUTES.includes(name);
+}
 
 export function isRouteName(name: string): name is RouteName {
   return Object.prototype.hasOwnProperty.call(screens, name);

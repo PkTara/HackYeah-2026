@@ -36,7 +36,10 @@ function capabilities(sfx?: SfxCapability): Capabilities {
   };
 }
 
-async function renderApp(caps: Capabilities, initialRoute: RouteName = 'Settings') {
+async function renderApp(
+  caps: Capabilities,
+  initialRoute: RouteName = 'Settings',
+) {
   let renderer!: Renderer;
   await act(async () => {
     renderer = ReactTestRenderer.create(
@@ -134,7 +137,9 @@ describe('sound effects switch', () => {
     const renderer = await renderApp(capabilities());
     expect(soundSwitch(renderer)).toHaveLength(0);
     const text = JSON.stringify(renderer.toJSON());
-    expect(text).toContain('Sound effects are not available on this device yet.');
+    expect(text).toContain(
+      'Sound effects are not available on this device yet.',
+    );
     pressLabel(renderer, 'Hands');
     expect(JSON.stringify(renderer.toJSON())).toContain('Hands');
     act(() => renderer.unmount());
@@ -160,6 +165,22 @@ describe('sounds in the app', () => {
     const names = sfx.play.mock.calls.map(([name]) => name);
     expect(names[0]).toBe('tap');
     expect(['success', 'levelUp']).toContain(names[1]);
+    act(() => renderer.unmount());
+  });
+
+  it('plays success for a logged run in gazelle mode', async () => {
+    const sfx = fakeSfx();
+    const renderer = await renderApp(capabilities(sfx), 'Profile');
+    pressLabel(renderer, 'Switch to gazelle mode');
+    pressLabel(renderer, 'Log');
+    for (const label of ['Easy', 'Trail', '5 km', '30 min', 'Finished']) {
+      pressLabel(renderer, label);
+    }
+    sfx.play.mockClear();
+    pressLabel(renderer, 'Save run');
+    await act(async () => {});
+    const names = sfx.play.mock.calls.map(([name]) => name);
+    expect(names).toEqual(['tap', 'success']);
     act(() => renderer.unmount());
   });
 });

@@ -1,13 +1,15 @@
 import { useCallback, useMemo, useRef } from 'react';
 import { View } from 'react-native';
-import { ScreenCornerContext } from '@hackyeah/ui';
+import { ScreenCornerContext, WorldContext } from '@hackyeah/ui';
 import {
   createBackend,
+  createLocalRunBackend,
   createMedia,
   createLocalBackend,
   type ClimbingBackend,
   type MediaClient,
   type BackendConfig,
+  type RunBackend,
 } from '@hackyeah/data';
 import {
   capabilities as platformCapabilities,
@@ -22,7 +24,7 @@ import { StatusGate } from './components/StatusGate';
 import { SyncNotice } from './components/SyncNotice';
 import { Navigator, type NavigationEntry } from './navigation/Navigator';
 import { OnboardingGate } from './onboarding/OnboardingGate';
-import { screens, type RouteName } from './navigation/routes';
+import { isGazelleRoute, screens, type RouteName } from './navigation/routes';
 import { GameProvider } from './state/GameProvider';
 import { DemoProvider, useDemo } from './demo/DemoProvider';
 import { DemoControls } from './demo/DemoControls';
@@ -32,6 +34,7 @@ import { scopedStorage } from './demo/settings';
 import { createDemoMedia } from './demo/media';
 import { simulatedCamera } from './demo/camera';
 import { PrivacyProvider } from './privacy/PrivacyProvider';
+import { RunProvider, useRun } from './state/RunProvider';
 
 type Props = {
   /** Override platform services, e.g. with fakes in tests. */
@@ -41,6 +44,11 @@ type Props = {
    * (on-device storage unless API_BASE_URL is set in @hackyeah/data).
    */
   backend?: ClimbingBackend;
+  /**
+   * Gazelle mode's runs and the saved pet mode. Defaults to on-device
+   * storage; the server does not know about running yet.
+   */
+  runBackend?: RunBackend;
   /**
    * Camera uploads: pose analysis and hand photos. Defaults to createMedia()
    * (the server at API_BASE_URL, or none). Pass null for no server.
@@ -57,6 +65,7 @@ type Props = {
 export function App({
   capabilities = platformCapabilities,
   backend,
+  runBackend,
   media,
   today,
   initialRoute = 'Profile',
@@ -68,6 +77,7 @@ export function App({
         <AppRuntime
           capabilities={capabilities}
           backend={backend}
+          runBackend={runBackend}
           media={media}
           today={today}
           initialRoute={initialRoute}
@@ -81,6 +91,7 @@ export function App({
 function AppRuntime({
   capabilities = platformCapabilities,
   backend,
+  runBackend,
   media,
   today,
   initialRoute = 'Profile',
@@ -111,6 +122,10 @@ function AppRuntime({
   const data = useMemo(
     () => backend ?? createBackend(capabilities.storage, backendConfig),
     [backend, capabilities.storage, backendConfig],
+  );
+  const runs = useMemo(
+    () => runBackend ?? createLocalRunBackend(capabilities.storage),
+    [runBackend, capabilities.storage],
   );
   const camera = useMemo(
     () =>
@@ -192,29 +207,89 @@ function AppRuntime({
                 backend={activeData}
                 today={today}
               >
-                <View style={{ flex: 1 }}>
-                  <StatusGate>
-                    <OnboardingGate
-                      restoreSetup={setupOpen.current}
-                      onVisibilityChange={rememberSetup}
-                    >
-                      <Navigator<RouteName>
-                        initialRoute={initialRoute}
-                        screens={screens}
-                        initialStack={navigationStack.current}
-                        onStackChange={rememberStack}
-                      />
-                    </OnboardingGate>
-                  </StatusGate>
-                  <CelebrationOverlay />
-                  <SyncNotice />
-                </View>
+                <RunProvider backend={runs} today={today}>
+                  <ModeShell
+                    initialRoute={initialRoute}
+                    navigationStack={navigationStack.current}
+                    onStackChange={rememberStack}
+                    setupOpen={setupOpen.current}
+                    onSetupChange={rememberSetup}
+                  />
+                </RunProvider>
               </GameProvider>
-              <DemoControls />
             </ScreenCornerContext.Provider>
           </SfxProvider>
         </MusicProvider>
       </MediaContext.Provider>
     </CapabilitiesContext.Provider>
+  );
+}
+
+/**
+ * Draws the app in the active pet's world: the jungle for the monkey, the
+ * savanna for the gazelle. Switching mode starts a fresh navigation stack on
+ * that mode's profile. A stack kept across a demo remount is only restored
+ * in the mode it belongs to.
+ */
+function ModeShell({
+  initialRoute,
+  navigationStack,
+  onStackChange,
+  setupOpen,
+  onSetupChange,
+}: {
+  initialRoute: RouteName;
+  navigationStack: readonly NavigationEntry<RouteName>[];
+  onStackChange: (stack: readonly NavigationEntry<RouteName>[]) => void;
+  setupOpen: boolean;
+  onSetupChange: (open: boolean) => void;
+}) {
+  const { mode, status } = useRun();
+  if (status === 'loading') {
+    return null; // a quick storage read; avoids flashing the wrong world
+  }
+  const gazelle = mode === 'gazelle';
+  // A deep link only applies when it belongs to the mode being shown.
+  const start =
+    isGazelleRoute(initialRoute) === gazelle
+      ? initialRoute
+      : gazelle
+      ? 'Run'
+      : 'Profile';
+  const kept =
+    navigationStack.length > 0 &&
+    isGazelleRoute(navigationStack[0].route) === gazelle
+      ? navigationStack
+      : undefined;
+  const navigator = (
+    <Navigator<RouteName>
+      key={mode}
+      initialRoute={start}
+      screens={screens}
+      initialStack={kept}
+      onStackChange={onStackChange}
+    />
+  );
+  return (
+    <WorldContext.Provider value={gazelle ? 'savanna' : 'jungle'}>
+      <View style={{ flex: 1 }}>
+        <StatusGate>
+          {gazelle ? (
+            navigator
+          ) : (
+            // Setup asks about climbing, so only the monkey runs it.
+            <OnboardingGate
+              restoreSetup={setupOpen}
+              onVisibilityChange={onSetupChange}
+            >
+              {navigator}
+            </OnboardingGate>
+          )}
+        </StatusGate>
+        <CelebrationOverlay />
+        <SyncNotice />
+      </View>
+      <DemoControls />
+    </WorldContext.Provider>
   );
 }

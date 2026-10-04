@@ -25,6 +25,10 @@ screens -> useGame() -> ClimbingBackend -> on-device storage (createLocalBackend
 
 A backend that picks quests itself may answer any write with the new state. The app shows it once no other change is still saving. The on-device backend answers nothing and picks quests from the library in `packages/core`.
 
+## Gazelle mode (running)
+
+Runs, leg flags and gazelle quest progress go through a separate `RunBackend` (`src/runs.ts`), used by `useRun()` in `packages/app/src/state/RunProvider.tsx`. It also saves which pet the app shows (`climbing-monkey/mode/v1`). There is only an on-device version for now (`createLocalRunBackend`, key `climbing-monkey/runs/v1`): the FastAPI server does not know about running yet, so gazelle mode stays on the device even when `VITE_MONKEY_API_URL` is set.
+
 ## Running the app against the server
 
 1. Start the server with the web app's address allowed: `MONKEY_CORS_ORIGINS=http://localhost:5173 npm run backend:start` (set up once with `npm run backend:setup`; see `backend/README.md`).

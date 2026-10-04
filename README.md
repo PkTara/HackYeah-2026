@@ -3,7 +3,7 @@
 
 # HackYeah 2026
 
-**Climbing Monkey** is a jungle-themed, profile-first climbing app: understand your climbing styles, choose an achievable next action, and grow a monkey companion through consistent participation. It is built for the [Open: Sport & Healthcare](context/tracks/open-sport-healthcare.md) track. Read the [product design](docs/climbing-app-design.md) and [alignment analysis](docs/climbing-monkey-alignment.md). A working prototype of the profile loop (profile, focus, quests, climb log, hand flags, monkey XP) runs on labelled sample data. The rest of the design is still proposals.
+**Climbing Monkey** is a jungle-themed, profile-first climbing app: understand your climbing styles, choose an achievable next action, and grow a monkey companion through consistent participation. It is built for the [Open: Sport & Healthcare](context/tracks/open-sport-healthcare.md) track. Read the [product design](docs/climbing-app-design.md) and [alignment analysis](docs/climbing-monkey-alignment.md). A working prototype of the profile loop (profile, focus, quests, climb log, hand flags, monkey XP) runs on labelled sample data. **Gazelle mode** applies the same loop to running: switch pets from the Pets panel on the profile and the app redraws itself as a savanna, with a run log (easy, tempo or long; road, trail or track), a run triangle, one focus, one gazelle quest, leg flags that pause running quests, and its own XP and unlocks. Gazelle mode keeps its data on the device; the server does not handle runs yet. The rest of the design is still proposals.
 
 ![Climbing Monkey screens: profile, evidence, level up, night mode, log, hands, paused quest, tests](docs/assets/jungle-ui-screens.png)
 

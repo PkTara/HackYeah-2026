@@ -41,6 +41,7 @@ export { Panel, type PanelVariant } from './components/Panel';
 export { PixelArt } from './components/PixelArt';
 export { PixelBox } from './components/PixelBox';
 export { PixelText } from './components/PixelText';
+export { SavannaHero } from './components/SavannaHero';
 export {
   Screen,
   ScreenCornerContext,
@@ -62,9 +63,12 @@ export { Tag } from './components/Tag';
 export { Toggle } from './components/Toggle';
 export { WarningSign } from './components/WarningSign';
 export {
+  RateTriangle,
   TerrainTriangle,
   type TerrainKey,
   type TerrainStat,
+  type TriangleCorner,
+  type TriangleStat,
 } from './components/TerrainTriangle';
 export {
   HAND_HEIGHT,

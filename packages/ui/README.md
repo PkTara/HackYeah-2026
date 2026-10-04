@@ -19,8 +19,8 @@ Everything you see in Climbing Monkey is drawn with plain React Native `View`s. 
 | `PixelBox` | The stepped-corner rectangle all of the above are built from. |
 | `PixelText`, `Icon`, `PixelArt` | Bitmap text, 12x12 icons, any sprite. |
 | `Meter`, `Pips`, `Tag` | Segmented XP bar, one square per logged climb, small state stamps such as EXAMPLE or PAUSED. |
-| `TerrainTriangle`, `MovementRadar` | The profile charts, rasterised as pixel art. Unknown values stay dashed and are never drawn as zero. |
-| `Monkey`, `Gazelle`, `JungleHero` | The pets and the jungle scene at the top of the profile. Animation moves in whole pixel steps and stops when the OS asks for reduced motion. |
+| `TerrainTriangle`, `RateTriangle`, `MovementRadar` | The profile charts, rasterised as pixel art. Unknown values stay dashed and are never drawn as zero. `RateTriangle` is the generic three-corner chart; the monkey's walls and the gazelle's easy, tempo and long runs both use it. |
+| `Monkey`, `Gazelle`, `JungleHero`, `SavannaHero` | The pets and the scenes at the top of each profile: the monkey climbs one hold up the trunk per quest, the gazelle runs to the next marker post (`src/pixel/savanna.ts`). Animation moves in whole pixel steps and stops when the OS asks for reduced motion. |
 | `Screen`, `TabBar` | Page shell and the wooden tab bar. |
 
 ## Sounds
@@ -29,4 +29,4 @@ Everything you see in Climbing Monkey is drawn with plain React Native `View`s. 
 
 ## Colours
 
-`theme.ts` has a day palette (sunny canopy, cream signs) and a night palette (dark moss signs, cream text), picked from the OS setting. Components read text colours from `ToneContext`, so text stays readable on banana, wood or the green background without passing colours around.
+`theme.ts` has a day palette (sunny canopy, cream signs) and a night palette (dark moss signs, cream text), picked from the OS setting. Gazelle mode swaps the jungle for a savanna palette (dry earth, golden grass, sunset orange) by setting `WorldContext` to `'savanna'`; every component reads colours through `useTheme()`, so nothing else changes. Components read text colours from `ToneContext`, so text stays readable on banana, wood or the green background without passing colours around.

@@ -363,3 +363,29 @@ The Codex design-drafting step used the `superpowers:using-superpowers` and `sup
 **What the agent did (Claude Code):** a single merge commit. The backend came in unchanged. In `App.tsx` the music and sound providers wrap the demo-aware `GameProvider` (which remounts on demo changes) and the demo controls, so the music keeps playing and the corner key also shows in the demo controls. `StepFrame` keeps the prop and the room for the music key and gains the setup breadcrumbs and demo button. `saveAssessment` chimes once the reviewed result is saved. The Sound effects switch moved from About to the new Settings page; About keeps the ZzFX credit. App copy from the branch lost its em dashes and a hand emoji (now the pixel hand icon).
 
 **Validation:** `npm run check`, `npm run backend:check`, the web build and the Android bundle; a Playwright smoke run of setup, music, sound effects, demo mode, the Data hub, Settings and finger strength. No new libraries, models or APIs.
+
+### 30. Gazelle mode (2026-10-04)
+
+**Prompt:** "Create gazelle mode, with the same stylisation and concepts as monkey mode. Use the context of the other convo if needed." Then: "Put this in another branch!" (branch `claude/gazelle-mode`).
+
+**Context:** A subagent read the earlier pets session's transcript. The user had asked for "different pets/modes for targeting different sports" and for a running gazelle, but never said what the mode should contain, so it mirrors the monkey loop.
+
+**Output:**
+- `packages/core`: `running.ts` (run log, easy/tempo/long tallies, the same focus rule as climbing, pace, weekly km, leg flags), `runQuests.ts` (draft gazelle quests, paused while a leg is flagged), `runGame.ts` (state, reducer, labelled sample runs). `petStatus` takes the unlock list, so the gazelle gets its own (race bib, gold medal).
+- `packages/data`: `runs.ts`, an on-device `RunBackend` for runs and the saved pet mode. The FastAPI backend was not changed.
+- `packages/ui`: a savanna palette behind `WorldContext`, a generated savanna scene and `SavannaHero` (the gazelle runs to a marker post per quest), gazelle cosmetics and leap animation, run type, surface and shoe icons, and `RateTriangle` (the terrain triangle made generic).
+- `packages/app`: `RunProvider` (`useRun()`), gazelle Profile, Log, Legs and Evidence screens, mode-aware tabs, rail, level-up banner and sync notice, and a pet switch on both profiles. Climbing setup only runs in monkey mode.
+
+**Tools:** Claude Code (Anthropic) wrote the code, tests and pixel art. Playwright with the preinstalled Chromium took screenshots of the web build for visual checks. No new libraries.
+
+**Validation:** `npm run check` passes (typecheck, lint with no errors, 725 Jest tests, including new core, data, scene and App-level gazelle tests). The production web build and the Android release bundle build. Checked visually at 390 px (day and night) and 1280 px.
+
+**Limits:** Gazelle quest text is draft and needs a coach's review. Leg flags are the runner's own notes, not a diagnosis. There is no running pose analysis, no Strava import and no server support for runs yet.
+
+### 31. Gazelle mode on the merged app (2026-10-04)
+
+**Prompt:** Bring `claude/gazelle-mode` (entry 30) into the app branch after entry 29, as one squashed commit, working alongside demo mode, the Data hub, Settings, the music, the sound effects, the onboarding props and tap-to-edit.
+
+**What the agent did (Claude Code):** `RunProvider` sits inside the demo-aware `GameProvider`, under the music and sound providers, so the music key shows and keeps playing in gazelle mode. Gazelle mode keeps the navigation and setup restore from entry 28 for the monkey only; a kept stack is used only in the mode it came from. The monkey tabs keep Data in place of Tests. Logging a run plays `success` and a gazelle quest plays `success` or `levelUp`, like the monkey. Runs stay on the device and are not part of the demo profile, so the demo caption is hidden in gazelle mode. The finger strength test now wraps its screen in a `RunProvider`, as the app does, because the tab bar reads the pet mode.
+
+**Validation:** `npm run check` (993 Jest tests, including a new sound test for a logged run), `npm run backend:check`, the web build and the Android bundle. Playwright at 390 and 1280 px: switch to gazelle mode, play music, log a run with sounds, see the savanna profile, switch back to the monkey, the Settings switch and the setup props, with demo mode on and after a reload; no console errors. No new libraries, models or APIs.
