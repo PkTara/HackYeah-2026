@@ -24,7 +24,12 @@ test('an assessment without an analysis service still has its Camera tray and a 
 test('camera permission denial keeps the Camera box and guidance without starting uploads', async () => {
   const f = setup({ denied: 'Camera permission was denied.' });
   const screen = await render(f, 'Tests');
-  await press(screen, 'Shoulder reach assessment', 'Record');
+  await press(
+    screen,
+    'Open shoulder reach',
+    'Shoulder reach assessment',
+    'Record',
+  );
   const box = screen.root.findByProps({ testID: 'assessment-camera-box' });
   expect(StyleSheet.flatten(box.props.style).height).toBe(280);
   expect(text(screen)).toContain(

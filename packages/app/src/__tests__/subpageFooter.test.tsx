@@ -64,7 +64,7 @@ it('returns from About to its Settings context through Done', async () => {
     ),
   ).toBeDefined();
   await press(s, 'Close');
-  expect(control(s, 'Finger strength')).toBeDefined();
+  expect(control(s, 'Open finger strength')).toBeDefined();
   await act(async () => s.unmount());
 });
 

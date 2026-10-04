@@ -28,6 +28,9 @@ export function SubpageFooter({
     return null;
   }
   const close = () => {
+    if (disabled) {
+      return;
+    }
     if (onPress) {
       onPress();
       return;

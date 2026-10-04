@@ -47,12 +47,14 @@ describe('Data tab', () => {
     await act(async () => screen.unmount());
   });
 
-  it('says it needs the server in the on-device demo', async () => {
+  it('keeps the camera placeholder when opening a measurement without a server', async () => {
     const fixture = setup({ media: false });
     const screen = await render(fixture, 'Tests');
     await press(screen, 'Open leg spread', 'Leg spread assessment');
-    expect(text(screen)).toContain(
-      'The camera assessment needs the Climbing Monkey server',
+    expect(text(screen)).toContain('Connect the analysis service');
+    expect(text(screen)).toContain('Camera off');
+    expect(control(screen, 'Record').props.accessibilityState.disabled).toBe(
+      true,
     );
     expect(control(screen, 'Leg spread assessment')).toBeUndefined();
     await act(async () => screen.unmount());
@@ -63,7 +65,9 @@ describe('Data tab', () => {
     const screen = await render(fixture, 'Assessment');
     expect(text(screen)).toContain('Connect the analysis service');
     expect(text(screen)).toContain('Camera off');
-    expect(control(screen, 'Record').props.accessibilityState.disabled).toBe(true);
+    expect(control(screen, 'Record').props.accessibilityState.disabled).toBe(
+      true,
+    );
     await press(screen, 'Record');
     expect(fixture.preview.active).toBe(false);
     expect(fixture.requests).toEqual([]);

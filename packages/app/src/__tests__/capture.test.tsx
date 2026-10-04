@@ -266,6 +266,38 @@ describe('camera assessment', () => {
 });
 
 describe('hand photo journal', () => {
+  it('keeps the reviewed photo mounted until its pending journal save finishes', async () => {
+    let finish!: (answer: { status: number; body: { id: string } }) => void;
+    const fixture = setup({
+      answer: request =>
+        request.url === '/v1/me/photos'
+          ? new Promise(resolve => {
+              finish = resolve;
+            })
+          : { status: 201, body: { id: 'saved-entry' } },
+    });
+    const screen = await render(fixture, 'HandCapture');
+    await press(
+      screen,
+      'Start camera',
+      'Take photo',
+      'Right hand',
+      'Photo of the back',
+      'Index finger',
+      'Pain 6',
+      'Save to journal',
+    );
+    expect(control(screen, 'Close').props.disabled).toBe(true);
+    await press(screen, 'Close');
+    expect(has(screen, 'Captured photo')).toBe(true);
+    await act(async () => finish({ status: 201, body: { id: 'saved-photo' } }));
+    expect(text(screen)).toContain('Saved to your hand journal.');
+    expect(control(screen, 'Close').props.disabled).toBe(false);
+    await press(screen, 'Close');
+    expect(control(screen, 'Add a photo')).toBeDefined();
+    await act(async () => screen.unmount());
+  });
+
   it('withheld hand-photo permission permits local review but prevents upload even when analysis is allowed', async () => {
     const fixture = setup({
       privacy: { cameraAnalysis: true, handPhotos: false },

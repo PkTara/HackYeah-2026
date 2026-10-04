@@ -182,3 +182,23 @@ it('returns from contextual help to the active layer when multiple layers have s
   );
   await act(async () => screen.unmount());
 });
+
+it('returns from anatomy through the breadcrumb to the active layer with mixed saved spots', async () => {
+  const screen = await render(setup(), 'Hands');
+  await press(
+    screen,
+    'Left ring finger',
+    'Fingertip, distal phalanx',
+    'Pulleys',
+    'A2 pulley, base segment',
+  );
+  await press(
+    screen,
+    'Help identify a part of your left ring finger',
+    'Back to Left ring finger',
+  );
+  expect(control(screen, 'A2 pulley, base segment').props['aria-checked']).toBe(
+    true,
+  );
+  await act(async () => screen.unmount());
+});

@@ -7,6 +7,7 @@ import {
   ANATOMY_LAYERS,
   BASELINE_TESTS,
   FINGERS,
+  SPOT_LAYERS,
   type Finger,
   type Side,
 } from '@hackyeah/core';
@@ -41,7 +42,13 @@ function fingerCrumb(params: Params): Crumb {
   const { side, finger } = fingerParams(params);
   return {
     route: 'Finger',
-    params: { side, finger },
+    params: {
+      side,
+      finger,
+      ...(SPOT_LAYERS.some(layer => layer === params.spotLayer)
+        ? { spotLayer: params.spotLayer }
+        : {}),
+    },
     label: fingerLabel(side, finger),
     short: `${SIDE_NAME[side]} ${FINGER_NAME[finger].toLowerCase()}`,
   };

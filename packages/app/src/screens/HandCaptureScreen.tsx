@@ -65,6 +65,7 @@ const fingerOf = (region: HandRegion | null): Finger | undefined =>
  */
 export function HandCaptureScreen() {
   const media = useMedia();
+  const [busy, setBusy] = useState(false);
   const { params } = useNavigation<RouteName>();
   const finger = FINGERS.find(f => f === params.finger);
   const side =
@@ -74,14 +75,14 @@ export function HandCaptureScreen() {
       ? `Photo for your ${fingerLabel(side, finger).toLowerCase()}.`
       : 'A private photo for your hand journal.';
   return (
-    <TabScreen>
+    <TabScreen completion={{ disabled: busy }}>
       <Crumbs />
       <PageHeader
         title="Hand photo"
         subtitle={`${context} Review the photo, then describe how it feels before saving.`}
       />
       {media ? (
-        <HandCapture media={media} />
+        <HandCapture media={media} onBusyChange={setBusy} />
       ) : (
         <NeedsServer what="The hand photo journal" />
       )}
@@ -89,13 +90,22 @@ export function HandCaptureScreen() {
   );
 }
 
-function HandCapture({ media }: { media: MediaClient }) {
+function HandCapture({
+  media,
+  onBusyChange,
+}: {
+  media: MediaClient;
+  onBusyChange: (busy: boolean) => void;
+}) {
   const demo = useDemo();
   const simulated = demo.settings.enabled && demo.settings.handPhotos;
   const { params, navigate } = useNavigation<RouteName>();
   const { state, refresh } = useGame();
   const theme = useTheme();
   const c = useCapture('hand');
+  useEffect(() => {
+    onBusyChange(c.busy);
+  }, [c.busy, onBusyChange]);
   // Opened from a finger close-up, that finger is picked already.
   const [side, setSide] = useState<Side | null>(
     params.side === 'left' || params.side === 'right' ? params.side : null,
