@@ -7,9 +7,11 @@ import {
   ANATOMY_LAYERS,
   BASELINE_TESTS,
   FINGERS,
+  SPOT_LAYERS,
   type Finger,
   type Side,
 } from '@hackyeah/core';
+import { measurementGroup } from '../components/measurementGroup';
 import { FINGER_NAME, SIDE_NAME, fingerLabel } from '../labels';
 import type { TrailStep } from './Navigator';
 import type { RouteName } from './routes';
@@ -23,7 +25,10 @@ export type Crumb = TrailStep<RouteName> &
     short?: string;
   }>;
 
-const tab = (route: RouteName): Crumb => ({ route, label: route });
+const tab = (route: RouteName): Crumb => ({
+  route: route === 'Tests' ? 'Data' : route,
+  label: route === 'Tests' ? 'Data' : route,
+});
 
 /** The side and finger in the params, with the finger close-up's defaults. */
 export function fingerParams(params: Params): { side: Side; finger: Finger } {
@@ -37,7 +42,13 @@ function fingerCrumb(params: Params): Crumb {
   const { side, finger } = fingerParams(params);
   return {
     route: 'Finger',
-    params: { side, finger },
+    params: {
+      side,
+      finger,
+      ...(SPOT_LAYERS.some(layer => layer === params.spotLayer)
+        ? { spotLayer: params.spotLayer }
+        : {}),
+    },
     label: fingerLabel(side, finger),
     short: `${SIDE_NAME[side]} ${FINGER_NAME[finger].toLowerCase()}`,
   };
@@ -46,6 +57,8 @@ function fingerCrumb(params: Params): Crumb {
 /** The trail for a screen; empty for the tabs themselves. */
 export function trailFor(route: RouteName, params: Params): Crumb[] {
   switch (route) {
+    case 'Tests':
+      return [tab('Data')];
     case 'Finger':
       return [tab('Hands'), fingerCrumb(params)];
     case 'Anatomy': {
@@ -58,10 +71,75 @@ export function trailFor(route: RouteName, params: Params): Crumb[] {
     }
     case 'Evidence':
       return [tab('Profile'), { route, params, label: 'Evidence' }];
-    case 'About':
-      return [tab('Tests'), { route, label: 'About' }];
-    case 'Assessment':
-      return [tab('Tests'), { route, label: 'Camera assessment', short: 'Camera' }];
+    case 'About': {
+      if (params.from === 'Settings') {
+        const settingsParams = { ...params };
+        delete settingsParams.from;
+        delete settingsParams.settingsFrom;
+        if (params.settingsFrom) {
+          settingsParams.from = params.settingsFrom;
+        }
+        return [
+          ...trailFor('Settings', settingsParams),
+          { route, params, label: 'About' },
+        ];
+      }
+      return [tab('Data'), { route, params, label: 'About' }];
+    }
+    case 'Settings':
+      return [
+        ...(params.from === 'Assessment'
+          ? trailFor('Assessment', {
+              metric: params.metric ?? 'leg_spread',
+              ...(params.detailMetric
+                ? { detailMetric: params.detailMetric }
+                : {}),
+            })
+          : params.from === 'HandCapture'
+          ? trailFor('HandCapture', params)
+          : [tab('Data')]),
+        { route, params, label: 'Settings' },
+      ];
+    case 'BodyReach':
+      return [tab('Data'), { route, label: 'Body & reach' }];
+    case 'Activity':
+      return [tab('Data'), { route, label: 'Activity & integrations' }];
+    case 'MeasurementDetail': {
+      const group = measurementGroup(params.metric);
+      return [
+        tab('Data'),
+        { route, params: { metric: group.metric }, label: group.title },
+      ];
+    }
+    case 'FingerStrength': {
+      const fromDetail = params.detailMetric === 'finger_force';
+      return [
+        ...(fromDetail
+          ? trailFor('MeasurementDetail', { metric: 'finger_force' })
+          : [tab('Data')]),
+        fromDetail
+          ? { route, params, label: 'Record finger strength' }
+          : { route, label: 'Finger strength' },
+      ];
+    }
+    case 'Assessment': {
+      const metric =
+        params.metric === 'shoulder_reach' ? 'shoulder_reach' : 'leg_spread';
+      const title =
+        metric === 'shoulder_reach' ? 'Shoulder reach' : 'Leg spread';
+      const fromDetail = params.detailMetric === metric;
+      return [
+        ...(fromDetail
+          ? trailFor('MeasurementDetail', { metric })
+          : [tab('Data')]),
+        {
+          route,
+          params,
+          label: fromDetail ? `Record ${title.toLowerCase()}` : title,
+          short: fromDetail ? 'Record' : 'Camera',
+        },
+      ];
+    }
     case 'HandCapture': {
       // Opened from a finger close-up it sits under that finger.
       const here = { route, params, label: 'Add a photo', short: 'Photo' };
@@ -70,7 +148,8 @@ export function trailFor(route: RouteName, params: Params): Crumb[] {
         : [tab('Hands'), here];
     }
     case 'Test': {
-      const test = BASELINE_TESTS.find(t => t.id === params.id) ?? BASELINE_TESTS[0];
+      const test =
+        BASELINE_TESTS.find(t => t.id === params.id) ?? BASELINE_TESTS[0];
       return [tab('Tests'), { route, params, label: test.name }];
     }
     default:

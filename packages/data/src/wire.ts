@@ -8,6 +8,11 @@
  */
 import {
   toLocalDate,
+  parseAssessmentRecords,
+  type AssessmentMetric,
+  type AssessmentUnit,
+  type AssessmentRecord,
+  type FingerForceSetup,
   type BaselineResult,
   type BaselineTestId,
   type Body,
@@ -84,7 +89,7 @@ export type ClimbDto = {
   occurred_at: string;
   terrain: Terrain;
   movement: Movement;
-  /** Missing on climbs saved before the server kept both styles. */
+  /** Missing on climbs saved before the server kept multiple styles. */
   movements?: Movement[];
   /** Missing on climbs saved before the server kept holds. */
   holds?: HoldType[];
@@ -226,27 +231,71 @@ export function flagsFromHandReports(
 
 // Assessments: reach and home tests
 
-export type AssessmentMetric =
-  | 'leg_spread'
-  | 'height'
-  | 'arm_span'
-  | 'pullups'
-  | 'hang_duration';
-export type AssessmentUnit = 'degrees' | 'cm' | 'repetitions' | 'seconds';
+export type { AssessmentMetric, AssessmentUnit } from '@hackyeah/core';
 
 export type AssessmentBody = {
   metric: AssessmentMetric;
   value: number;
   unit: AssessmentUnit;
-  method: 'manual';
+  method: 'manual' | 'camera';
   protocol: string;
   occurred_at: string;
+  confidence?: number;
+  model_version?: string | null;
+  side?: AssessmentRecord['side'] | null;
+  setup?: FingerForceSetup | null;
+  simulated?: boolean;
+  decision?: QuestDecisionDto | null;
 };
+export type AssessmentDto = AssessmentBody & { id: string };
 
-export type AssessmentDto = Omit<AssessmentBody, 'method'> & {
-  id: string;
-  method: 'manual' | 'camera';
-};
+export function toAssessmentBody(record: AssessmentRecord): AssessmentBody {
+  const snapshot = record.decision;
+  const decision = snapshot
+    ? (() => {
+        const { sourceIds, ...rest } = snapshot;
+        return { ...rest, source_ids: sourceIds };
+      })()
+    : undefined;
+  return {
+    ...(decision ? { decision } : {}),
+    metric: record.metric,
+    value: record.value,
+    unit: record.unit,
+    method: record.method,
+    protocol: record.protocol,
+    occurred_at: record.occurredAt,
+    ...(record.confidence !== undefined
+      ? { confidence: record.confidence }
+      : {}),
+    ...(record.modelVersion !== undefined
+      ? { model_version: record.modelVersion }
+      : {}),
+    ...(record.side !== undefined ? { side: record.side } : {}),
+    ...(record.setup !== undefined ? { setup: record.setup } : {}),
+    ...(record.simulated !== undefined ? { simulated: record.simulated } : {}),
+  };
+}
+
+export function fromAssessmentDto(dto: AssessmentDto): AssessmentRecord {
+  const {
+    occurred_at,
+    model_version,
+    side,
+    setup,
+    decision: snapshot,
+    ...reading
+  } = dto;
+  const decision = fromDecisionDto(snapshot ?? undefined);
+  return {
+    ...reading,
+    ...(decision ? { decision } : {}),
+    occurredAt: occurred_at,
+    ...(model_version != null ? { modelVersion: model_version } : {}),
+    ...(side != null ? { side } : {}),
+    ...(setup != null ? { setup } : {}),
+  };
+}
 
 /**
  * Height and arm span the climber typed in, during setup or on the Tests tab.
@@ -498,6 +547,11 @@ export function toGameState(
     reach: reachFromAssessments(
       list<AssessmentDto>(answers.assessments, 'assessments'),
     ),
+    assessments: parseAssessmentRecords(
+      list<AssessmentDto>(answers.assessments, 'assessments').map(
+        fromAssessmentDto,
+      ),
+    ),
     onboarding: device.onboarding,
     onboardingSkipped: device.onboardingSkipped,
     baseline: device.baseline,
@@ -510,17 +564,24 @@ export function toGameState(
 // Camera: pose analysis, live frames and hand photos (media.ts, live.ts)
 
 /**
- * One analysed photo or frame. The value is the leg spread as an angle in
- * the picture (hips to both ankles), not a validated flexibility test.
+ * One analysed photo or frame. The value is a projected angle: leg spread
+ * from hip midpoint to ankles, or mean hip-shoulder-elbow reach with per-side
+ * values. Neither protocol is a validated flexibility test.
  * invalid_capture comes with a reason and no value.
  */
 export type PoseResultDto = {
   decision?: QuestDecisionDto;
   status: 'ok' | 'invalid_capture';
-  metric: 'leg_spread';
+  metric: 'leg_spread' | 'shoulder_reach';
   value: number | null;
+  left_value?: number | null;
+  right_value?: number | null;
+  landmarks?: { x: number; y: number; visibility: number }[];
+  image_width?: number;
+  image_height?: number;
+  timestamp_ms?: number;
   unit: 'degrees';
-  /** Lowest visibility of the hips and ankles, 0 to 1. */
+  /** Lowest visibility of the metric's required landmarks, 0 to 1. */
   confidence: number;
   reason: string | null;
   method: 'camera';
@@ -600,7 +661,11 @@ export function toCameraAssessmentBody(
   result: PoseResultDto,
   at: Date,
 ): CameraAssessmentBody | null {
-  if (result.status !== 'ok' || result.value === null) {
+  if (
+    result.status !== 'ok' ||
+    result.value === null ||
+    result.metric !== 'leg_spread'
+  ) {
     return null;
   }
   return {

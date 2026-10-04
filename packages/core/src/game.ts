@@ -1,3 +1,4 @@
+import { parseAssessmentRecords, type AssessmentRecord } from './assessments';
 /**
  * Everything the app remembers, and the reducer that changes it.
  * The UI derives the profile, focus, quest and monkey level from this state.
@@ -56,6 +57,7 @@ export type GameState = Readonly<{
   onboardingSkipped: boolean;
   /** Latest home test result per test, from setup or the Tests tab. */
   baseline: readonly BaselineResult[];
+  assessments?: readonly AssessmentRecord[];
   /**
    * The quest a server picked. Undefined means the app picks one from its own
    * library (the on-device backend). Null means the server has none right now.
@@ -64,6 +66,7 @@ export type GameState = Readonly<{
 }>;
 
 export type GameAction =
+  | { type: 'saveAssessment'; record: AssessmentRecord }
   | { type: 'logClimb'; log: ClimbLog }
   | { type: 'removeClimb'; id: string }
   | { type: 'completeQuest'; questId: string }
@@ -88,6 +91,7 @@ export const emptyGame: GameState = {
   onboarding: null,
   onboardingSkipped: false,
   baseline: [],
+  assessments: [],
 };
 
 /** A server quest that was just completed or skipped is no longer on offer. */
@@ -97,6 +101,14 @@ function dropAssigned(state: GameState, questId: string): GameState {
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
+    case 'saveAssessment':
+      if (state.assessments?.some(record => record.id === action.record.id)) {
+        return state;
+      }
+      return {
+        ...state,
+        assessments: [...(state.assessments ?? []), action.record],
+      };
     case 'logClimb':
       return { ...state, logs: [...state.logs, action.log] };
     case 'removeClimb':
@@ -188,6 +200,7 @@ export function parseGameState(json: string | null): GameState | null {
       onboarding: parseOnboardingResult(value.onboarding),
       onboardingSkipped: value.onboardingSkipped === true,
       baseline: parseBaselineResults(value.baseline),
+      assessments: parseAssessmentRecords(value.assessments),
     };
     // Only a server picks quests, and it is asked again on every load.
     delete (saved as { assigned?: unknown }).assigned;

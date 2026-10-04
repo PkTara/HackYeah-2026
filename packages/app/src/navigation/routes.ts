@@ -1,3 +1,6 @@
+import { BodyReachScreen } from '../screens/BodyReachScreen';
+import { ActivityScreen } from '../screens/ActivityScreen';
+import { MeasurementDetailScreen } from '../screens/MeasurementDetailScreen';
 import type { ComponentType } from 'react';
 import { AboutScreen } from '../screens/AboutScreen';
 import { AnatomyScreen } from '../screens/AnatomyScreen';
@@ -10,6 +13,8 @@ import { HomeTestScreen } from '../screens/HomeTestScreen';
 import { LogScreen } from '../screens/LogScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { TestsScreen } from '../screens/TestsScreen';
+import { SettingsScreen } from '../screens/SettingsScreen';
+import { FingerStrengthScreen } from '../screens/FingerStrengthScreen';
 
 export const screens = {
   // Tabs
@@ -17,9 +22,15 @@ export const screens = {
   Log: LogScreen,
   Hands: HandsScreen,
   Tests: TestsScreen,
+  Data: TestsScreen,
   // Pushed on top of a tab
+  BodyReach: BodyReachScreen,
+  Activity: ActivityScreen,
+  MeasurementDetail: MeasurementDetailScreen,
   Evidence: EvidenceScreen,
   About: AboutScreen,
+  Settings: SettingsScreen,
+  FingerStrength: FingerStrengthScreen,
   /** Params: side ('left' | 'right') and finger. */
   Finger: FingerScreen,
   Anatomy: AnatomyScreen,

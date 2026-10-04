@@ -107,7 +107,7 @@ it('explains movement counts including multi-style logs once per selected moveme
   const explanation = explainMovement('controlled', [both]);
   expect(explanation.summary).toContain('0 of 1');
   expect(explanation.evidence.map(entry => entry.id)).toEqual(['climb-1']);
-  expect(explanation.rule).toContain('both');
+  expect(explanation.rule).toContain('several styles');
 });
 
 it('explains camera geometry and visibility without claiming validated range or complete provenance', () => {
@@ -263,4 +263,26 @@ it('explains the real flagged check-in priority, skip ordering and library ties'
   expect(pickQuest(focus, { ...initial, hasFlag: false }).quest?.id).toBe(
     'vertical-quiet-feet',
   );
+});
+
+it('explains shoulder outputs with bilateral values and the matching joint geometry', () => {
+  const explanation = explainCamera({
+    metric: 'shoulder_reach',
+    value: 170,
+    leftValue: 160,
+    rightValue: 180,
+    confidence: 0.85,
+    protocol: 'front-facing-overhead-reach-v1',
+    method: 'camera',
+  });
+  expect(explanation.summary).toContain('shoulder');
+  expect(explanation.summary).toContain('left 160');
+  expect(explanation.summary).toContain('right 180');
+  expect(explanation.rule).toContain('hip-shoulder-elbow');
+  expect(explanation.rule).toContain('160');
+  expect(explanation.rule).not.toContain('hip midpoint');
+  expect(explanation.evidence[0].detail).toContain('left=160; right=180');
+  expect(explanation.evidence[0].detail).toContain('model/version=unavailable');
+  expect(explanation.sourceIds).toEqual(['stenum2021', 'barzegar2024']);
+  expect(explanation.limitations.join(' ')).toContain('shoulder');
 });

@@ -167,20 +167,28 @@ export function ReviewTray({ capture: c }: { capture: Capture }) {
 export function ServerNote({
   server,
   children,
+  simulated = false,
 }: {
   server: string;
   children: ReactNode;
+  simulated?: boolean;
 }) {
   return (
     <View style={styles.note}>
       <Icon name="lock" />
       <AppText variant="caption" style={styles.grow}>
-        Goes to{' '}
-        <AppText variant="caption" style={styles.strong}>
-          {server}
-        </AppText>
-        {'. '}
-        {children}
+        {simulated ? (
+          'Simulated on this device. No capture is uploaded. Saved demo results and entries stay separate from your normal profile.'
+        ) : (
+          <>
+            Goes to{' '}
+            <AppText variant="caption" style={styles.strong}>
+              {server}
+            </AppText>
+            {'. '}
+            {children}
+          </>
+        )}
       </AppText>
     </View>
   );
@@ -243,33 +251,35 @@ const styles = StyleSheet.create({
 /** Explain only returned camera metadata; never reconstruct missing pose inputs. */
 export function CameraReadingHelp({ reading }: { reading: PoseReading }) {
   const { result, last, valid, total } = reading;
-  const base: DecisionExplanation =
-    result && result.value !== null
-      ? explainCamera({
-          ...result,
-          value: result.value,
-          decision: fromDecisionDto(result.decision),
-        })
-      : fromDecisionDto(last?.decision) ?? {
-          summary: 'No valid camera reading returned',
-          status: 'estimate',
-          rule: 'No valid sample was returned for display or saving. The returned reason, when present, is shown below; detailed capture-quality criteria and landmark inputs are unavailable unless supplied by the server.',
-          evidence: [
-            {
-              id: 'camera-result',
-              label: 'Returned camera result',
-              detail: `Reason: ${last?.reason ?? 'unavailable'}; confidence: ${
-                last?.confidence ?? 'unavailable'
-              }; protocol: ${last?.protocol ?? 'unavailable'}; method: ${
-                last?.method ?? 'unavailable'
-              }.`,
-            },
-          ],
-          sourceIds: [],
-          limitations: [
-            'An unavailable reading does not assess flexibility. Capture date, model version and original landmark inputs are unavailable when the server does not supply them.',
-          ],
-        };
+  const base: DecisionExplanation = result
+    ? explainCamera({
+        ...result,
+        value: result.value,
+        metric: result.metric,
+        leftValue: result.left_value ?? undefined,
+        rightValue: result.right_value ?? undefined,
+        decision: fromDecisionDto(result.decision),
+      })
+    : fromDecisionDto(last?.decision) ?? {
+        summary: 'No valid camera reading returned',
+        status: 'estimate',
+        rule: 'No valid sample was returned for display or saving. The returned reason, when present, is shown below; detailed capture-quality criteria and landmark inputs are unavailable unless supplied by the server.',
+        evidence: [
+          {
+            id: 'camera-result',
+            label: 'Returned camera result',
+            detail: `Reason: ${last?.reason ?? 'unavailable'}; confidence: ${
+              last?.confidence ?? 'unavailable'
+            }; protocol: ${last?.protocol ?? 'unavailable'}; method: ${
+              last?.method ?? 'unavailable'
+            }.`,
+          },
+        ],
+        sourceIds: [],
+        limitations: [
+          'An unavailable reading does not assess flexibility. Capture date, model version and original landmark inputs are unavailable when the server does not supply them.',
+        ],
+      };
   const offset =
     result &&
     'timestamp_ms' in result &&
@@ -281,7 +291,7 @@ export function CameraReadingHelp({ reading }: { reading: PoseReading }) {
       label="camera reading"
       explanation={{
         ...base,
-        rule: `${base.rule} The displayed reading is the latest valid sample, not the average. Photo/live samples count as usable when status=ok and value is present; clip counts are the server-reported usable/sample totals.`,
+        rule: `${base.rule} The displayed reading is the latest valid sample, not the average. Live usable counts follow the capture checks: valid angles, pose visibility, confidence and sample timing. Compatibility photo/clip counts reflect their returned analysis totals.`,
         evidence: [
           ...base.evidence,
           {

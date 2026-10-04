@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Annotated, Literal
+from typing import Annotated, Literal, get_args
 
 from pydantic import (
     AfterValidator,
@@ -14,7 +14,17 @@ from pydantic import (
 
 Text = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
 Goal = Literal["general", "technique", "mobility", "endurance"]
-Movement = Literal["controlled", "dynamic"]
+Movement = Literal[
+    "controlled",
+    "dynamic",
+    "technical",
+    "powerful",
+    "balance",
+    "coordination",
+    "compression",
+    "endurance",
+]
+MOVEMENTS = get_args(Movement)
 Hold = Literal["jug", "crimp", "sloper", "pinch", "pocket", "volume"]
 # Where a finger hurts, as a spot id from the app's packages/core/src/spots.ts, e.g. "a2".
 SpotId = Annotated[str, StringConstraints(pattern=r"^[a-z0-9-]{1,32}$")]
@@ -36,8 +46,10 @@ def _distinct(values):
     return values
 
 
-# One climb can be controlled, dynamic or both.
-Movements = Annotated[list[Movement], Field(min_length=1, max_length=2), AfterValidator(_distinct)]
+# One climb can use any combination of distinct movement styles.
+Movements = Annotated[
+    list[Movement], Field(min_length=1, max_length=len(MOVEMENTS)), AfterValidator(_distinct)
+]
 Holds = Annotated[list[Hold], AfterValidator(_distinct)]
 Spots = Annotated[list[SpotId], Field(max_length=24), AfterValidator(_distinct)]
 
@@ -91,38 +103,104 @@ class ClimbCreate(Evidence):
         return self
 
 
+class FingerForceSetup(Input):
+    instrument: Text
+    grip: Literal["open_hand", "half_crimp", "full_crimp"]
+    edge_mm: float = Field(gt=0)
+    arm_position: Literal["straight", "bent"]
+    effort_seconds: float = Field(gt=0)
+
+
+class DecisionEvidence(Input):
+    id: Annotated[str, StringConstraints(min_length=1, max_length=120)]
+    label: Annotated[str, StringConstraints(min_length=1, max_length=240)]
+    detail: Annotated[str, StringConstraints(max_length=4000)]
+
+
+class DecisionSnapshot(Input):
+    """Bounded client-supplied disclosure, not independently verified provenance."""
+
+    summary: Annotated[str, StringConstraints(min_length=1, max_length=1000)]
+    status: Literal["app_rule", "draft", "estimate", "example"]
+    rule: Annotated[str, StringConstraints(min_length=1, max_length=6000)]
+    evidence: list[DecisionEvidence] = Field(max_length=64)
+    source_ids: list[Text] = Field(max_length=32)
+    limitations: list[Annotated[str, StringConstraints(max_length=2000)]] = Field(max_length=32)
+
+
+CAMERA_REPORT_LIMITATION = (
+    "User-confirmed reading and client-supplied explanation; saving does not independently "
+    "verify the measurement or its provenance."
+)
+
+
 class AssessmentCreate(Evidence):
-    metric: Literal["leg_spread", "height", "arm_span", "pullups", "hang_duration"]
+    metric: Literal[
+        "leg_spread",
+        "height",
+        "arm_span",
+        "pullups",
+        "hang_duration",
+        "finger_force",
+        "shoulder_reach_left",
+        "shoulder_reach_right",
+    ]
     value: float = Field(ge=0)
-    unit: Literal["degrees", "cm", "repetitions", "seconds"]
+    unit: Literal["degrees", "cm", "repetitions", "seconds", "N", "kgf"]
     method: Literal["manual", "camera"]
     protocol: Text
     confidence: float = Field(default=1, ge=0, le=1)
     model_version: Text | None = None
+    side: Literal["left", "right", "both"] | None = None
+    setup: FingerForceSetup | None = None
+    simulated: bool = False
+    decision: DecisionSnapshot | None = None
 
     @model_validator(mode="after")
     def matching_unit(self):
         units = {
-            "leg_spread": "degrees",
-            "height": "cm",
-            "arm_span": "cm",
-            "pullups": "repetitions",
-            "hang_duration": "seconds",
+            "leg_spread": {"degrees"},
+            "shoulder_reach_left": {"degrees"},
+            "shoulder_reach_right": {"degrees"},
+            "height": {"cm"},
+            "arm_span": {"cm"},
+            "pullups": {"repetitions"},
+            "hang_duration": {"seconds"},
+            "finger_force": {"N", "kgf"},
         }
-        if self.unit != units[self.metric]:
+        if self.metric == "finger_force":
+            if self.value <= 0:
+                raise ValueError("Instrument force must be positive")
+            if self.side is None:
+                raise ValueError("Finger force requires a measured hand side")
+            if self.setup is None:
+                raise ValueError("Finger force requires instrument setup")
+        if self.unit not in units[self.metric]:
             raise ValueError("Unit does not match assessment metric")
         if self.method == "camera" and "confidence" not in self.model_fields_set:
             raise ValueError("Camera captures require explicit confidence")
         if self.method == "camera" and self.confidence < 0.7:
             raise ValueError("Camera capture confidence must be at least 0.7")
-        if self.method == "camera" and self.metric != "leg_spread":
-            raise ValueError("Only leg-spread camera estimation is currently supported")
-        if self.metric == "leg_spread" and self.value > 180:
-            raise ValueError("Leg-spread angle cannot exceed 180 degrees")
+        if self.method == "camera" and self.metric not in {
+            "leg_spread",
+            "shoulder_reach_left",
+            "shoulder_reach_right",
+        }:
+            raise ValueError("Camera estimation only supports leg spread and shoulder reach")
+        if self.metric.startswith("shoulder_reach_") and self.side is not None:
+            if self.side != self.metric.rsplit("_", 1)[1]:
+                raise ValueError("Shoulder side must match the assessment metric")
+        if self.unit == "degrees" and self.value > 180:
+            raise ValueError("Projected angle cannot exceed 180 degrees")
         if self.metric in {"height", "arm_span"} and self.value <= 0:
             raise ValueError("Body length must be positive")
         if self.metric == "pullups" and not self.value.is_integer():
             raise ValueError("Repetition count must be a whole number")
+        if self.method == "camera" and self.decision is not None:
+            if CAMERA_REPORT_LIMITATION not in self.decision.limitations:
+                if len(self.decision.limitations) >= 32:
+                    raise ValueError("Leave room for the camera self-report limitation")
+                self.decision.limitations.append(CAMERA_REPORT_LIMITATION)
         return self
 
 

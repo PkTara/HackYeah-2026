@@ -1,3 +1,4 @@
+export * from './assessments';
 export * from './anatomy';
 export * from './climbing';
 export * from './game';

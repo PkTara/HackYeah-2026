@@ -103,28 +103,33 @@ class Store:
                 > 0
             )
             if deleted:
-                rows = db.execute("SELECT data FROM quests WHERE owner = ?", (owner,)).fetchall()
-                for row in rows:
-                    quest = json.loads(row["data"])
-                    decision = quest.get("decision")
-                    if not decision:
-                        continue
-                    entries = decision.get("evidence", [])
-                    if any(entry["id"] == record_id for entry in entries):
-                        decision["evidence"] = [
-                            {
-                                "id": record_id,
-                                "label": "Record removed",
-                                "detail": "Provenance unavailable after deletion.",
-                            }
-                            if entry["id"] == record_id
-                            else entry
-                            for entry in entries
-                        ]
-                        db.execute(
-                            "UPDATE quests SET data = ? WHERE id = ? AND owner = ?",
-                            (json.dumps(quest), quest["id"], owner),
-                        )
+                # Redact linked evidence in every persisted decision snapshot, including
+                # reviewed assessments, within the same deletion transaction.
+                for table in ("quests", "records"):
+                    rows = db.execute(
+                        f"SELECT data FROM {table} WHERE owner = ?", (owner,)
+                    ).fetchall()
+                    for row in rows:
+                        record = json.loads(row["data"])
+                        decision = record.get("decision")
+                        if not decision:
+                            continue
+                        entries = decision.get("evidence", [])
+                        if any(entry["id"] == record_id for entry in entries):
+                            decision["evidence"] = [
+                                {
+                                    "id": record_id,
+                                    "label": "Record removed",
+                                    "detail": "Provenance unavailable after deletion.",
+                                }
+                                if entry["id"] == record_id
+                                else entry
+                                for entry in entries
+                            ]
+                            db.execute(
+                                f"UPDATE {table} SET data = ? WHERE id = ? AND owner = ?",
+                                (json.dumps(record), record["id"], owner),
+                            )
             return deleted
 
     def quests(self, owner):

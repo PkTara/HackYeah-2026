@@ -8,16 +8,21 @@ from pathlib import Path
 from PIL import Image
 
 
-def _invalid(reason: str, confidence: float = 0.0) -> dict:
+def _invalid(reason: str, confidence: float = 0.0, *, metric="leg_spread") -> dict:
     return {
+        **({"left_value": None, "right_value": None} if metric == "shoulder_reach" else {}),
         "status": "invalid_capture",
-        "metric": "leg_spread",
+        "metric": metric,
         "value": None,
         "unit": "degrees",
         "confidence": confidence,
         "reason": reason,
         "method": "camera",
-        "protocol": "front-facing-leg-spread-v1",
+        "protocol": (
+            "front-facing-overhead-reach-v1"
+            if metric == "shoulder_reach"
+            else "front-facing-leg-spread-v1"
+        ),
     }
 
 
@@ -131,6 +136,130 @@ def analyze_landmarks(
         "reason": None,
         "method": "camera",
         "protocol": "front-facing-leg-spread-v1",
+    }
+
+
+def analyze_shoulder_landmarks(landmarks, min_visibility=0.7, *, image_size=None):
+    """Projected hip→shoulder→elbow angles for the front-facing reach protocol."""
+
+    def invalid(reason, confidence=0.0):
+        return _invalid(reason, confidence, metric="shoulder_reach")
+
+    if (
+        type(min_visibility) not in (int, float)
+        or not math.isfinite(min_visibility)
+        or not 0 <= min_visibility <= 1
+    ):
+        return invalid("The visibility threshold must be a finite number between zero and one.")
+    if image_size is not None and (
+        len(image_size) != 2 or any(not math.isfinite(size) or size <= 0 for size in image_size)
+    ):
+        return invalid("Image width and height must be positive finite dimensions.")
+    if len(landmarks) != 33:
+        return invalid("A capture must contain 33 pose landmarks.")
+    required = [landmarks[i] for i in (11, 12, 13, 14, 15, 16, 23, 24)]
+    if any(
+        type(point.get(key)) not in (int, float)
+        or not math.isfinite(point[key])
+        or not 0 <= point[key] <= 1
+        for point in required
+        for key in ("x", "y", "visibility")
+    ):
+        return invalid("Required hips, shoulders, elbows and wrists need normalized finite fields.")
+    confidence = min(point["visibility"] for point in required)
+    if confidence < min_visibility:
+        return invalid("Both hips, shoulders, elbows and wrists must be visible.", confidence)
+    aspect = image_size[0] / image_size[1] if image_size is not None else 1.0
+
+    def angle(a, vertex, b):
+        left = ((a["x"] - vertex["x"]) * aspect, a["y"] - vertex["y"])
+        right = ((b["x"] - vertex["x"]) * aspect, b["y"] - vertex["y"])
+        magnitude = math.hypot(*left) * math.hypot(*right)
+        if magnitude <= 1e-12:
+            return None
+        cosine = sum(a * b for a, b in zip(left, right)) / magnitude
+        return math.degrees(math.acos(max(-1, min(1, cosine))))
+
+    for shoulder, elbow, wrist in ((11, 13, 15), (12, 14, 16)):
+        elbow_angle = angle(landmarks[shoulder], landmarks[elbow], landmarks[wrist])
+        if elbow_angle is None or elbow_angle < 160:
+            return invalid("Keep both elbows straight for overhead shoulder reach.", confidence)
+    left = angle(landmarks[23], landmarks[11], landmarks[13])
+    right = angle(landmarks[24], landmarks[12], landmarks[14])
+    if left is None or right is None:
+        return invalid("Hips, shoulders and elbows must define nonzero vectors.", confidence)
+    return {
+        "decision": {
+            "summary": f"Estimated image-plane shoulder reach: left {left:g}, "
+            f"right {right:g}, mean {(left + right) / 2:g} degrees.",
+            "status": "estimate",
+            "rule": "camera-shoulder-reach-v1 / front-facing-overhead-reach-v1: "
+            "for each side form hip-to-shoulder and elbow-to-shoulder vectors; "
+            "multiply horizontal coordinates by width/height (1 if absent); "
+            "angle = degrees(acos(clamp(dot(a,b)/(length(a)*length(b)), -1, 1))). "
+            "Report left and right angles and their arithmetic mean. Require finite "
+            "in-frame hips, shoulders, elbows and wrists, visibility >= threshold, "
+            "nonzero vectors and shoulder-elbow-wrist angles >=160 degrees.",
+            "evidence": [
+                {
+                    "id": f"landmark-{index}",
+                    "label": name,
+                    "detail": json.dumps({key: point[key] for key in ("x", "y", "visibility")}),
+                }
+                for index, name, point in zip(
+                    (11, 12, 13, 14, 15, 16, 23, 24),
+                    (
+                        "Left shoulder",
+                        "Right shoulder",
+                        "Left elbow",
+                        "Right elbow",
+                        "Left wrist",
+                        "Right wrist",
+                        "Left hip",
+                        "Right hip",
+                    ),
+                    required,
+                    strict=True,
+                )
+            ]
+            + [
+                {
+                    "id": "capture-geometry",
+                    "label": "Image dimensions and quality thresholds",
+                    "detail": json.dumps(
+                        {
+                            "width": image_size[0] if image_size else None,
+                            "height": image_size[1] if image_size else None,
+                            "aspect_ratio": aspect,
+                            "square_assumption": image_size is None,
+                            "visibility_threshold": min_visibility,
+                            "minimum_elbow_angle": 160,
+                        }
+                    ),
+                }
+            ],
+            "source_ids": ["stenum2021", "barzegar2024"],
+            "limitations": [
+                "Actual inputs for this analyzed image/frame; capture timestamp and "
+                "model/version unavailable in this response.",
+                "Minimum landmark visibility is not angle accuracy or an error bound.",
+                "Projected hip-shoulder-elbow geometry is not validated shoulder mobility "
+                "or true 3D joint range; viewpoint and out-of-plane motion affect it.",
+                "The visibility and 160-degree elbow thresholds are product rules. "
+                "Related papers use other tasks, protocols or hardware and do not "
+                "validate this app shoulder metric or a mobility-to-terrain mapping.",
+            ],
+        },
+        "status": "ok",
+        "metric": "shoulder_reach",
+        "value": (left + right) / 2,
+        "left_value": left,
+        "right_value": right,
+        "unit": "degrees",
+        "confidence": confidence,
+        "reason": None,
+        "method": "camera",
+        "protocol": "front-facing-overhead-reach-v1",
     }
 
 

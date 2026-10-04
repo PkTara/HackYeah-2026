@@ -19,7 +19,11 @@ import { BackHandler, Platform } from 'react-native';
  */
 
 type Params = Readonly<Record<string, string>>;
-type Entry<Route extends string> = Readonly<{ route: Route; params: Params }>;
+export type NavigationEntry<Route extends string> = Readonly<{
+  route: Route;
+  params: Params;
+}>;
+type Entry<Route extends string> = NavigationEntry<Route>;
 
 /** One level of a breadcrumb trail: a screen and the params that pick it. */
 export type TrailStep<Route extends string> = Readonly<{
@@ -85,15 +89,23 @@ export function useNavigation<Route extends string>(): NavigationApi<Route> {
 type Props<Route extends string> = {
   initialRoute: Route;
   screens: Record<Route, ComponentType>;
+  /** Restore the in-memory stack after changing the active dataset. */
+  initialStack?: readonly NavigationEntry<Route>[];
+  onStackChange?: (stack: readonly NavigationEntry<Route>[]) => void;
 };
 
 export function Navigator<Route extends string>({
   initialRoute,
   screens,
+  initialStack,
+  onStackChange,
 }: Props<Route>) {
-  const [stack, setStack] = useState<Entry<Route>[]>([
-    { route: initialRoute, params: {} },
-  ]);
+  const [stack, setStack] = useState<Entry<Route>[]>(() =>
+    initialStack?.length
+      ? [...initialStack]
+      : [{ route: initialRoute, params: {} }],
+  );
+  useEffect(() => onStackChange?.(stack), [stack, onStackChange]);
   const canGoBack = stack.length > 1;
 
   const navigate = useCallback(

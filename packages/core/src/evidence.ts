@@ -34,6 +34,38 @@ export type DecisionExplanation = Readonly<{
   limitations: readonly string[];
 }>;
 
+/** Validate persisted disclosure shape and bound its size like the API. */
+export function isDecisionExplanation(
+  value: unknown,
+): value is DecisionExplanation {
+  const decision = value as Partial<DecisionExplanation> | null;
+  const text = (entry: unknown, max: number, min = 0): entry is string =>
+    typeof entry === 'string' && entry.length >= min && entry.length <= max;
+  const strings = (entries: unknown, maxLength: number, min = 0): boolean =>
+    Array.isArray(entries) &&
+    entries.length <= 32 &&
+    entries.every(entry => text(entry, maxLength, min));
+  return (
+    !!decision &&
+    text(decision.summary, 1000, 1) &&
+    text(decision.rule, 6000, 1) &&
+    ['app_rule', 'draft', 'estimate', 'example'].includes(
+      decision.status ?? '',
+    ) &&
+    strings(decision.sourceIds, 120, 1) &&
+    strings(decision.limitations, 2000) &&
+    Array.isArray(decision.evidence) &&
+    decision.evidence.length <= 64 &&
+    decision.evidence.every(
+      entry =>
+        !!entry &&
+        text(entry.id, 120, 1) &&
+        text(entry.label, 240, 1) &&
+        text(entry.detail, 4000),
+    )
+  );
+}
+
 const unavailable: DecisionExplanation = {
   summary: 'Decision provenance unavailable.',
   status: 'app_rule',
@@ -205,11 +237,14 @@ export function explainMovement(
   );
   return {
     ...tally,
-    rule: `${tally.rule} A climb marked both styles contributes once to each style; style totals can overlap.`,
+    rule: `${tally.rule} A climb marked several styles contributes once to each selected style; style totals can overlap.`,
   };
 }
 export function explainCamera(input: {
-  value: number;
+  metric?: 'leg_spread' | 'shoulder_reach';
+  leftValue?: number | null;
+  rightValue?: number | null;
+  value?: number | null;
   confidence?: number;
   modelVersion?: string;
   protocol?: string;
@@ -219,27 +254,50 @@ export function explainCamera(input: {
   if (input.decision) {
     return input.decision;
   }
+  const shoulder = input.metric === 'shoulder_reach';
   return {
-    summary: `Estimated image-plane leg-spread angle: ${input.value} degrees.`,
+    summary: shoulder
+      ? `Estimated image-plane shoulder reach: left ${
+          input.leftValue ?? 'unavailable'
+        }, right ${input.rightValue ?? 'unavailable'}, mean ${
+          input.value ?? 'unavailable'
+        } degrees.`
+      : `Estimated image-plane leg-spread angle: ${
+          input.value ?? 'unavailable'
+        } degrees.`,
     status: 'estimate',
-    rule: 'camera-leg-spread-v1: find the hip midpoint, form vectors from that midpoint to the left and right ankles, and compute their image-plane angle. Image dimensions correct normalized-coordinate aspect ratio; if absent assume a square plane.',
+    rule: shoulder
+      ? 'camera-shoulder-reach-v1: compute the image-plane hip-shoulder-elbow angle on each side and their arithmetic mean. Required hips, shoulders, elbows and wrists must be visible; shoulder-elbow-wrist angles must be at least 160 degrees. Image dimensions correct normalized-coordinate aspect ratio; if absent assume a square plane.'
+      : 'camera-leg-spread-v1: find the hip midpoint, form vectors from that midpoint to the left and right ankles, and compute their image-plane angle. Image dimensions correct normalized-coordinate aspect ratio; if absent assume a square plane.',
     evidence: [
       {
         id: 'camera-reading',
         label: 'Current camera output and metadata',
-        detail: `value=${input.value} degrees; minimum landmark visibility=${
+        detail: `value=${input.value ?? 'unavailable'} degrees; ${
+          shoulder
+            ? `left=${input.leftValue ?? 'unavailable'}; right=${
+                input.rightValue ?? 'unavailable'
+              }; `
+            : ''
+        }minimum landmark visibility=${
           input.confidence ?? 'unavailable'
         }; method=${input.method ?? 'unavailable'}; protocol=${
           input.protocol ?? 'unavailable'
         }; model/version=${input.modelVersion ?? 'unavailable'}`,
       },
     ],
-    sourceIds: ['draga2020', 'stenum2021', 'barzegar2024'],
+    sourceIds: shoulder
+      ? ['stenum2021', 'barzegar2024']
+      : ['draga2020', 'stenum2021', 'barzegar2024'],
     limitations: [
-      'Actual hip/ankle coordinates and image dimensions are unavailable in this disclosure; it cannot reproduce the numeric angle from the output alone.',
+      shoulder
+        ? 'Actual hip/shoulder/elbow/wrist coordinates and image dimensions are unavailable in this disclosure; it cannot reproduce the numeric angles from the output alone.'
+        : 'Actual hip/ankle coordinates and image dimensions are unavailable in this disclosure; it cannot reproduce the numeric angle from the output alone.',
       'Model/version is unavailable unless supplied with this reading.',
       'The visibility score is not angle accuracy, an error bound or clinical confidence.',
-      'Image-plane geometry is not validated hip mobility or true 3D joint range; viewpoint, bent knees and out-of-plane motion affect it.',
+      shoulder
+        ? 'Image-plane geometry is not validated shoulder mobility or true 3D joint range; viewpoint and out-of-plane motion affect it. The 160-degree elbow threshold is a product rule.'
+        : 'Image-plane geometry is not validated hip mobility or true 3D joint range; viewpoint, bent knees and out-of-plane motion affect it.',
       'These papers concern different protocols, tasks or hardware and do not validate this app measurement or a flexibility-to-terrain mapping.',
     ],
   };

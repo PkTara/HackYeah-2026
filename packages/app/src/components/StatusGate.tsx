@@ -10,6 +10,7 @@ import {
   useTheme,
 } from '@hackyeah/ui';
 import { useGame } from '../state/GameProvider';
+import { DemoButton } from '../demo/DemoControls';
 
 /** Shows a loading or retry screen until the first load from the backend works. */
 export function StatusGate({ children }: { children: ReactNode }) {
@@ -22,7 +23,9 @@ export function StatusGate({ children }: { children: ReactNode }) {
 
   return (
     <Screen>
-      <View style={{ alignItems: 'center', gap: theme.spacing.lg, paddingTop: 80 }}>
+      <View
+        style={{ alignItems: 'center', gap: theme.spacing.lg, paddingTop: 80 }}
+      >
         <Monkey scale={5} still={status === 'error'} />
         {status === 'loading' ? (
           <PixelText
@@ -32,13 +35,18 @@ export function StatusGate({ children }: { children: ReactNode }) {
             shadow={theme.colors.backgroundDeep}
           />
         ) : (
-          <Panel title="No signal" variant="alert" style={{ alignSelf: 'stretch' }}>
+          <Panel
+            title="No signal"
+            variant="alert"
+            style={{ alignSelf: 'stretch' }}
+          >
             <AppText>
               Could not load your climbs. Check your connection and try again.
             </AppText>
             <Button title="Try again" onPress={retry} />
           </Panel>
         )}
+        <DemoButton parent="App" />
       </View>
     </Screen>
   );

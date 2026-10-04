@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { FINGERS, type Finger, type Side } from '@hackyeah/core';
 import {
@@ -10,7 +10,6 @@ import {
 import {
   AppText,
   Button,
-  CheckRow,
   Chip,
   Divider,
   PX,
@@ -36,6 +35,8 @@ import { useMedia } from '../media';
 import { useNavigation } from '../navigation/Navigator';
 import type { RouteName } from '../navigation/routes';
 import { useGame } from '../state/GameProvider';
+import { useDemo } from '../demo/DemoProvider';
+import { usePrivacy } from '../privacy/PrivacyProvider';
 
 export const HAND_CONSENT =
   'I consent to uploading and retaining this hand photo and journal entry.';
@@ -64,15 +65,24 @@ const fingerOf = (region: HandRegion | null): Finger | undefined =>
  */
 export function HandCaptureScreen() {
   const media = useMedia();
+  const [busy, setBusy] = useState(false);
+  const { params } = useNavigation<RouteName>();
+  const finger = FINGERS.find(f => f === params.finger);
+  const side =
+    params.side === 'left' || params.side === 'right' ? params.side : null;
+  const context =
+    side && finger
+      ? `Photo for your ${fingerLabel(side, finger).toLowerCase()}.`
+      : 'A private photo for your hand journal.';
   return (
-    <TabScreen>
+    <TabScreen completion={{ disabled: busy }}>
       <Crumbs />
       <PageHeader
         title="Hand photo"
-        subtitle="A private photo for your hand journal, with how it feels."
+        subtitle={`${context} Review the photo, then describe how it feels before saving.`}
       />
       {media ? (
-        <HandCapture media={media} />
+        <HandCapture media={media} onBusyChange={setBusy} />
       ) : (
         <NeedsServer what="The hand photo journal" />
       )}
@@ -80,11 +90,22 @@ export function HandCaptureScreen() {
   );
 }
 
-function HandCapture({ media }: { media: MediaClient }) {
-  const { params } = useNavigation<RouteName>();
+function HandCapture({
+  media,
+  onBusyChange,
+}: {
+  media: MediaClient;
+  onBusyChange: (busy: boolean) => void;
+}) {
+  const demo = useDemo();
+  const simulated = demo.settings.enabled && demo.settings.handPhotos;
+  const { params, navigate } = useNavigation<RouteName>();
   const { state, refresh } = useGame();
   const theme = useTheme();
   const c = useCapture('hand');
+  useEffect(() => {
+    onBusyChange(c.busy);
+  }, [c.busy, onBusyChange]);
   // Opened from a finger close-up, that finger is picked already.
   const [side, setSide] = useState<Side | null>(
     params.side === 'left' || params.side === 'right' ? params.side : null,
@@ -96,14 +117,20 @@ function HandCapture({ media }: { media: MediaClient }) {
   const [view, setView] = useState<'palm' | 'back' | null>(null);
   const [pain, setPain] = useState<number | null | undefined>(undefined);
   const [note, setNote] = useState('');
-  const [consent, setConsent] = useState(false);
+  const consent = usePrivacy().choices.handPhotos;
+  const cancel = useRef(c.cancel);
+  cancel.current = c.cancel;
   const [notice, setNotice] = useState('');
 
-  // Consent is for one photo: a new one asks again.
+  // Retention permission belongs to setup/settings; captures still get reviewed.
   useEffect(() => {
-    setConsent(false);
     setNotice('');
   }, [c.capture]);
+  useEffect(() => {
+    if (!consent) {
+      cancel.current();
+    }
+  }, [consent]);
 
   const finger = fingerOf(region);
   const flag =
@@ -137,7 +164,11 @@ function HandCapture({ media }: { media: MediaClient }) {
     c.run(
       () => media.saveHandPhoto(photo, entry, consent),
       () => {
-        setNotice('Saved to your hand journal.');
+        setNotice(
+          simulated
+            ? 'Saved simulated entry to your demo hand journal. No photo was uploaded or retained.'
+            : 'Saved to your hand journal.',
+        );
         refresh(); // a finger entry changes its flag
       },
       'Could not save it. Try again.',
@@ -150,7 +181,10 @@ function HandCapture({ media }: { media: MediaClient }) {
       <ReviewTray capture={c} />
 
       {c.capture ? (
-        <Panel title="Details">
+        <Panel title="Photo details">
+          <AppText variant="caption" muted>
+            Check the hand and place below. These details belong to this photo.
+          </AppText>
           <Field label="Hand">
             {SIDES.map(s => (
               <Chip
@@ -162,7 +196,7 @@ function HandCapture({ media }: { media: MediaClient }) {
               />
             ))}
           </Field>
-          <Field label="Photo of the">
+          <Field label="Photo view">
             {VIEWS.map(v => (
               <Chip
                 key={v.key}
@@ -174,7 +208,7 @@ function HandCapture({ media }: { media: MediaClient }) {
             ))}
           </Field>
           <Divider />
-          <Field label="Where">
+          <Field label="Where it hurts">
             {FINGERS.map(f => (
               <Chip
                 key={f}
@@ -244,18 +278,25 @@ function HandCapture({ media }: { media: MediaClient }) {
       ) : null}
 
       {c.capture ? (
-        <Panel title="Save">
-          <ServerNote server={media.server}>
+        <Panel title="Review and save">
+          <ServerNote server={media.server} simulated={simulated}>
             The photo stays there, private to your profile, until you delete
             your profile.
           </ServerNote>
-          <CheckRow
-            name="Upload and keep"
-            detail={HAND_CONSENT}
-            tone="agree"
-            checked={consent}
-            onPress={() => setConsent(!consent)}
-          />
+          <AppText variant="caption">
+            {consent
+              ? 'Private hand-photo permission is enabled in Settings. Saving keeps this entry in your journal.'
+              : 'Enable Private hand photos in Settings to save this entry.'}
+          </AppText>
+          {!consent ? (
+            <Button
+              title="Settings"
+              variant="secondary"
+              onPress={() =>
+                navigate('Settings', { from: 'HandCapture', ...params })
+              }
+            />
+          ) : null}
           <Divider />
           <Button
             title="Save to journal"

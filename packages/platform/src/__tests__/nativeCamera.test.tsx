@@ -347,3 +347,24 @@ test('waits for native camera startup before offering a capture session', async 
   });
   expect(session).not.toBeNull();
 });
+test('reports native cover geometry from the captured frame for aligned overlays', async () => {
+  const onGeometry = jest.fn();
+  await act(async () => {
+    renderer = TestRenderer.create(
+      <Preview
+        active
+        mode="assessment"
+        onReady={onReady}
+        onError={onError}
+        onGeometry={onGeometry}
+      />,
+    );
+  });
+  await session!.snapshot();
+  expect(onGeometry).toHaveBeenCalledWith({
+    imageWidth: 640,
+    imageHeight: 480,
+    mirrored: false,
+    fit: 'cover',
+  });
+});

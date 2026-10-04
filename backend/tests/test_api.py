@@ -406,6 +406,35 @@ def test_climb_can_record_both_movement_styles(client, auth):
     assert client.get("/v1/me/climbs", headers=auth).json() == [saved]
 
 
+def test_climb_round_trips_all_styles_and_counts_each_in_profile(client, auth):
+    styles = [
+        "controlled",
+        "dynamic",
+        "technical",
+        "powerful",
+        "balance",
+        "coordination",
+        "compression",
+        "endurance",
+    ]
+    response = client.post(
+        "/v1/me/climbs",
+        headers=auth,
+        json={"terrain": "vertical", "movements": styles, "completed": True},
+    )
+    assert response.status_code == 201
+    saved = response.json()
+    assert saved["movement"] == "controlled"
+    assert saved["movements"] == styles
+    assert client.get("/v1/me/climbs", headers=auth).json() == [saved]
+    profile = client.get("/v1/me/profile", headers=auth).json()
+    for style in styles:
+        assert profile["movement"][style]["evidence_ids"] == [saved["id"]]
+        assert profile["movement"][style]["completed_count"] == 1
+        assert profile["grid"]["vertical"][style]["sample_count"] == 1
+    assert profile["terrain"]["vertical"]["sample_count"] == 1
+
+
 def test_climb_with_one_movement_also_stores_it_as_a_list(client, auth):
     saved = client.post(
         "/v1/me/climbs",

@@ -2,8 +2,9 @@
 
 from datetime import datetime
 
+from .schemas import MOVEMENTS
+
 TERRAINS = ("slab", "vertical", "overhang")
-MOVEMENTS = ("controlled", "dynamic")
 
 
 def _movements(climb):
@@ -45,6 +46,9 @@ def _assessment_trends(assessments):
                 record
                 for record in history[1:]
                 if all(record[key] == latest[key] for key in ("protocol", "method", "unit"))
+                and record.get("side") == latest.get("side")
+                and record.get("setup") == latest.get("setup")
+                and record.get("simulated", False) == latest.get("simulated", False)
             ),
             None,
         )

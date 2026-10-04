@@ -66,7 +66,13 @@ def register_video(app, current_user, video_analyzer):
                 raise ValueError("Invalid or missing bearer token")
             credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
             await run_in_threadpool(current_user, credentials)
-            context = _configured(video_analyzer).session()
+            metric = handshake.get("metric", "leg_spread")
+            if metric not in ("leg_spread", "shoulder_reach"):
+                raise ValueError("Unsupported live metric; select leg_spread or shoulder_reach.")
+            analyzer = _configured(video_analyzer)
+            context = (
+                analyzer.session() if metric == "leg_spread" else analyzer.session(metric=metric)
+            )
             session = await run_in_threadpool(context.__enter__)
             try:
                 await socket.send_json(
@@ -96,7 +102,7 @@ def register_video(app, current_user, video_analyzer):
                     data = frame["bytes"]
                     await run_in_threadpool(current_user, credentials)
                     result = await run_in_threadpool(session.analyze_frame, data, timestamp)
-                    await socket.send_json({"type": "result", "timestamp_ms": timestamp, **result})
+                    await socket.send_json({**result, "type": "result", "timestamp_ms": timestamp})
             finally:
                 await run_in_threadpool(context.__exit__, None, None, None)
         except WebSocketDisconnect:

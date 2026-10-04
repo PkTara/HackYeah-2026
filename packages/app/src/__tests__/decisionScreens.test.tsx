@@ -1,7 +1,19 @@
-import { act } from 'react-test-renderer';
+import { act, create } from 'react-test-renderer';
 import { Linking } from 'react-native';
 import { RESEARCH_SOURCES, sampleGame } from '@hackyeah/core';
-import { control, press, render, setup, text } from '../testing/cameraFixture';
+import {
+  control,
+  press,
+  render,
+  setup,
+  text,
+  socket,
+  MEASUREMENT,
+  photo,
+} from '../testing/cameraFixture';
+import { shoulder } from '../testing/livePoseFixture';
+import { toPoseReading, type PoseResultDto } from '@hackyeah/data';
+import { CameraReadingHelp } from '../capture/parts';
 
 it('opens local focus help with the actual current climb records on Profile', async () => {
   const screen = await render(
@@ -149,15 +161,21 @@ it('reveals saved reach arithmetic and home-test protocol context from Tests', a
   try {
     await press(
       screen,
+      'Open body and reach',
       'Why reach difference?',
       'How it works for reach difference',
       'Your inputs for reach difference',
-      'Why pull-ups result?',
-      'How it works for pull-ups result',
-      'Your inputs for pull-ups result',
     );
     expect(text(screen)).toContain('arm span minus height');
     expect(text(screen)).toContain('2026-10-02');
+    await press(
+      screen,
+      'Back to Data',
+      'Redo pull-ups',
+      'Why last home test result?',
+      'How it works for last home test result',
+      'Your inputs for last home test result',
+    );
     expect(text(screen)).toContain('2026-10-01');
     expect(text(screen)).toContain('Count clean reps');
   } finally {
@@ -181,15 +199,59 @@ it('opens the bundled original-source library from About with study details', as
   }
 });
 
+async function cameraReading(
+  sample: PoseResultDto | null,
+  metric = 'leg_spread',
+) {
+  const stream = socket();
+  const screen = await render(
+    setup({
+      live: stream.transport,
+      camera: { snapshot: async () => photo({ bytes: new Uint8Array([1]) }) },
+    }),
+    'Tests',
+  );
+  await press(
+    screen,
+    `Open ${metric === 'shoulder_reach' ? 'shoulder reach' : 'leg spread'}`,
+    metric === 'shoulder_reach'
+      ? 'Shoulder reach assessment'
+      : 'Leg spread assessment',
+    'Record',
+  );
+  await act(async () => {
+    stream.transport.onopen?.();
+    stream.transport.onmessage?.({
+      data: JSON.stringify({
+        type: 'ready',
+        max_frame_bytes: 8192,
+        max_duration_ms: 60000,
+      }),
+    });
+  });
+  const frame = JSON.parse(stream.sent[1] as string);
+  await act(async () => {
+    if (sample) {
+      stream.transport.onmessage?.({
+        data: JSON.stringify({
+          type: 'result',
+          landmarks: shoulder(0).landmarks,
+          ...sample,
+          timestamp_ms: frame.timestamp_ms,
+        }),
+      });
+    }
+  });
+  await press(screen, 'Stop');
+  return screen;
+}
+
 it('opens help on the actual analyzed camera reading including usable counts and protocol', async () => {
-  const screen = await render(setup(), 'Assessment');
+  const screen = await cameraReading(MEASUREMENT);
   try {
     await press(
       screen,
-      'Start camera',
-      'Take photo',
-      'Send for analysis, I consent to sending this capture to the server for analysis.',
-      'Analyse photo',
+      'Measurement details',
       'Why camera reading?',
       'How it works for camera reading',
       'Your inputs for camera reading',
@@ -203,32 +265,17 @@ it('opens help on the actual analyzed camera reading including usable counts and
   }
 });
 
-it('explains an invalid camera capture using its actual rejection reason', async () => {
-  const screen = await render(
-    setup({
-      answer: () => ({
-        status: 200,
-        body: {
-          status: 'invalid_capture',
-          metric: 'leg_spread',
-          value: null,
-          unit: 'degrees',
-          confidence: 0.2,
-          reason: 'Both hips and ankles must be visible.',
-          protocol: 'front-facing-leg-spread-v1',
-          method: 'camera',
-        },
-      }),
-    }),
-    'Assessment',
-  );
+it('explains an invalid live camera capture using its actual rejection reason', async () => {
+  const screen = await cameraReading({
+    ...MEASUREMENT,
+    status: 'invalid_capture',
+    value: null,
+    confidence: 0.2,
+    reason: 'Both hips and ankles must be visible.',
+  });
   try {
     await press(
       screen,
-      'Start camera',
-      'Take photo',
-      'Send for analysis, I consent to sending this capture to the server for analysis.',
-      'Analyse photo',
       'Why camera reading?',
       'How it works for camera reading',
       'Your inputs for camera reading',
@@ -316,8 +363,8 @@ it('keeps a server quest snapshot separate from the current local focus', async 
   }
 });
 
-it('uses returned camera landmark snapshots and identifies relative clip offsets', async () => {
-  const sample = {
+it('uses returned camera landmark snapshots in the live review', async () => {
+  const sample: PoseResultDto = {
     status: 'ok',
     metric: 'leg_spread',
     value: 92,
@@ -342,33 +389,17 @@ it('uses returned camera landmark snapshots and identifies relative clip offsets
       limitations: ['Image geometry estimate only'],
     },
   };
-  const screen = await render(
-    setup({
-      answer: () => ({
-        status: 200,
-        body: {
-          frames: [sample],
-          duration_ms: 500,
-          sampled_frame_count: 1,
-          valid_frame_count: 1,
-        },
-      }),
-    }),
-    'Assessment',
-  );
+  const screen = await cameraReading(sample);
   try {
     await press(
       screen,
-      'Start camera',
-      'Take photo',
-      'Send for analysis, I consent to sending this capture to the server for analysis.',
-      'Analyse photo',
+      'Measurement details',
       'Why camera reading?',
       'How it works for camera reading',
       'Your inputs for camera reading',
     );
     expect(text(screen)).toContain('x=0.42; y=0.50; visibility=0.91');
-    expect(text(screen)).toContain('Relative sample offset: 400 ms');
+    expect(text(screen)).toContain('Relative sample offset:');
     expect(text(screen)).toContain('not an absolute capture date');
   } finally {
     await act(async () => screen.unmount());
@@ -376,27 +407,22 @@ it('uses returned camera landmark snapshots and identifies relative clip offsets
 });
 
 it('describes an empty legacy camera response without inferring capture rejection', async () => {
-  const screen = await render(
-    setup({
-      answer: () => ({
-        status: 200,
-        body: {
+  let screen!: ReturnType<typeof create>;
+  await act(async () => {
+    screen = create(
+      <CameraReadingHelp
+        reading={toPoseReading({
           frames: [],
           duration_ms: 0,
           sampled_frame_count: 0,
           valid_frame_count: 0,
-        },
-      }),
-    }),
-    'Assessment',
-  );
+        })}
+      />,
+    );
+  });
   try {
     await press(
       screen,
-      'Start camera',
-      'Take photo',
-      'Send for analysis, I consent to sending this capture to the server for analysis.',
-      'Analyse photo',
       'Why camera reading?',
       'How it works for camera reading',
       'Your inputs for camera reading',
@@ -427,6 +453,153 @@ it('keeps wall tallies below the triangle inside a collapsed creation tray', asy
     expect(text(screen)).toContain('(sample-1)');
     await press(screen, 'How was this data created?');
     expect(control(screen, 'Why Slab tally?')).toBeUndefined();
+  } finally {
+    await act(async () => screen.unmount());
+  }
+});
+
+it('keeps the reviewed shoulder snapshot in saved measurement details and history', async () => {
+  const sample = {
+    ...shoulder(0, 12),
+    right_value: 18,
+    decision: {
+      summary: 'Recorded shoulder geometry',
+      status: 'estimate' as const,
+      rule: 'Returned hip-shoulder-elbow geometry',
+      evidence: [
+        {
+          id: 'shoulder11',
+          label: 'Left shoulder',
+          detail: 'x=0.40; y=0.35; visibility=0.96',
+        },
+      ],
+      source_ids: ['stenum2021'],
+      limitations: ['Projected shoulder angles only'],
+    },
+  };
+  const screen = await cameraReading(sample, 'shoulder_reach');
+  try {
+    await press(screen, 'Measurement details', 'Why camera reading?');
+    expect(text(screen)).toContain('Recorded shoulder geometry');
+    expect(text(screen)).not.toContain('x=0.40; y=0.35; visibility=0.96');
+    await press(
+      screen,
+      'How it works for camera reading',
+      'Your inputs for camera reading',
+    );
+    expect(text(screen)).toContain('(shoulder11)');
+    expect(text(screen)).toContain('x=0.40; y=0.35; visibility=0.96');
+    expect(text(screen)).not.toContain('leg-spread angle');
+    await press(
+      screen,
+      'Back to Review',
+      'Save result',
+      'Back to Data',
+      'Open shoulder reach',
+      'Why Shoulder reach, left measurement?',
+      'How it works for Shoulder reach, left measurement',
+      'Your inputs for Shoulder reach, left measurement',
+    );
+    expect(text(screen)).toContain('Returned hip-shoulder-elbow geometry');
+    expect(text(screen)).toContain('(shoulder11)');
+    expect(text(screen)).toContain('client-supplied explanation');
+    await press(screen, 'Show measurement history');
+    expect(
+      screen.root.findAll(node =>
+        node.props.accessibilityLabel?.startsWith('Why saved measurement '),
+      ).length,
+    ).toBeGreaterThan(0);
+  } finally {
+    await act(async () => screen.unmount());
+  }
+});
+
+it('explains stopping a live capture with no returned samples without claiming rejection', async () => {
+  const screen = await cameraReading(null);
+  try {
+    await press(
+      screen,
+      'Why camera reading?',
+      'How it works for camera reading',
+      'Your inputs for camera reading',
+    );
+    expect(text(screen)).toContain('No valid sample was returned');
+    expect(text(screen)).toContain('0 of 0 usable');
+    expect(text(screen)).not.toContain('server rejected');
+    expect(control(screen, 'Save result')).toBeUndefined();
+  } finally {
+    await act(async () => screen.unmount());
+  }
+});
+
+it('retains clip landmark snapshots and identifies their offsets as relative', async () => {
+  let screen!: ReturnType<typeof create>;
+  await act(async () => {
+    screen = create(
+      <CameraReadingHelp
+        reading={toPoseReading({
+          frames: [
+            {
+              ...MEASUREMENT,
+              timestamp_ms: 400,
+              decision: {
+                summary: 'Saved clip geometry',
+                status: 'estimate',
+                rule: 'Recorded four image-plane landmarks',
+                evidence: [
+                  {
+                    id: 'clip-hip17',
+                    label: 'Left hip',
+                    detail: 'x=0.42; y=0.50; visibility=0.91',
+                  },
+                ],
+                source_ids: [],
+                limitations: ['Image geometry only'],
+              },
+            },
+          ],
+          duration_ms: 500,
+          sampled_frame_count: 1,
+          valid_frame_count: 1,
+        })}
+      />,
+    );
+  });
+  try {
+    await press(
+      screen,
+      'Why camera reading?',
+      'How it works for camera reading',
+      'Your inputs for camera reading',
+    );
+    expect(text(screen)).toContain('(clip-hip17)');
+    expect(text(screen)).toContain('x=0.42; y=0.50; visibility=0.91');
+    expect(text(screen)).toContain('Relative sample offset: 400 ms');
+    expect(text(screen)).toContain('not an absolute capture date');
+    expect(text(screen)).toContain('1 of 1 usable');
+  } finally {
+    await act(async () => screen.unmount());
+  }
+});
+
+it('explains bilateral shoulder values without substituting the leg-spread formula', async () => {
+  const screen = await cameraReading(
+    { ...shoulder(0, 12), value: null, right_value: 18 },
+    'shoulder_reach',
+  );
+  try {
+    await press(
+      screen,
+      'Measurement details',
+      'Why camera reading?',
+      'How it works for camera reading',
+      'Your inputs for camera reading',
+    );
+    expect(text(screen)).toContain('left 12, right 18, mean unavailable');
+    expect(text(screen)).toContain('camera-shoulder-reach-v1');
+    expect(text(screen)).toContain('hip-shoulder-elbow');
+    expect(text(screen)).not.toContain('camera-leg-spread-v1');
+    expect(text(screen)).toContain('1 of 1 usable');
   } finally {
     await act(async () => screen.unmount());
   }

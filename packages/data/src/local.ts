@@ -5,6 +5,7 @@
 import {
   emptyGame,
   gameReducer,
+  isAssessmentRecord,
   parseGameState,
   sampleGame,
   type GameAction,
@@ -35,8 +36,9 @@ export function createLocalBackend(
   let queue: Promise<unknown> = Promise.resolve();
   function update(next: (old: GameState) => GameState): Promise<void> {
     const run = queue.then(async () => {
-      current = next(await state());
-      await storage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(current));
+      const saved = next(await state());
+      await storage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(saved));
+      current = saved;
     });
     queue = run.catch(() => {});
     return run;
@@ -51,6 +53,12 @@ export function createLocalBackend(
     completeQuest: questId => apply({ type: 'completeQuest', questId }),
     skipQuest: questId => apply({ type: 'skipQuest', questId }),
     setHandFlag: (flag, flagged) => apply({ type: 'setFlag', flag, flagged }),
+    saveAssessment: async record => {
+      if (!isAssessmentRecord(record)) {
+        throw new Error('Invalid assessment record');
+      }
+      await apply({ type: 'saveAssessment', record });
+    },
     saveReach: reach => apply({ type: 'saveReach', reach }),
     finishOnboarding: result => apply({ type: 'finishOnboarding', result }),
     skipOnboarding: () => apply({ type: 'skipOnboarding' }),

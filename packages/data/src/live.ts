@@ -41,6 +41,7 @@ export type LiveOptions = LiveHandlers &
     token: string;
     consent: boolean;
     camera: CameraSession;
+    metric?: 'leg_spread' | 'shoulder_reach';
     socketFactory: (url: string) => LiveSocket;
     now?: () => number;
     /** Runs a callback later; answers a cancel function. */
@@ -169,6 +170,7 @@ export function openLivePose(options: LiveOptions): LiveSession {
         type: 'start',
         token: options.token,
         upload_consent: true,
+        ...(options.metric ? { metric: options.metric } : {}),
       }),
     );
   };
@@ -208,8 +210,10 @@ export function openLivePose(options: LiveOptions): LiveSession {
       waiting = false;
       const result = { ...message };
       delete result.type;
-      delete result.timestamp_ms;
       options.onResult(result as PoseResultDto);
+      if (closed) {
+        return;
+      }
       cancelNext = schedule(() => {
         sendFrame();
       }, LIVE_FRAME_GAP_MS);
