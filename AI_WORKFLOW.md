@@ -285,3 +285,18 @@ The Codex design-drafting step used the `superpowers:using-superpowers` and `sup
 
 **Not verified:** listening on real speakers.
 
+### 24. Groovier music without the piercing highs (2026-10-04)
+
+**Prompt:** after listening to entry 23: "Make the audio more groovy - the random high notes sound grating."
+
+**Output:**
+- `song.ts` rewritten as "Jungle Pocket": G major, 122 BPM, swung sixteenths (0.58), 28 bars of groove, hook, half-time lift and summit. The lead is one short riff with repeated notes that keeps coming back, between G4 and B5; nothing in any melodic voice goes above D6. The summit is bigger by fullness (warm keys chords on seventh chords, more kick pushes and congas, a low kalimba answer), not by pitch.
+- The rhythm section carries the energy: a pocket bassline with ghost notes and octave pops that lands with the kick, a syncopated kick (1, 3 and pushes around them) with claps on 2 and 4 and a ghost clap, off-beat marimba chops with ghost chops, and small fixed velocity nudges per step and instrument (no randomness, the same on every render).
+- `voices.ts`: softer steel drum (lower upper partials, slower attack), a soft low kalimba, a new warm keys voice, and gentle low-passes on the lead, marimba, kalimba, keys, clap and shaker buses.
+
+**Originality:** as in entries 22 and 23, everything was written for this app in code; nothing was copied or approximated.
+
+**Validation:** new song tests for the D6 ceiling on every melodic voice, the repeated hook riff, a summit bigger by fullness, the syncopated kick, ghost notes and octave pops in the bass, off-beat chops and deterministic humanising. An OfflineAudioContext render (66 s, one loop plus the wrap) peaked at -6.7 dBFS with an RMS of -21.8 dBFS, no NaN samples and no gap at the seam; energy above 2.5 kHz is about 4 dB lower than in entry 23 at the same loudness. `npm run check` and the web build pass.
+
+**Not verified:** listening on real speakers.
+

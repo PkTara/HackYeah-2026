@@ -1,9 +1,12 @@
 import {
+  CEILING,
   RANGES,
   SONG,
   STEPS_PER_BAR,
   arrange,
   chordsOfBar,
+  humanise,
+  keysVoicing,
   midi,
   parseBar,
   parseChord,
@@ -54,12 +57,35 @@ describe('song data', () => {
     expect(() => midi('H2')).toThrow();
   });
 
-  it('is upbeat: 120 to 128 BPM, sixteenths, at most a light swing', () => {
+  it('grooves: 120 to 124 BPM, swung sixteenths', () => {
     expect(SONG.bpm).toBeGreaterThanOrEqual(120);
-    expect(SONG.bpm).toBeLessThanOrEqual(128);
+    expect(SONG.bpm).toBeLessThanOrEqual(124);
     expect(STEPS_PER_BAR).toBe(16);
-    expect(SONG.swing).toBeGreaterThanOrEqual(0.5);
-    expect(SONG.swing).toBeLessThanOrEqual(0.58);
+    expect(SONG.swing).toBeGreaterThan(0.5);
+    expect(SONG.swing).toBeLessThanOrEqual(0.62);
+  });
+
+  it('keeps every melodic voice at or below D6, the lead from G4 up', () => {
+    expect(CEILING).toBe(midi('D6'));
+    const melodic = new Set(['pan', 'marimba', 'kalimba', 'keys']);
+    const highest: Record<string, number> = {};
+    for (const note of arrangement.notes) {
+      if (melodic.has(note.instrument)) {
+        highest[note.instrument] = Math.max(
+          highest[note.instrument] ?? 0,
+          note.pitch,
+        );
+      }
+    }
+    expect(Object.keys(highest).sort()).toEqual([...melodic].sort());
+    for (const [instrument, pitch] of Object.entries(highest)) {
+      expect(`${instrument} ${pitch <= CEILING}`).toBe(`${instrument} true`);
+    }
+    const lead = arrangement.notes.filter(n => n.instrument === 'pan');
+    expect(Math.min(...lead.map(n => n.pitch))).toBeGreaterThanOrEqual(midi('G4'));
+    for (const [instrument, [, high]] of Object.entries(RANGES)) {
+      expect(`${instrument} ${high <= CEILING}`).toBe(`${instrument} true`);
+    }
   });
 
   it('builds like a climb: groove, hook, lift, summit, at least 24 bars', () => {
@@ -105,35 +131,80 @@ describe('song data', () => {
     expect([...run].sort((a, b) => a - b)).toEqual(run);
   });
 
-  it('ends the lift with a rising run into the summit', () => {
-    const lift = section('Lift');
-    const run = pitches(lift.melody[lift.melody.length - 1]);
-    expect(run.length).toBeGreaterThanOrEqual(6);
-    run.slice(1).forEach((pitch, i) => expect(pitch).toBeGreaterThan(run[i]));
+  it('builds the hook from one short riff that keeps coming back', () => {
+    const hook = section('Hook').melody;
+    const riff = hook[0];
+    expect(hook.filter(bar => bar === riff).length).toBeGreaterThanOrEqual(3);
+    // Few notes per bar, not busy runs.
+    for (const bar of hook) {
+      expect(pitches(bar).length).toBeLessThanOrEqual(7);
+    }
   });
 
-  it('makes the summit bigger: a countermelody and a higher hook', () => {
+  it('makes the summit bigger by fullness, not by pitch', () => {
     const hook = section('Hook');
     const summit = section('Summit');
     expect(summit.counter).toBeDefined();
-    expect(Math.max(...summit.melody.flatMap(pitches))).toBeGreaterThan(
-      Math.max(...hook.melody.flatMap(pitches)),
+    expect(summit.comp).toContain('keys');
+    expect(Math.max(...summit.melody.flatMap(pitches))).toBeLessThanOrEqual(
+      Math.max(...hook.melody.flatMap(pitches)) + 2,
     );
-    // Same hook idea, but most bars differ.
-    const same = hook.melody.filter((bar, i) => bar === summit.melody[i]).length;
-    expect(same).toBeLessThanOrEqual(2);
+    const starts = sectionStarts();
+    const count = (s: Section) =>
+      notesOfBar(starts.get(s)!).filter(n => n.pitch === 0).length;
+    expect(count(summit)).toBeGreaterThan(count(hook));
   });
 
-  it('drives the groove with a kick on every beat and claps on 2 and 4', () => {
+  it('syncopates the kick and keeps claps on 2 and 4', () => {
     const starts = sectionStarts();
     const bar = notesOfBar(starts.get(section('Hook'))!);
     const local = (instrument: string) =>
       bar
         .filter(note => note.instrument === instrument)
         .map(note => note.step % STEPS_PER_BAR);
-    expect(local('kick')).toEqual(expect.arrayContaining([0, 4, 8, 12]));
-    expect(local('clap')).toEqual([4, 12]);
+    const kicks = local('kick');
+    expect(kicks).toEqual(expect.arrayContaining([0, 8]));
+    // Off the beat as well: not four on the floor.
+    expect(kicks.some(step => step % 4 !== 0)).toBe(true);
+    expect(local('clap')).toEqual(expect.arrayContaining([4, 12]));
     expect(local('shaker')).toHaveLength(16);
+  });
+
+  it('gives the hook bass ghost notes and octave pops', () => {
+    const starts = sectionStarts();
+    const bassNotes = notesOfBar(starts.get(section('Hook'))!).filter(
+      n => n.instrument === 'bass',
+    );
+    const root = Math.min(...bassNotes.map(n => n.pitch));
+    expect(bassNotes.some(n => n.velocity < 0.4)).toBe(true);
+    expect(bassNotes.some(n => n.pitch === root + 12)).toBe(true);
+  });
+
+  it('puts the marimba chops on the off-beats', () => {
+    const starts = sectionStarts();
+    const chops = notesOfBar(starts.get(section('Hook'))!).filter(
+      n => n.instrument === 'marimba',
+    );
+    expect(chops.length).toBeGreaterThan(0);
+    expect(chops.every(n => n.step % 4 !== 0)).toBe(true);
+  });
+
+  it('humanises velocities a little, the same way every time', () => {
+    const note = {
+      instrument: 'shaker' as const,
+      step: 5,
+      length: 1,
+      pitch: 0,
+      velocity: 0.5,
+    };
+    expect(humanise(note)).toEqual(humanise(note));
+    const nudged = arrangement.notes.map(n => n.velocity);
+    expect(new Set(nudged).size).toBeGreaterThan(20);
+    expect(arrange()).toEqual(arrangement);
+    for (let step = 0; step < 32; step++) {
+      const v = humanise({ ...note, step }).velocity;
+      expect(Math.abs(v - 0.5)).toBeLessThanOrEqual(0.5 * 0.06 + 1e-9);
+    }
   });
 
   it('ends every section with a drum fill in its second half', () => {
@@ -196,6 +267,15 @@ describe('song data', () => {
   it('plays every instrument somewhere in the loop', () => {
     const used = new Set(arrangement.notes.map(n => n.instrument));
     expect([...used].sort()).toEqual(Object.keys(RANGES).sort());
+  });
+
+  it('voices the keys with every chord tone, inside one octave', () => {
+    expect(keysVoicing(parseChord('Gmaj7'))).toEqual([55, 59, 62, 66]);
+    for (const symbol of ['Cmaj7', 'Em7', 'Am7', 'D7']) {
+      const notes = keysVoicing(parseChord(symbol));
+      expect(notes).toHaveLength(4);
+      expect(Math.max(...notes) - Math.min(...notes)).toBeLessThan(12);
+    }
   });
 
   it('voices chords close together and without the root of four-note chords', () => {

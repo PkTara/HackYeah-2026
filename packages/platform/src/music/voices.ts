@@ -17,17 +17,24 @@ import type { Instrument, TimedNote } from './song';
 /** Overall level. Quiet on purpose: the music sits under the app. */
 export const MASTER_GAIN = 0.18;
 
-type Bus = Readonly<{ level: number; pan: number; reverb: number }>;
+type Bus = Readonly<{
+  level: number;
+  pan: number;
+  reverb: number;
+  /** Gentle low-pass that keeps the top of the instrument soft, in Hz. */
+  lowpass?: number;
+}>;
 
-/** Mix: level, left/right position (-1 to 1) and reverb send. */
+/** Mix: level, left/right position (-1 to 1), reverb send and tone. */
 const BUSES: Readonly<Record<Instrument, Bus>> = {
-  pan: { level: 1, pan: -0.15, reverb: 0.35 },
-  marimba: { level: 0.8, pan: 0.25, reverb: 0.25 },
-  kalimba: { level: 0.75, pan: -0.3, reverb: 0.4 },
+  pan: { level: 1, pan: -0.15, reverb: 0.3, lowpass: 2600 },
+  marimba: { level: 0.85, pan: 0.25, reverb: 0.2, lowpass: 3000 },
+  kalimba: { level: 0.75, pan: -0.3, reverb: 0.35, lowpass: 2200 },
+  keys: { level: 0.7, pan: 0.1, reverb: 0.35, lowpass: 1800 },
   bass: { level: 1, pan: 0, reverb: 0 },
   kick: { level: 1, pan: 0, reverb: 0 },
-  clap: { level: 1, pan: 0.05, reverb: 0.3 },
-  shaker: { level: 0.7, pan: 0.35, reverb: 0.15 },
+  clap: { level: 1, pan: 0.05, reverb: 0.25, lowpass: 4500 },
+  shaker: { level: 0.7, pan: 0.35, reverb: 0.12, lowpass: 7500 },
   drumLow: { level: 0.85, pan: -0.1, reverb: 0.12 },
   drumHigh: { level: 0.75, pan: 0.15, reverb: 0.12 },
 };
@@ -92,10 +99,10 @@ function ping(
   decay: number,
   when: number,
   type = 'sine',
+  attack = 0.004,
 ) {
   const osc = ctx.createOscillator();
   const env = ctx.createGain();
-  const attack = 0.004;
   osc.type = type;
   osc.frequency.setValueAtTime(frequency, when);
   env.gain.setValueAtTime(0, when);
@@ -119,6 +126,7 @@ function additive(
   when: number,
   partials: readonly Partial[],
   stretch = 1,
+  attack = 0.004,
 ) {
   const base = hz(note.pitch);
   for (const partial of partials) {
@@ -130,31 +138,39 @@ function additive(
       partial.decay * stretch,
       when,
       partial.type,
+      attack,
     );
   }
 }
 
 /**
- * Steel drum: the fundamental, the octave and the twelfth decay at
- * different speeds, plus a slightly detuned copy for the shimmer.
+ * Steel drum: the fundamental and the octave, a little of the twelfth,
+ * and a slightly detuned copy for the shimmer. The upper partials are kept
+ * low and short, and the bus low-pass rounds off the rest.
  */
 const PAN: readonly Partial[] = [
-  { ratio: 1, level: 0.36, decay: 0.42 },
-  { ratio: 1.004, level: 0.11, decay: 0.4 },
-  { ratio: 2, level: 0.17, decay: 0.22 },
-  { ratio: 3, level: 0.066, decay: 0.1 },
-  { ratio: 4.2, level: 0.02, decay: 0.04 },
+  { ratio: 1, level: 0.38, decay: 0.4 },
+  { ratio: 1.004, level: 0.1, decay: 0.38 },
+  { ratio: 2, level: 0.1, decay: 0.18 },
+  { ratio: 3, level: 0.022, decay: 0.07 },
 ];
-/** Marimba: a round sine with its bright fourth partial knocked in quickly. */
+/** Marimba: a round sine with a quiet, very short fourth partial for the knock. */
 const MARIMBA: readonly Partial[] = [
-  { ratio: 1, level: 0.19, decay: 0.26 },
-  { ratio: 4, level: 0.035, decay: 0.03 },
+  { ratio: 1, level: 0.24, decay: 0.26 },
+  { ratio: 4, level: 0.018, decay: 0.025 },
 ];
-/** Kalimba: a sine with a short metallic tine. */
+/** Kalimba: a soft sine with a faint octave. */
 const KALIMBA: readonly Partial[] = [
-  { ratio: 1, level: 0.15, decay: 0.34 },
-  { ratio: 5.4, level: 0.018, decay: 0.02 },
+  { ratio: 1, level: 0.26, decay: 0.3 },
+  { ratio: 2, level: 0.02, decay: 0.08 },
 ];
+/** Keys: warm and long, a sine with a little octave, under a low-pass. */
+const KEYS: readonly Partial[] = [
+  { ratio: 1, level: 0.12, decay: 0.8 },
+  { ratio: 2, level: 0.032, decay: 0.4 },
+];
+/** Softer attacks, in seconds, so the melodic voices never click or stab. */
+const SOFT_ATTACK = 0.009;
 
 function bassNote(
   ctx: AudioContextLike,
@@ -167,7 +183,7 @@ function bassNote(
   filter.frequency.setValueAtTime(650, when);
   filter.Q.setValueAtTime(0.7, when);
   const env = ctx.createGain();
-  const peak = 0.35 * note.velocity;
+  const peak = 0.46 * note.velocity;
   const end = when + Math.max(0.1, note.duration * 0.9);
   env.gain.setValueAtTime(0, when);
   env.gain.linearRampToValueAtTime(peak, when + 0.012);
@@ -208,11 +224,11 @@ function shaker(
   source.buffer = noise;
   const filter = ctx.createBiquadFilter();
   filter.type = 'highpass';
-  filter.frequency.setValueAtTime(6000, when);
+  filter.frequency.setValueAtTime(5000, when);
   filter.Q.setValueAtTime(0.7, when);
   const env = ctx.createGain();
   env.gain.setValueAtTime(0, when);
-  env.gain.linearRampToValueAtTime(0.11 * note.velocity, when + 0.008);
+  env.gain.linearRampToValueAtTime(0.14 * note.velocity, when + 0.008);
   env.gain.setTargetAtTime(0, when + 0.008, 0.028);
   source.connect(filter);
   filter.connect(env);
@@ -347,10 +363,18 @@ export function createMusicGraph(
     const input = ctx.createGain();
     input.gain.value = bus.level;
     let out: AudioNodeLike = input;
+    if (bus.lowpass) {
+      const tone = ctx.createBiquadFilter();
+      tone.type = 'lowpass';
+      tone.frequency.value = bus.lowpass;
+      tone.Q.value = 0.5;
+      out.connect(tone);
+      out = tone;
+    }
     if (ctx.createStereoPanner) {
       const panner = ctx.createStereoPanner();
       panner.pan.value = bus.pan;
-      input.connect(panner);
+      out.connect(panner);
       out = panner;
     }
     out.connect(fade);
@@ -372,13 +396,24 @@ export function createMusicGraph(
       switch (note.instrument) {
         case 'pan':
           // Longer notes ring a little longer.
-          additive(ctx, out, note, when, PAN, 0.8 + Math.min(note.duration, 1.2) * 0.5);
+          additive(
+            ctx,
+            out,
+            note,
+            when,
+            PAN,
+            0.8 + Math.min(note.duration, 1.2) * 0.5,
+            SOFT_ATTACK,
+          );
           break;
         case 'marimba':
           additive(ctx, out, note, when, MARIMBA);
           break;
         case 'kalimba':
-          additive(ctx, out, note, when, KALIMBA);
+          additive(ctx, out, note, when, KALIMBA, 1, SOFT_ATTACK);
+          break;
+        case 'keys':
+          additive(ctx, out, note, when, KEYS, 1, 0.015);
           break;
         case 'bass':
           bassNote(ctx, out, note, when);

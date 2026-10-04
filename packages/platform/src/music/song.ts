@@ -1,16 +1,19 @@
 /**
- * The background music, as plain data: an original, upbeat island loop
+ * The background music, as plain data: an original, groovy island loop
  * written for Climbing Monkey. Nothing here touches audio; arrange() turns
  * the song into a flat, timed list of notes that the Web Audio engine
  * (webMusic.ts) plays and the tests check.
  *
  * Time is counted in steps of one sixteenth note, 16 per 4/4 bar. Every
- * second sixteenth is played a touch late (a light swing).
+ * second sixteenth is played late, which gives the swing.
  *
- * The shape is a climb: a short drum and bass groove, the steel drum hook,
- * a lighter lift that builds with rising arpeggios and a drum roll, and a
- * bigger summit section with brighter chords and a countermelody. Its last
- * bar runs back into the groove, so the loop never stops.
+ * The energy comes from the rhythm section: a syncopated kick, a bass that
+ * sits in the pocket with ghost notes and octave pops, and off-beat marimba
+ * chops. The steel drum plays a short, repeated riff in the middle register.
+ * The form still builds: a groove, the hook, a half-time lift, and a summit
+ * that is bigger by fullness (warm keys chords, more percussion, a low
+ * answer phrase), never by going higher. Its last bar runs back into the
+ * groove, so the loop never stops.
  *
  * It lives in platform next to its only player, not in core: core is the
  * climbing domain, and this is a sound asset written as code.
@@ -21,7 +24,8 @@ export const STEPS_PER_BAR = 16;
 export type Instrument =
   | 'pan' // steel drum lead
   | 'marimba' // chords
-  | 'kalimba' // arpeggios and the countermelody
+  | 'kalimba' // sparse low arpeggios and answer phrases
+  | 'keys' // warm sustained chords in the summit
   | 'bass'
   | 'kick'
   | 'clap'
@@ -31,9 +35,10 @@ export type Instrument =
 
 /** Lowest and highest MIDI note each pitched instrument is written for. */
 export const RANGES: Readonly<Record<Instrument, readonly [number, number]>> = {
-  pan: [60, 91], // C4 to G6
+  pan: [62, 86], // D4 to D6
   marimba: [50, 79],
-  kalimba: [60, 96],
+  kalimba: [55, 79],
+  keys: [50, 79],
   bass: [28, 60],
   kick: [0, 0],
   clap: [0, 0],
@@ -42,10 +47,13 @@ export const RANGES: Readonly<Record<Instrument, readonly [number, number]>> = {
   drumHigh: [0, 0],
 };
 
-/** How the marimba or kalimba accompanies a section. */
-export type CompStyle = 'calypso' | 'skank' | 'arp' | 'pads';
-export type BassStyle = 'pulse' | 'drive' | 'half';
-export type DrumStyle = 'intro' | 'groove' | 'lift' | 'big';
+/** Highest note any melodic voice plays: D6. Nothing piercing above it. */
+export const CEILING = 86;
+
+/** How the marimba, kalimba or keys accompany a section. */
+export type CompStyle = 'funk' | 'arp' | 'pads' | 'keys';
+export type BassStyle = 'pulse' | 'pocket' | 'half';
+export type DrumStyle = 'intro' | 'pocket' | 'lift' | 'full';
 /** The last bar of a section: a tom roll, or a clap roll that builds. */
 export type FillStyle = 'toms' | 'build';
 
@@ -58,7 +66,7 @@ export type Section = Readonly<{
    * for a rest. Every bar adds up to 16 steps.
    */
   melody: readonly string[];
-  /** Optional second line on the kalimba, written the same way. */
+  /** Optional low answer phrases on the kalimba, written the same way. */
   counter?: readonly string[];
   comp: readonly CompStyle[];
   bass: BassStyle;
@@ -78,54 +86,54 @@ export type Song = Readonly<{
 }>;
 
 export const SONG: Song = {
-  title: 'Top Out',
-  bpm: 124,
-  swing: 0.54,
+  title: 'Jungle Pocket',
+  bpm: 122,
+  swing: 0.58,
   key: 'G major',
   form: ['Groove', 'Hook', 'Lift', 'Summit'],
   sections: [
     {
-      // Drums, bass and chords only; a run up into the hook at the end.
+      // Drums, bass and chops only; three notes lead into the hook.
       name: 'Groove',
       chords: ['G', 'C', 'G', 'D'],
-      melody: ['-:16', '-:16', '-:16', '-:8 D5:2 E5:2 F#5:2 A5:2'],
-      comp: ['calypso'],
+      melody: ['-:16', '-:16', '-:16', '-:10 D5:2 E5:2 F#5:2'],
+      comp: ['funk'],
       bass: 'pulse',
       drums: 'intro',
       fill: 'toms',
     },
     {
-      // Call and response, each answer a step higher than the call.
+      // One short riff, repeated, answered a step up on C and D.
       name: 'Hook',
-      chords: ['G', 'C', 'Em', 'D', 'G', 'C', 'Am D', 'G'],
+      chords: ['G', 'C', 'G', 'D', 'G', 'C', 'Am', 'D'],
       melody: [
-        'D5:3 G5:3 B5:2 A5:2 G5:2 D5:4',
-        'E5:3 G5:3 C6:2 B5:2 G5:2 E5:4',
-        'B4:2 D5:2 E5:2 G5:2 B5:3 A5:3 G5:2',
-        'A5:3 F#5:3 D5:4 -:2 D5:1 E5:1 F#5:2',
-        'G5:3 B5:3 D6:2 B5:2 G5:2 D5:4',
-        'E5:2 G5:2 C6:3 B5:3 A5:2 G5:4',
-        'A5:2 C6:2 B5:2 A5:2 F#5:2 A5:2 D6:4',
-        'G5:3 D5:3 G5:2 -:8',
+        '-:2 B4:1 -:1 D5:2 B4:2 -:2 A4:1 B4:1 -:2 G4:2',
+        '-:2 C5:1 -:1 E5:2 C5:2 -:2 B4:1 C5:1 -:4',
+        '-:2 B4:1 -:1 D5:2 B4:2 -:2 A4:1 B4:1 -:2 G4:2',
+        '-:2 A4:1 -:1 D5:2 F#5:2 -:2 E5:1 D5:1 -:4',
+        '-:2 B4:1 -:1 D5:2 B4:2 -:2 A4:1 B4:1 -:2 G4:2',
+        '-:2 C5:1 -:1 E5:2 C5:2 -:2 B4:1 C5:1 -:4',
+        '-:2 C5:1 -:1 E5:2 A5:2 -:2 G5:1 E5:1 -:4',
+        '-:2 D5:2 D5:2 -:2 D5:1 E5:1 -:2 F#5:2 -:2',
       ],
-      comp: ['calypso'],
-      bass: 'drive',
-      drums: 'groove',
+      comp: ['funk'],
+      bass: 'pocket',
+      drums: 'pocket',
       fill: 'toms',
     },
     {
-      // Half-time breather that climbs: arpeggios up, then a run and a roll.
+      // Half time: the lead calls, the bar answers; repeated notes build.
       name: 'Lift',
       chords: ['Em', 'C', 'G', 'D', 'Em', 'C', 'Am', 'D'],
       melody: [
-        'B5:6 G5:2 E5:4 -:4',
-        '-:4 E5:2 G5:2 C6:6 -:2',
-        'D6:6 B5:2 G5:4 -:4',
-        '-:4 F#5:2 A5:2 D6:6 -:2',
-        'E5:2 G5:2 B5:2 E5:2 G5:2 B5:2 E6:4',
-        'C5:2 E5:2 G5:2 C5:2 E5:2 G5:2 C6:4',
-        'A4:2 C5:2 E5:2 A5:2 C6:2 E6:2 A5:4',
-        'D5:1 E5:1 F#5:1 G5:1 A5:1 B5:1 C6:1 D6:1 -:8',
+        'B4:3 -:1 B4:2 G4:2 -:8',
+        '-:8 C5:3 -:1 C5:2 E5:2',
+        'D5:3 -:1 D5:2 B4:2 -:8',
+        '-:8 A4:3 -:1 A4:2 D5:2',
+        'E5:3 -:1 E5:2 B4:2 -:8',
+        '-:8 E5:3 -:1 E5:2 G5:2',
+        'A5:3 -:1 G5:2 E5:2 -:4 C5:2 E5:2',
+        'D5:2 -:2 D5:2 -:2 D5:1 D5:1 E5:2 F#5:2 -:2',
       ],
       comp: ['arp', 'pads'],
       bass: 'half',
@@ -133,32 +141,33 @@ export const SONG: Song = {
       fill: 'build',
     },
     {
-      // The hook again, higher, with brighter chords and a second line.
+      // The same riff over fuller seventh chords, more percussion and a
+      // low kalimba answer: bigger, not higher.
       name: 'Summit',
-      chords: ['G', 'Cmaj7', 'Em7', 'D', 'G', 'Cadd9', 'Am7 D', 'G'],
+      chords: ['Gmaj7', 'Cmaj7', 'Gmaj7', 'D7', 'Em7', 'Cmaj7', 'Am7', 'D7'],
       melody: [
-        'D5:3 G5:3 B5:2 A5:2 G5:2 B5:2 D6:2',
-        'E5:3 G5:3 C6:2 B5:2 G5:2 E6:4',
-        'B4:2 D5:2 E5:2 G5:2 B5:3 D6:3 E6:2',
-        'F#6:3 E6:3 D6:4 -:2 D5:1 E5:1 F#5:2',
-        'G5:3 B5:3 D6:2 G6:2 D6:2 B5:4',
-        'E5:2 G5:2 C6:3 D6:3 E6:2 G6:4',
-        'A5:2 C6:2 E6:2 C6:2 D6:2 F#6:2 A5:4',
-        'G6:3 D6:3 B5:2 G5:2 D5:1 G5:1 B5:1 D6:1 -:2',
+        '-:2 B4:1 -:1 D5:2 B4:2 -:2 A4:1 B4:1 -:2 G4:2',
+        '-:2 C5:1 -:1 E5:2 C5:2 -:2 B4:1 C5:1 -:4',
+        '-:2 B4:1 -:1 D5:2 B4:2 -:2 A4:1 B4:1 -:2 G4:2',
+        '-:2 A4:1 -:1 D5:2 F#5:2 -:2 A5:1 F#5:1 -:4',
+        '-:2 B4:1 -:1 D5:2 B4:2 -:2 A4:1 B4:1 -:2 G4:2',
+        '-:2 C5:1 -:1 E5:2 C5:2 -:2 B4:1 C5:1 -:4',
+        '-:2 C5:1 -:1 E5:2 A5:2 -:2 B5:1 A5:1 -:4',
+        '-:2 D5:2 D5:2 -:2 D5:1 E5:1 -:2 F#5:2 -:2',
       ],
       counter: [
-        'B4:4 D5:4 G5:4 D5:4',
-        'C5:4 E5:4 G5:4 E5:4',
-        'B4:4 E5:4 G5:4 E5:4',
-        'A4:4 D5:4 F#5:4 A5:4',
-        'B4:4 D5:4 G5:4 B5:4',
-        'C5:4 E5:4 G5:4 D5:4',
-        'C5:4 E5:4 D5:4 F#5:4',
-        'G5:4 D5:4 B4:4 G4:4',
+        '-:16',
+        '-:12 G4:1 A4:1 B4:2',
+        '-:16',
+        '-:12 F#4:1 G4:1 A4:2',
+        '-:16',
+        '-:12 G4:1 A4:1 B4:2',
+        '-:16',
+        '-:16',
       ],
-      comp: ['calypso', 'skank'],
-      bass: 'drive',
-      drums: 'big',
+      comp: ['funk', 'keys'],
+      bass: 'pocket',
+      drums: 'full',
       fill: 'toms',
     },
   ],
@@ -258,6 +267,23 @@ export function voicing(chord: Chord): number[] {
     .sort((a, b) => a - b);
 }
 
+/**
+ * Every chord tone, root included, between G3 and F#4: the warm, full
+ * voicing the keys hold under the summit.
+ */
+export function keysVoicing(chord: Chord): number[] {
+  return chord.intervals
+    .map(interval => {
+      const pc = (chord.root + interval) % 12;
+      let note = 48 + pc;
+      while (note < 55) {
+        note += 12;
+      }
+      return note;
+    })
+    .sort((a, b) => a - b);
+}
+
 /** Bass root in the octave from C2 up to B2. */
 const bassRoot = (chord: Chord) => 36 + chord.root;
 
@@ -306,45 +332,54 @@ type Hit = Readonly<{ at: number; length: number; velocity: number }>;
 const hits = (list: readonly (readonly number[])[]): Hit[] =>
   list.map(([at, length, velocity]) => ({ at, length, velocity }));
 
-/** Marimba stabs in the 3 + 3 + 2 calypso rhythm, twice a bar. */
-const CALYPSO = hits([
-  [0, 3, 0.8],
-  [3, 3, 0.55],
-  [6, 2, 0.65],
-  [8, 3, 0.75],
-  [11, 3, 0.55],
-  [14, 2, 0.65],
-]);
-/** Short off-beat chops in the gaps of the calypso stabs. */
-const SKANK = hits([
-  [2, 1, 0.4],
-  [10, 1, 0.4],
+/**
+ * Funky marimba chops on the off-beats, with quiet ghost chops a sixteenth
+ * later. Nothing on the beat: that belongs to the kick and the bass.
+ */
+const FUNK = hits([
+  [2, 1, 0.7],
+  [3, 1, 0.3],
+  [6, 1, 0.6],
+  [10, 1, 0.7],
+  [11, 1, 0.3],
+  [14, 1, 0.55],
 ]);
 const PADS = hits([
   [0, 8, 0.5],
   [8, 8, 0.45],
 ]);
-/** Kalimba eighths up and down the chord, an octave above the marimba. */
-const ARP_ORDER = [0, 1, 2, 3, 2, 1, 2, 3];
+/** Keys: a long chord on beat 1 and a push on the "and" of beat 3. */
+const KEYS = hits([
+  [0, 10, 0.6],
+  [10, 6, 0.45],
+]);
+/** Sparse kalimba on the off-beat eighths, in the marimba's own register. */
+const ARP_STEPS = [2, 6, 10, 14];
+const ARP_ORDER = [0, 1, 2, 1];
 
 function comp(style: CompStyle, bar: string, barStart: number): NoteEvent[] {
   const chords = chordsOfBar(bar);
   if (style === 'arp') {
-    return ARP_ORDER.map((index, i) => {
-      const step = i * 2;
-      const voiced = voicing(chords[step]);
-      const tones = [...voiced, voiced[0] + 12];
-      return {
-        instrument: 'kalimba' as const,
-        step: barStart + step,
-        length: 2,
-        pitch: tones[index] + 12,
-        velocity: i % 2 ? 0.4 : 0.5,
-      };
-    });
+    return ARP_STEPS.map((step, i) => ({
+      instrument: 'kalimba' as const,
+      step: barStart + step,
+      length: 2,
+      pitch: voicing(chords[step])[ARP_ORDER[i]],
+      velocity: 0.5,
+    }));
   }
-  const pattern =
-    style === 'calypso' ? CALYPSO : style === 'skank' ? SKANK : PADS;
+  if (style === 'keys') {
+    return KEYS.flatMap(hit =>
+      keysVoicing(chords[hit.at]).map(pitch => ({
+        instrument: 'keys' as const,
+        step: barStart + hit.at,
+        length: hit.length,
+        pitch,
+        velocity: hit.velocity,
+      })),
+    );
+  }
+  const pattern = style === 'funk' ? FUNK : PADS;
   return pattern.flatMap(hit =>
     voicing(chords[hit.at]).map(pitch => ({
       instrument: 'marimba' as const,
@@ -358,8 +393,8 @@ function comp(style: CompStyle, bar: string, barStart: number): NoteEvent[] {
 
 /**
  * Bass notes as [step in chord, interval above the root, length, velocity],
- * for a chord that lasts a whole bar (16) or half a bar (8). The roots land
- * with the kick; octave jumps fill the gaps in between.
+ * for a chord that lasts a whole bar (16) or half a bar (8). Roots land with
+ * the kick; quiet ghost notes and octave pops fill the pocket in between.
  */
 const BASS: Readonly<
   Record<BassStyle, Readonly<Record<number, readonly (readonly number[])[]>>>
@@ -367,46 +402,45 @@ const BASS: Readonly<
   pulse: {
     16: [
       [0, 0, 3, 0.95],
-      [3, 0, 1, 0.6],
-      [6, 0, 2, 0.75],
-      [8, 0, 3, 0.9],
-      [11, 0, 1, 0.6],
-      [14, 7, 2, 0.75],
+      [7, 0, 1, 0.7],
+      [8, 0, 2, 0.85],
+      [10, 7, 2, 0.7],
+      [14, 12, 1, 0.55],
     ],
     8: [
       [0, 0, 3, 0.95],
-      [3, 0, 1, 0.6],
-      [6, 7, 2, 0.75],
+      [6, 7, 2, 0.7],
     ],
   },
-  drive: {
+  pocket: {
     16: [
-      [0, 0, 2, 0.95],
-      [3, 12, 1, 0.65],
-      [4, 0, 2, 0.8],
-      [7, 7, 1, 0.65],
+      [0, 0, 3, 1],
+      [3, 0, 1, 0.3], // ghost
+      [5, 12, 1, 0.65], // octave pop
+      [7, 0, 1, 0.8],
       [8, 0, 2, 0.9],
-      [11, 12, 1, 0.65],
-      [12, 7, 2, 0.8],
-      [14, 12, 2, 0.7],
+      [10, 7, 2, 0.75],
+      [13, 0, 1, 0.3], // ghost
+      [14, 12, 1, 0.6], // octave pop
+      [15, 7, 1, 0.5],
     ],
     8: [
-      [0, 0, 2, 0.95],
-      [3, 12, 1, 0.65],
-      [4, 0, 2, 0.8],
-      [6, 7, 2, 0.7],
+      [0, 0, 3, 1],
+      [3, 0, 1, 0.3],
+      [5, 12, 1, 0.6],
+      [6, 7, 2, 0.75],
     ],
   },
   half: {
     16: [
       [0, 0, 6, 0.9],
-      [6, 0, 2, 0.6],
-      [8, 7, 6, 0.8],
-      [14, 12, 2, 0.65],
+      [7, 0, 1, 0.5],
+      [8, 7, 4, 0.75],
+      [14, 12, 2, 0.55],
     ],
     8: [
-      [0, 0, 6, 0.9],
-      [6, 7, 2, 0.65],
+      [0, 0, 5, 0.9],
+      [6, 7, 2, 0.6],
     ],
   },
 };
@@ -425,7 +459,7 @@ function bass(style: BassStyle, bar: string, barStart: number): NoteEvent[] {
 
 type DrumHit = readonly [Instrument, number, number];
 
-/** [instrument, steps, velocity] for every step listed. */
+/** [instrument, step, velocity] for every step listed. */
 const at = (
   instrument: Instrument,
   steps: readonly number[],
@@ -434,68 +468,71 @@ const at = (
 
 /** Sixteenth shaker with accents on the beat; `eighths` drops the in-betweens. */
 function shaker(level: number, eighths = false): DrumHit[] {
-  const accents = [1, 0.45, 0.75, 0.5];
+  const accents = [1, 0.4, 0.7, 0.45];
   return Array.from({ length: STEPS_PER_BAR }, (_, step) => step)
     .filter(step => !eighths || step % 2 === 0)
     .map(step => ['shaker', step, level * accents[step % 4]] as const);
 }
 
-const FOUR = [0, 4, 8, 12];
-
 const DRUMS: Readonly<Record<DrumStyle, readonly DrumHit[]>> = {
   intro: [
-    ...at('kick', FOUR, 0.85),
-    ...at('clap', [12], 0.55),
-    ...shaker(0.6, true),
-    ...at('drumHigh', [3, 11], 0.4),
+    ...at('kick', [0, 8], 0.9),
+    ...at('kick', [10], 0.6),
+    ...at('clap', [4, 12], 0.55),
+    ...shaker(0.55, true),
+    ...at('drumHigh', [3, 11], 0.35),
   ],
-  groove: [
-    ...at('kick', FOUR, 0.9),
+  // Kick on 1 and 3 with a push into 3 and after it; claps on 2 and 4
+  // with a ghost before the next bar.
+  pocket: [
+    ...at('kick', [0, 8], 0.95),
+    ...at('kick', [7, 10], 0.55),
     ...at('clap', [4, 12], 0.7),
-    ...shaker(0.65),
-    ...at('drumHigh', [3, 10, 14], 0.45),
-    ...at('drumLow', [6], 0.5),
+    ...at('clap', [15], 0.22),
+    ...shaker(0.6),
+    ...at('drumHigh', [3, 11], 0.35),
+    ...at('drumLow', [6, 14], 0.4),
   ],
   // Half time: the clap moves to beat 3 and the kick thins out.
   lift: [
     ...at('kick', [0, 10], 0.8),
     ...at('clap', [8], 0.6),
-    ...shaker(0.5),
-    ...at('drumLow', [3, 11], 0.45),
-    ...at('drumHigh', [6, 14], 0.4),
+    ...shaker(0.45),
+    ...at('drumLow', [3, 11], 0.4),
+    ...at('drumHigh', [6, 14], 0.35),
   ],
-  big: [
-    ...at('kick', FOUR, 0.95),
-    ...at('kick', [10], 0.5),
-    ...at('clap', [4, 12], 0.75),
-    ...at('clap', [15], 0.3),
-    ...shaker(0.7),
-    ...at('drumHigh', [3, 6, 10, 13], 0.45),
-    ...at('drumLow', [7, 14], 0.5),
+  // The pocket with more of everything: an extra kick push and congas.
+  full: [
+    ...at('kick', [0, 8], 0.95),
+    ...at('kick', [3, 7, 10], 0.5),
+    ...at('clap', [4, 12], 0.72),
+    ...at('clap', [15], 0.25),
+    ...shaker(0.65),
+    ...at('drumHigh', [3, 9, 11], 0.38),
+    ...at('drumLow', [6, 14], 0.45),
   ],
 };
 
 const FILLS: Readonly<Record<FillStyle, readonly DrumHit[]>> = {
   // Beats 1 and 2 as usual, then congas and toms rolling down.
   toms: [
-    ...at('kick', [0, 4, 8], 0.9),
+    ...at('kick', [0, 8], 0.9),
     ...at('clap', [4], 0.7),
-    ...shaker(0.6).filter(([, step]) => step < 8),
-    ['drumHigh', 8, 0.45],
-    ['drumHigh', 9, 0.4],
-    ['drumHigh', 10, 0.5],
-    ['drumHigh', 11, 0.45],
-    ['drumLow', 12, 0.6],
-    ['drumLow', 13, 0.65],
-    ['drumLow', 14, 0.75],
-    ['drumLow', 15, 0.8],
+    ...shaker(0.55).filter(([, step]) => step < 8),
+    ['drumHigh', 8, 0.4],
+    ['drumHigh', 10, 0.45],
+    ['drumHigh', 11, 0.4],
+    ['drumLow', 12, 0.55],
+    ['drumLow', 13, 0.6],
+    ['drumLow', 14, 0.7],
+    ['drumLow', 15, 0.75],
   ],
   // Four on the floor and a clap roll that gets louder into the summit.
   build: [
-    ...at('kick', FOUR, 0.85),
-    ...shaker(0.6),
+    ...at('kick', [0, 4, 8, 12], 0.85),
+    ...shaker(0.55),
     ...[4, 8, 10, 12, 13, 14, 15].map(
-      (step, i): DrumHit => ['clap', step, 0.35 + i * 0.07],
+      (step, i): DrumHit => ['clap', step, 0.3 + i * 0.06],
     ),
   ],
 };
@@ -531,13 +568,29 @@ function line(
         step: barStart + step,
         length: token.length,
         pitch: token.pitch,
-        // Notes on the beat a little stronger than the ones in between.
-        velocity: level * (step % 4 === 0 ? 1 : step % 2 === 0 ? 0.88 : 0.78),
+        velocity: level * (step % 4 === 0 ? 1 : step % 2 === 0 ? 0.9 : 0.8),
       });
     }
     step += token.length;
   }
   return notes;
+}
+
+/**
+ * Small, fixed velocity changes so repeated hits don't sound like a
+ * machine. Picked from the step and the instrument, so every render and
+ * every pass of the loop is the same.
+ */
+const NUDGES = [0, -0.05, 0.03, -0.03, 0.05, -0.06, 0.02];
+const INSTRUMENT_ORDER = Object.keys(RANGES);
+
+export function humanise(note: NoteEvent): NoteEvent {
+  const salt = INSTRUMENT_ORDER.indexOf(note.instrument) * 5;
+  const nudge = NUDGES[(note.step * 3 + salt) % NUDGES.length];
+  return {
+    ...note,
+    velocity: Math.min(1, Math.max(0.05, note.velocity * (1 + nudge))),
+  };
 }
 
 // Time ----------------------------------------------------------------------
@@ -567,9 +620,9 @@ export function arrange(song: Song = SONG): Arrangement {
     section.chords.forEach((chords, i) => {
       const start = bar * STEPS_PER_BAR;
       const last = i === section.chords.length - 1;
-      events.push(...line('pan', section.melody[i], start, 0.95));
+      events.push(...line('pan', section.melody[i], start, 0.9));
       if (section.counter) {
-        events.push(...line('kalimba', section.counter[i], start, 0.55));
+        events.push(...line('kalimba', section.counter[i], start, 0.6));
       }
       for (const style of section.comp) {
         events.push(...comp(style, chords, start));
@@ -582,6 +635,7 @@ export function arrange(song: Song = SONG): Arrangement {
   const totalSteps = bar * STEPS_PER_BAR;
   const time = (step: number) => stepTime(step, song.bpm, song.swing);
   const notes = events
+    .map(humanise)
     .map(event => ({
       ...event,
       time: time(event.step),
