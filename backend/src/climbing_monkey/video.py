@@ -8,7 +8,7 @@ from time import monotonic
 
 from PIL import Image, ImageOps
 
-from .pose import _invalid, _mediapipe_image, analyze_landmarks
+from .pose import _invalid, _mediapipe_image, analyze_landmarks, analyze_shoulder_landmarks
 
 SAMPLE_INTERVAL_MS = 200
 MAX_VIDEO_WIDTH = 1280
@@ -35,14 +35,32 @@ def _video_detector(model_path):
     return mp.tasks.vision.PoseLandmarker.create_from_options(options)
 
 
-def _result(detected, size):
-    if not detected.pose_landmarks:
-        return _invalid("No pose was detected in the capture.")
-    landmarks = [
-        {"x": point.x, "y": point.y, "visibility": point.visibility}
-        for point in detected.pose_landmarks[0]
-    ]
-    return analyze_landmarks(landmarks, image_size=size)
+def _result(detected, size, metric="leg_spread"):
+    landmarks = (
+        [
+            {"x": point.x, "y": point.y, "visibility": point.visibility}
+            for point in detected.pose_landmarks[0]
+        ]
+        if detected.pose_landmarks
+        else []
+    )
+    if not landmarks:
+        result = _invalid("No pose was detected in the capture.", metric=metric)
+    else:
+        analyze = analyze_shoulder_landmarks if metric == "shoulder_reach" else analyze_landmarks
+        result = analyze(landmarks, image_size=size)
+    if any(
+        type(value) not in (int, float) or not math.isfinite(value)
+        for point in landmarks
+        for value in point.values()
+    ):
+        landmarks = []
+    return {
+        **result,
+        "landmarks": landmarks,
+        "image_width": size[0],
+        "image_height": size[1],
+    }
 
 
 def _camera_rgb(data):
@@ -98,7 +116,7 @@ class MediaPipeVideoAnalyzer:
         self.image_factory = image_factory or _mediapipe_image
 
     @contextmanager
-    def session(self):
+    def session(self, metric="leg_spread"):
         if not Path(self.model_path).is_file():
             raise FileNotFoundError("The configured pose model is unavailable.")
         with ExitStack() as stack:
@@ -106,7 +124,7 @@ class MediaPipeVideoAnalyzer:
                 detector = stack.enter_context(self.detector_factory(self.model_path))
             except (ImportError, ValueError) as exc:
                 raise RuntimeError("The pose runtime or model could not run.") from exc
-            yield VideoSession(detector, self.image_factory)
+            yield VideoSession(detector, self.image_factory, metric=metric)
 
     def analyze(self, path):
         try:
@@ -166,7 +184,8 @@ class MediaPipeVideoAnalyzer:
 
 
 class VideoSession:
-    def __init__(self, detector, image_factory):
+    def __init__(self, detector, image_factory, *, metric="leg_spread"):
+        self.metric = metric
         self.detector = detector
         self.image_factory = image_factory
         self.last_timestamp = -1
@@ -197,4 +216,4 @@ class VideoSession:
             detected = self.detector.detect_for_video(self.image_factory(rgb), timestamp_ms)
         except (ImportError, ValueError) as exc:
             raise RuntimeError("The pose runtime or model could not run.") from exc
-        return _result(detected, rgb.size)
+        return _result(detected, rgb.size, self.metric)

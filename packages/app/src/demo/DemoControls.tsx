@@ -8,11 +8,12 @@ import {
   Panel,
   Screen,
   Tag,
+  Breadcrumbs,
 } from '@hackyeah/ui';
 import { useDemo } from './DemoProvider';
 import { CONNECTION_IDS, CONNECTIONS } from '@hackyeah/core';
 
-export function DemoButton() {
+export function DemoButton({ parent = 'Data' }: { parent?: string }) {
   const demo = useDemo();
   if (!demo.storage) {
     return null;
@@ -22,7 +23,7 @@ export function DemoButton() {
       title="Demo controls"
       variant="secondary"
       small
-      onPress={demo.open}
+      onPress={() => demo.open(parent)}
     />
   );
 }
@@ -43,6 +44,12 @@ export function DemoControls() {
             alignSelf: 'center',
           }}
         >
+          <Breadcrumbs
+            crumbs={[
+              { label: demo.parent, onPress: demo.close },
+              { label: 'Demo controls' },
+            ]}
+          />
           <Panel
             title="Demo controls"
             badge={
@@ -60,14 +67,13 @@ export function DemoControls() {
               tone="agree"
               onPress={() => demo.update({ enabled: !demo.settings.enabled })}
             />
-            <Button title="Close demo controls" small onPress={demo.close} />
           </Panel>
           <Columns>
             <Column>
               <Panel title="Profile">
                 <CheckRow
-              name="Sample profile"
-              tone="agree"
+                  name="Sample profile"
+                  tone="agree"
                   detail="Example climbs, hand flags, tests and 40 XP."
                   checked={demo.settings.profile}
                   onPress={() =>
@@ -89,7 +95,7 @@ export function DemoControls() {
                 />
                 <CheckRow
                   name="Analysis results"
-                  detail="Simulate photo, clip and live pose results."
+                  detail="Simulate live leg-spread and shoulder measurements."
                   tone="agree"
                   checked={demo.settings.analysis}
                   onPress={() =>
@@ -110,23 +116,14 @@ export function DemoControls() {
                   configured backend. They use a separate demo server identity.
                 </AppText>
               </Panel>
-              <Panel title="Tests">
+              <Panel title="Assessment examples">
                 <CheckRow
-                  name="Home-test results"
-                  detail="Offer example results without doing the exercises."
+                  name="Manual assessment examples"
+                  detail="Offer example home-test and instrument-force results."
                   tone="agree"
                   checked={demo.settings.testResults}
                   onPress={() =>
                     demo.update({ testResults: !demo.settings.testResults })
-                  }
-                />
-                <CheckRow
-                  name="Unavailable tests"
-                  detail="Show simulated previews for tests that need hardware or unfinished features."
-                  tone="agree"
-                  checked={demo.settings.previews}
-                  onPress={() =>
-                    demo.update({ previews: !demo.settings.previews })
                   }
                 />
               </Panel>

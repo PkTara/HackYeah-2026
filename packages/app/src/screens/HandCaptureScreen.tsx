@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { FINGERS, type Finger, type Side } from '@hackyeah/core';
 import {
@@ -10,7 +10,6 @@ import {
 import {
   AppText,
   Button,
-  CheckRow,
   Chip,
   Divider,
   PX,
@@ -37,6 +36,7 @@ import { useNavigation } from '../navigation/Navigator';
 import type { RouteName } from '../navigation/routes';
 import { useGame } from '../state/GameProvider';
 import { useDemo } from '../demo/DemoProvider';
+import { usePrivacy } from '../privacy/PrivacyProvider';
 
 export const HAND_CONSENT =
   'I consent to uploading and retaining this hand photo and journal entry.';
@@ -84,7 +84,7 @@ export function HandCaptureScreen() {
 function HandCapture({ media }: { media: MediaClient }) {
   const demo = useDemo();
   const simulated = demo.settings.enabled && demo.settings.handPhotos;
-  const { params } = useNavigation<RouteName>();
+  const { params, navigate } = useNavigation<RouteName>();
   const { state, refresh } = useGame();
   const theme = useTheme();
   const c = useCapture('hand');
@@ -99,14 +99,20 @@ function HandCapture({ media }: { media: MediaClient }) {
   const [view, setView] = useState<'palm' | 'back' | null>(null);
   const [pain, setPain] = useState<number | null | undefined>(undefined);
   const [note, setNote] = useState('');
-  const [consent, setConsent] = useState(false);
+  const consent = usePrivacy().choices.handPhotos;
+  const cancel = useRef(c.cancel);
+  cancel.current = c.cancel;
   const [notice, setNotice] = useState('');
 
-  // Consent is for one photo: a new one asks again.
+  // Retention permission belongs to setup/settings; captures still get reviewed.
   useEffect(() => {
-    setConsent(false);
     setNotice('');
   }, [c.capture]);
+  useEffect(() => {
+    if (!consent) {
+      cancel.current();
+    }
+  }, [consent]);
 
   const finger = fingerOf(region);
   const flag =
@@ -256,17 +262,20 @@ function HandCapture({ media }: { media: MediaClient }) {
             The photo stays there, private to your profile, until you delete
             your profile.
           </ServerNote>
-          <CheckRow
-            name="Upload and keep"
-            detail={
-              simulated
-                ? 'I agree to keep this entry in the demo journal. Photo storage is simulated.'
-                : HAND_CONSENT
-            }
-            tone="agree"
-            checked={consent}
-            onPress={() => setConsent(!consent)}
-          />
+          <AppText variant="caption">
+            {consent
+              ? 'Private hand-photo permission is enabled in Settings. Saving keeps this entry in your journal.'
+              : 'Enable Private hand photos in Settings to save this entry.'}
+          </AppText>
+          {!consent ? (
+            <Button
+              title="Settings"
+              variant="secondary"
+              onPress={() =>
+                navigate('Settings', { from: 'HandCapture', ...params })
+              }
+            />
+          ) : null}
           <Divider />
           <Button
             title="Save to journal"

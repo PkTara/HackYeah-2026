@@ -241,3 +241,114 @@ test('a frame bigger than the server allows stops the session', async () => {
   expect(release).toHaveBeenCalledTimes(1);
   expect(state.closed).toBe(true);
 });
+
+test('requests shoulder metric and preserves timing and overlay metadata', async () => {
+  const { state, transport } = socket();
+  const onResult = jest.fn();
+  const session = openLivePose({
+    url: 'ws://backend.test',
+    token: 'secret',
+    consent: true,
+    metric: 'shoulder_reach',
+    camera: {
+      snapshot: async () => ({
+        kind: 'image',
+        uri: 'frame',
+        filename: 'frame.jpg',
+        mimeType: 'image/jpeg',
+        bytes: JPEG,
+      }),
+    },
+    socketFactory: () => transport,
+    schedule: () => () => {},
+    now: () => 10,
+    onResult,
+    onError: jest.fn(),
+  });
+  transport.onopen!();
+  expect(JSON.parse(state.messages[0] as string).metric).toBe('shoulder_reach');
+  transport.onmessage!({ data: READY });
+  await flush();
+  const result = {
+    metric: 'shoulder_reach',
+    timestamp_ms: 0,
+    landmarks: [{ x: 0.2, y: 0.3, visibility: 1 }],
+    image_width: 640,
+    image_height: 480,
+    left_value: 170,
+    right_value: 175,
+  };
+  transport.onmessage!({ data: JSON.stringify({ type: 'result', ...result }) });
+  expect(onResult).toHaveBeenCalledWith(result);
+  session.stop();
+});
+
+test('stopping from the result callback schedules no further frame', async () => {
+  const { transport } = socket();
+  const schedule = jest.fn((_callback: () => void, _delay: number) => () => {});
+  const session = openLivePose({
+    url: 'ws://backend.test',
+    token: 'secret',
+    consent: true,
+    camera: {
+      snapshot: async () => ({
+        kind: 'image',
+        uri: 'frame',
+        filename: 'f.jpg',
+        mimeType: 'image/jpeg',
+        bytes: JPEG,
+      }),
+    },
+    socketFactory: () => transport,
+    now: () => 10,
+    schedule,
+    onResult: () => session.stop(),
+    onError: jest.fn(),
+  });
+  transport.onopen!();
+  transport.onmessage!({ data: READY });
+  await flush();
+  transport.onmessage!({
+    data: JSON.stringify({ type: 'result', timestamp_ms: 0, value: 90 }),
+  });
+  expect(schedule.mock.calls.some(call => call[1] === 500)).toBe(false);
+});
+
+test('stopping releases a pending snapshot without sending its header or bytes', async () => {
+  const { state, transport } = socket();
+  let resolve!: (capture: import('@hackyeah/platform').MediaCapture) => void;
+  const release = jest.fn();
+  const session = openLivePose({
+    url: 'ws://backend.test',
+    token: 'secret',
+    consent: true,
+    camera: {
+      snapshot: () =>
+        new Promise(value => {
+          resolve = value;
+        }),
+    },
+    socketFactory: () => transport,
+    schedule: () => () => {},
+    onResult: jest.fn(),
+    onError: jest.fn(),
+  });
+  transport.onopen!();
+  transport.onmessage!({ data: READY });
+  session.stop();
+  resolve({
+    kind: 'image',
+    uri: 'late',
+    mimeType: 'image/jpeg',
+    filename: 'f.jpg',
+    bytes: JPEG,
+    release,
+  });
+  await flush();
+  expect(
+    state.messages.map(message =>
+      typeof message === 'string' ? JSON.parse(message).type : 'bytes',
+    ),
+  ).toEqual(['start', 'stop']);
+  expect(release).toHaveBeenCalledTimes(1);
+});

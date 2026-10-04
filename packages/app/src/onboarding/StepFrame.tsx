@@ -7,10 +7,19 @@ import {
   PX,
   PixelText,
   Screen,
+  Breadcrumbs,
   useLayout,
   useTheme,
 } from '@hackyeah/ui';
-import { CHAPTERS, PERCHES, chapterOf, perchOf, type StepId } from './flow';
+import {
+  CHAPTERS,
+  PERCHES,
+  chapterOf,
+  perchOf,
+  consentApp,
+  type StepId,
+} from './flow';
+import { BASELINE_TESTS, CONNECTIONS } from '@hackyeah/core';
 import { DemoButton } from '../demo/DemoControls';
 
 /** Width of the onboarding column on wide screens. */
@@ -38,6 +47,9 @@ type Props = {
   skip?: FooterAction;
   next?: FooterAction;
   children: ReactNode;
+  onStart?: () => void;
+  onApps?: () => void;
+  onTests?: () => void;
 };
 
 /**
@@ -53,11 +65,31 @@ export function StepFrame({
   skip,
   next,
   children,
+  onStart,
+  onApps,
+  onTests,
 }: Props) {
   const theme = useTheme();
   const { width } = useWindowDimensions();
   const layout = useLayout();
   const column = Math.min(COLUMN_MAX, width - layout.gutter * 2);
+  const app = consentApp(step);
+  const test = BASELINE_TESTS.find(t => t.id === step);
+  const labels: Partial<Record<StepId, string>> = {
+    places: 'Where you climb',
+    experience: 'Experience',
+    grade: 'Usual grade',
+    goal: 'Your goal',
+    body: 'Body & reach',
+    apps: 'Connected apps',
+    tests: 'Home tests',
+    done: 'Summary',
+  };
+  const current = app
+    ? CONNECTIONS[app].name
+    : test
+    ? test.name
+    : labels[step] ?? 'Setup';
   const footer =
     back || skip || next ? (
       <Footer
@@ -90,8 +122,21 @@ export function StepFrame({
       <View
         style={[styles.column, { maxWidth: column, gap: theme.spacing.lg }]}
       >
+        {step !== 'welcome' ? (
+          <Breadcrumbs
+            crumbs={[
+              { label: 'Setup', onPress: onStart ?? back },
+              ...(app
+                ? [{ label: 'Connected apps', onPress: onApps ?? back }]
+                : test
+                ? [{ label: 'Home tests', onPress: onTests ?? back }]
+                : []),
+              { label: current },
+            ]}
+          />
+        ) : null}
         {children}
-        <DemoButton />
+        <DemoButton parent="Setup" />
       </View>
     </Screen>
   );

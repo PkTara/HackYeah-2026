@@ -81,7 +81,9 @@ export function socket() {
 
 /**
  * The fixture. `answer` decides each server answer by path; the default
- * analyses any photo as 92 degrees and saves everything else.
+ * analyses any compatibility photo as 92 degrees and saves everything else.
+ * Saved camera-analysis and hand-photo permissions are explicitly seeded true
+ * by default; use privacy:false to exercise withheld permission.
  */
 export function setup(
   options: {
@@ -90,6 +92,8 @@ export function setup(
     state?: GameState;
     live?: LiveSocket;
     media?: false;
+    /** Explicitly seed saved permissions; false leaves both withheld. */
+    privacy?: false | { cameraAnalysis: boolean; handPhotos: boolean };
     /** A preview that reports this instead of starting. */
     denied?: string;
   } = {},
@@ -127,6 +131,14 @@ export function setup(
 
   const storage = createMemoryStore();
   storage.setItem(API_TOKEN_KEY, 'secret');
+  storage.setItem(
+    'climbing-monkey/privacy/v1',
+    JSON.stringify(
+      options.privacy === false
+        ? { cameraAnalysis: false, handPhotos: false }
+        : options.privacy ?? { cameraAnalysis: true, handPhotos: true },
+    ),
+  );
   const requests: Request[] = [];
   const media: MediaClient | null =
     options.media === false
@@ -269,8 +281,3 @@ export async function type(renderer: Renderer, label: string, value: string) {
     input.props.onChangeText(value);
   });
 }
-
-export const SEND =
-  'Send for analysis, I consent to sending this capture to the server for analysis.';
-export const CONFIRM =
-  'I have reviewed it, Save it to my profile as my own reading';

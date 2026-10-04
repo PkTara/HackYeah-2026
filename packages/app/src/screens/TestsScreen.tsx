@@ -30,26 +30,15 @@ import { useSetup } from '../onboarding/OnboardingGate';
 import { useMedia } from '../media';
 import { useGame } from '../state/GameProvider';
 import { DemoButton } from '../demo/DemoControls';
-import { TestPreview } from '../demo/TestPreview';
 import { useDemo } from '../demo/DemoProvider';
 import { SavedMedia } from '../demo/SavedMedia';
+import { IntegrationsPanel } from '../demo/IntegrationsPanel';
+import { AssessmentSummary } from '../components/AssessmentSummary';
 
 const MIN_CM = 100;
 const MAX_CM = 250;
 /** How long the reset button waits for the second tap. */
 const CONFIRM_MS = 3000;
-
-/** Tests from the design that this build does not run yet. */
-const NOT_BUILT = [
-  {
-    title: 'Shoulder reach',
-    text: 'This camera test will compare your left and right shoulder.',
-  },
-  {
-    title: 'Finger strength',
-    text: 'This needs a hangboard or a force gauge, and it is never guessed from a photo.',
-  },
-] as const;
 
 /** How a result was taken, in the words the climber used. */
 const METHOD_TEXT: Record<BaselineResult['method'], string> = {
@@ -95,23 +84,23 @@ export function TestsScreen() {
   return (
     <TabScreen>
       <PageHeader
-        title="Tests"
-        subtitle="Optional checks you do yourself. They add to your profile and are never scored."
+        title="Data"
+        subtitle="Your measurements, movement, training and recovery in one place."
       />
 
       {/* Wide screens: the working tests on the left, the rest next to it. */}
       <Columns>
         <Column>
-          <HomeTestsPanel />
           <ReachPanel />
+          <HomeTestsPanel
+            title="Strength & endurance"
+            ids={['dead-hang', 'pull-ups', 'push-ups', 'plank']}
+          />
         </Column>
 
         <Column>
           <CameraPanel />
-          <SavedMedia kind="assessments" />
-          {NOT_BUILT.map(test => (
-            <TestPreview key={test.title} {...test} />
-          ))}
+          <ActivityPanel />
 
           <Panel variant="quiet">
             <Button
@@ -121,6 +110,12 @@ export function TestsScreen() {
               onPress={() => navigate('About')}
             />
             <DemoButton />
+            <Button
+              title="Settings"
+              variant="secondary"
+              small
+              onPress={() => navigate('Settings')}
+            />
             <Button
               title="Redo setup"
               variant="secondary"
@@ -145,26 +140,32 @@ export function TestsScreen() {
 function CameraPanel() {
   const { navigate } = useNavigation<RouteName>();
   const media = useMedia();
+  const { state } = useGame();
   return (
     <Panel
       variant={media ? 'sign' : 'quiet'}
-      title="Leg spread"
+      title="Mobility & movement"
       badge={<Tag text={media ? 'Camera' : 'Needs server'} tone="muted" />}
     >
       <AppText>
-        Take a photo, record a clip or go live. The server estimates the angle
-        between your legs as the picture shows it: a projected angle, not a
-        validated flexibility test.
+        Live camera estimates of leg spread and overhead shoulder reach, plus
+        manual mobility and balance checks. Camera angles are projected
+        estimates, not a validated flexibility test.
       </AppText>
       {media ? (
         <>
           <AppText variant="caption" muted>
-            Nothing leaves this device until you agree to send it.
+            Record uses the camera-analysis permission chosen during setup or in Settings.
           </AppText>
           <Button
-            title="Camera assessment"
+            title="Leg spread assessment"
             icon="tests"
-            onPress={() => navigate('Assessment')}
+            onPress={() => navigate('Assessment', { metric: 'leg_spread' })}
+          />
+          <Button
+            title="Shoulder reach assessment"
+            icon="tests"
+            onPress={() => navigate('Assessment', { metric: 'shoulder_reach' })}
           />
         </>
       ) : (
@@ -174,27 +175,55 @@ function CameraPanel() {
           with VITE_MONKEY_API_URL set (API_BASE_URL on a phone).
         </AppText>
       )}
+      {BASELINE_TESTS.filter(t =>
+        ['sit-and-reach', 'one-leg-balance'].includes(t.id),
+      ).map(test => (
+        <MobilityTest key={test.id} test={test} />
+      ))}
+      <AssessmentSummary
+        records={state.assessments}
+        metrics={['leg_spread', 'shoulder_reach_left', 'shoulder_reach_right']}
+        title="Movement measurements"
+      />
+      <SavedMedia kind="assessments" />
     </Panel>
   );
 }
 
 /** The six home tests from setup: latest result each, and a way to redo one. */
-function HomeTestsPanel() {
+function HomeTestsPanel({
+  title,
+  ids,
+}: {
+  title: string;
+  ids: readonly string[];
+}) {
   const { navigate } = useNavigation<RouteName>();
   const { state, today } = useGame();
   const { colors: c } = useTheme();
-  const done = state.baseline.length;
+  const tests = BASELINE_TESTS.filter(t => ids.includes(t.id));
+  const done = state.baseline.filter(r => ids.includes(r.testId)).length;
 
   return (
     <Panel
-      title="Home tests"
-      badge={<Tag text={`${done} of ${BASELINE_TESTS.length}`} tone="muted" />}
+      title={title}
+      badge={<Tag text={`${done} of ${tests.length}`} tone="muted" />}
     >
       <AppText variant="caption" muted>
         About a minute each, no gear beyond a bar and a ruler. What you
         measured, not a score.
       </AppText>
-      {BASELINE_TESTS.map(test => (
+      <Button
+        title="Finger strength"
+        variant="secondary"
+        onPress={() => navigate('FingerStrength')}
+      />
+      <AssessmentSummary
+        records={state.assessments}
+        metrics={['finger_force']}
+        title="Finger-force measurements"
+      />
+      {tests.map(test => (
         <View key={test.id}>
           {/* Linked rows share one tray, split by a rule. */}
           <View style={[styles.rule, { backgroundColor: c.surfaceShade }]} />
@@ -206,6 +235,47 @@ function HomeTestsPanel() {
           />
         </View>
       ))}
+    </Panel>
+  );
+}
+
+function MobilityTest({ test }: { test: BaselineTest }) {
+  const { state, today } = useGame();
+  const { navigate } = useNavigation<RouteName>();
+  return (
+    <HomeTestRow
+      test={test}
+      result={state.baseline.find(r => r.testId === test.id)}
+      today={today}
+      onPress={() => navigate('Test', { id: test.id })}
+    />
+  );
+}
+
+function ActivityPanel() {
+  const { state } = useGame();
+  const { reset } = useNavigation<RouteName>();
+  return (
+    <Panel title="Activity & recovery">
+      <AppText>
+        {state.logs.length} climbing observations recorded. Activity and sleep
+        add context to your profile; hand entries record how things feel.
+      </AppText>
+      <IntegrationsPanel />
+      <Button
+        title="Climbing log"
+        variant="secondary"
+        onPress={() => reset('Log')}
+      />
+      <Button
+        title="Hand journal"
+        variant="secondary"
+        onPress={() => reset('Hands')}
+      />
+      <AppText variant="caption" muted>
+        Real health-provider imports are not available in this build. Demo
+        controls provide labelled examples.
+      </AppText>
     </Panel>
   );
 }
@@ -275,7 +345,7 @@ function ReachPanel() {
   };
 
   return (
-    <Panel title="Reach">
+    <Panel title="Body & reach">
       {reach ? <ReachResult reach={reach} today={today} /> : null}
 
       <AppText>

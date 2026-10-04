@@ -45,6 +45,7 @@ import { useNavigation } from '../navigation/Navigator';
 import type { RouteName } from '../navigation/routes';
 import { useGame } from '../state/GameProvider';
 import { IntegrationsPanel } from '../demo/IntegrationsPanel';
+import { AssessmentSummary } from '../components/AssessmentSummary';
 
 const STEPS = XP_PER_LEVEL / XP_PER_QUEST;
 
@@ -375,6 +376,15 @@ export function ProfileScreen() {
 
           {wide ? null : recentPanel}
           <IntegrationsPanel />
+          <AssessmentSummary
+            records={state.assessments}
+            metrics={[
+              'leg_spread',
+              'shoulder_reach_left',
+              'shoulder_reach_right',
+              'finger_force',
+            ]}
+          />
 
           {/* One pet per sport */}
           <Panel title="Pets">
@@ -464,7 +474,7 @@ function ResetProfile() {
               Setup runs again and your profile starts empty.
               {/* Only the on-device demo has example data to put back. */}
               {backendKind === 'local'
-                ? ' To put the example data back instead, use Reset demo data in Tests.'
+                ? ' To put the example data back instead, use Reset demo in Demo controls (Data).'
                 : ''}
             </AppText>
           </View>

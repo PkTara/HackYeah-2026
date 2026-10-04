@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { View } from 'react-native';
 import {
   createBackend,
@@ -17,7 +17,7 @@ import { CelebrationOverlay } from './components/CelebrationOverlay';
 import { MediaContext } from './media';
 import { StatusGate } from './components/StatusGate';
 import { SyncNotice } from './components/SyncNotice';
-import { Navigator } from './navigation/Navigator';
+import { Navigator, type NavigationEntry } from './navigation/Navigator';
 import { OnboardingGate } from './onboarding/OnboardingGate';
 import { screens, type RouteName } from './navigation/routes';
 import { GameProvider } from './state/GameProvider';
@@ -28,6 +28,7 @@ import { emptyGame, toLocalDate } from '@hackyeah/core';
 import { scopedStorage } from './demo/settings';
 import { createDemoMedia } from './demo/media';
 import { simulatedCamera } from './demo/camera';
+import { PrivacyProvider } from './privacy/PrivacyProvider';
 
 type Props = {
   /** Override platform services, e.g. with fakes in tests. */
@@ -59,16 +60,18 @@ export function App({
   backendConfig,
 }: Props) {
   return (
-    <DemoProvider storage={capabilities.storage}>
-      <AppRuntime
-        capabilities={capabilities}
-        backend={backend}
-        media={media}
-        today={today}
-        initialRoute={initialRoute}
-        backendConfig={backendConfig}
-      />
-    </DemoProvider>
+    <PrivacyProvider storage={capabilities.storage}>
+      <DemoProvider storage={capabilities.storage}>
+        <AppRuntime
+          capabilities={capabilities}
+          backend={backend}
+          media={media}
+          today={today}
+          initialRoute={initialRoute}
+          backendConfig={backendConfig}
+        />
+      </DemoProvider>
+    </PrivacyProvider>
   );
 }
 
@@ -81,6 +84,19 @@ function AppRuntime({
   backendConfig,
 }: Props) {
   const demo = useDemo();
+  const navigationStack = useRef<readonly NavigationEntry<RouteName>[]>([
+    { route: initialRoute, params: {} },
+  ]);
+  const rememberStack = useCallback(
+    (stack: readonly NavigationEntry<RouteName>[]) => {
+      navigationStack.current = stack;
+    },
+    [],
+  );
+  const setupOpen = useRef(false);
+  const rememberSetup = useCallback((open: boolean) => {
+    setupOpen.current = open;
+  }, []);
   const demoData = useMemo(
     () =>
       createLocalBackend(
@@ -163,10 +179,15 @@ function AppRuntime({
         >
           <View style={{ flex: 1 }}>
             <StatusGate>
-              <OnboardingGate>
+              <OnboardingGate
+                restoreSetup={setupOpen.current}
+                onVisibilityChange={rememberSetup}
+              >
                 <Navigator<RouteName>
                   initialRoute={initialRoute}
                   screens={screens}
+                  initialStack={navigationStack.current}
+                  onStackChange={rememberStack}
                 />
               </OnboardingGate>
             </StatusGate>

@@ -57,7 +57,7 @@ export function AboutScreen() {
         title="About"
         subtitle="Climbing Monkey, a HackYeah 2026 prototype."
       />
-      <DemoButton />
+      <DemoButton parent="About" />
 
       {/* Wide screens put the honest bits under Platform, so the two columns
           come out about even. Phones keep them last, after How it is built. */}

@@ -46,7 +46,7 @@ export function StatusGate({ children }: { children: ReactNode }) {
             <Button title="Try again" onPress={retry} />
           </Panel>
         )}
-        <DemoButton />
+        <DemoButton parent="App" />
       </View>
     </Screen>
   );

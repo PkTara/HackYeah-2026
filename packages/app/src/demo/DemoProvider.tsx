@@ -22,7 +22,8 @@ import {
 type DemoApi = {
   settings: DemoSettings;
   update: (change: Partial<DemoSettings>) => void;
-  open: () => void;
+  open: (parent?: string) => void;
+  parent: string;
   close: () => void;
   visible: boolean;
   storage: KeyValueStore | null;
@@ -36,6 +37,7 @@ const DemoContext = createContext<DemoApi>({
   open: () => {},
   close: () => {},
   visible: false,
+  parent: 'Data',
   storage: null,
   revision: 0,
   reset: async () => {},
@@ -53,6 +55,7 @@ export function DemoProvider({
   const [settings, setSettings] = useState(demoDefaults);
   const [ready, setReady] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [parent, setParent] = useState('Data');
   const [revision, setRevision] = useState(0);
   const [error, setError] = useState('');
   const scoped = useMemo(
@@ -109,7 +112,11 @@ export function DemoProvider({
     settings,
     update: change => setSettings(old => ({ ...old, ...change })),
     visible,
-    open: () => setVisible(true),
+    parent,
+    open: (from = 'Data') => {
+      setParent(from);
+      setVisible(true);
+    },
     close: () => setVisible(false),
     storage: scoped,
     revision,

@@ -7,6 +7,7 @@
  * different ClimbingBackend; no screen changes.
  */
 import type {
+  AssessmentRecord,
   BaselineResult,
   ClimbLog,
   GameState,
@@ -38,6 +39,8 @@ export interface ClimbingBackend {
 
   /** Sets a finger flag on or off. Not a toggle, so retries are harmless. */
   setHandFlag(flag: HandFlag, flagged: boolean): Promise<GameState | void>;
+
+  saveAssessment(record: AssessmentRecord): Promise<GameState | void>;
 
   saveReach(reach: Reach): Promise<GameState | void>;
 

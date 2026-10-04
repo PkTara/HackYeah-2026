@@ -1,108 +1,61 @@
-import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import type {
   CameraCapability,
   CameraPreviewProps,
+  CameraSession,
   MediaCapture,
 } from '@hackyeah/platform';
+import type { PoseResultDto } from '@hackyeah/data';
 import { AppText, Tag } from '@hackyeah/ui';
-
+import { Markings } from '../capture/Markings';
+import { overlayPoints } from '../capture/overlay';
+import { demoLivePose, type DemoPoseCamera } from './pose';
 function Figure({
-  moving = false,
   hand = false,
+  pose = demoLivePose('leg_spread', 0),
 }: {
-  moving?: boolean;
   hand?: boolean;
+  pose?: PoseResultDto;
 }) {
-  const [frame, setFrame] = useState(0);
-  useEffect(() => {
-    if (!moving) {
-      return;
-    }
-    const timer = setInterval(() => setFrame(old => old + 1), 400);
-    return () => clearInterval(timer);
-  }, [moving]);
+  const [width, setWidth] = useState(320);
+  const points = overlayPoints(
+    pose,
+    { imageWidth: 640, imageHeight: 480, mirrored: false, fit: 'contain' },
+    width,
+    280,
+    0,
+  );
   return (
     <View
-      style={{
-        flex: 1,
-        minHeight: 220,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#173628',
-        gap: 8,
-      }}
+      onLayout={event => setWidth(event.nativeEvent.layout.width)}
+      style={styles.figure}
     >
-      <Tag text="Simulated camera" />
       {hand ? (
-        <AppText style={{ color: '#F5D78E', fontSize: 60 }}>✋</AppText>
+        <AppText style={styles.hand}>✋</AppText>
       ) : (
-        <View style={{ width: 150, height: 145 }}>
-          <View
-            style={{
-              position: 'absolute',
-              left: 60,
-              top: 0,
-              width: 30,
-              height: 30,
-              borderRadius: 15,
-              backgroundColor: '#F5D78E',
-            }}
-          />
-          <View
-            style={{
-              position: 'absolute',
-              left: 70,
-              top: 30,
-              width: 10,
-              height: 60,
-              backgroundColor: '#F5D78E',
-            }}
-          />
-          {[-1, 1].map(side => (
-            <View key={side}>
-              <View
-                style={{
-                  position: 'absolute',
-                  left: 70 + side * 20,
-                  top: 35,
-                  width: 8,
-                  height: 45,
-                  backgroundColor: '#F5D78E',
-                  transform: [
-                    { rotate: `${side * (40 + (frame % 3) * 5)}deg` },
-                  ],
-                }}
-              />
-              <View
-                style={{
-                  position: 'absolute',
-                  left: 70 + side * 23,
-                  top: 82,
-                  width: 8,
-                  height: 60,
-                  backgroundColor: '#F5D78E',
-                  transform: [
-                    { rotate: `${side * (38 + (frame % 3) * 4)}deg` },
-                  ],
-                }}
-              />
-            </View>
-          ))}
-        </View>
+        <>
+          <Markings points={points} prefix="demo" />
+        </>
       )}
-      <AppText style={{ color: '#F5D78E' }} variant="caption">
+      <View style={styles.label}>
+        <Tag text="Simulated camera" />
+      </View>
+      <AppText variant="caption" style={styles.caption}>
         Example input · no webcam permission needed
       </AppText>
     </View>
   );
 }
-
-function Preview({ active, mode, onReady }: CameraPreviewProps) {
+function Preview({ active, mode, onReady, onGeometry }: CameraPreviewProps) {
+  const [pose, setPose] = useState(() => demoLivePose('leg_spread', 0));
+  const geometry = useRef(onGeometry);
+  geometry.current = onGeometry;
   useEffect(() => {
     if (!active) {
       return;
     }
+    let current = true;
     let recording = false;
     const capture = (kind: 'image' | 'video'): MediaCapture => ({
       kind,
@@ -112,8 +65,19 @@ function Preview({ active, mode, onReady }: CameraPreviewProps) {
       width: 640,
       height: 480,
     });
-    onReady({
-      snapshot: async () => capture('image'),
+    const session: CameraSession & DemoPoseCamera = {
+      simulated: true,
+      showPose: next => {
+        if (current) {
+          setPose(next);
+        }
+      },
+      snapshot: async () => {
+        if (!current) {
+          throw new Error('Camera is closed');
+        }
+        return capture('image');
+      },
       startRecording: async () => {
         recording = true;
       },
@@ -124,18 +88,34 @@ function Preview({ active, mode, onReady }: CameraPreviewProps) {
         recording = false;
         return capture('video');
       },
+    };
+    geometry.current?.({
+      imageWidth: 640,
+      imageHeight: 480,
+      mirrored: false,
+      fit: 'contain',
     });
-    return () => onReady(null);
+    onReady(session);
+    return () => {
+      current = false;
+      onReady(null);
+    };
   }, [active, mode, onReady]);
-  return active ? <Figure moving hand={mode === 'hand'} /> : null;
+  return active ? <Figure hand={mode === 'hand'} pose={pose} /> : null;
 }
-
 export const simulatedCamera: CameraCapability = {
   Preview,
-  MediaPreview: ({ capture }) => (
-    <Figure
-      moving={capture.kind === 'video'}
-      hand={capture.uri.includes('hand')}
-    />
-  ),
+  MediaPreview: ({ capture }) => <Figure hand={capture.uri.includes('hand')} />,
 };
+
+const styles = StyleSheet.create({
+  figure: {
+    height: 280,
+    width: '100%',
+    backgroundColor: '#173628',
+    overflow: 'hidden',
+  },
+  hand: { fontSize: 60, textAlign: 'center', marginTop: 80 },
+  label: { position: 'absolute', top: 8, left: 8 },
+  caption: { position: 'absolute', bottom: 8, left: 8, color: '#F5D78E' },
+});

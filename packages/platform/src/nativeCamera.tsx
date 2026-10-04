@@ -125,6 +125,14 @@ export function createNativeCameraPreview(driver: NativeCameraDriver) {
               if (!current || !callbacks.current.active) {
                 throw new Error('Camera preview is inactive.');
               }
+              if (frame.width && frame.height) {
+                callbacks.current.onGeometry?.({
+                  imageWidth: frame.width,
+                  imageHeight: frame.height,
+                  mirrored: props.mode === 'hand',
+                  fit: 'cover',
+                });
+              }
               return {
                 ...(release ? { release } : {}),
                 kind: 'image',
@@ -146,7 +154,7 @@ export function createNativeCameraPreview(driver: NativeCameraDriver) {
         current = false;
         callbacks.current.onReady(null);
       };
-    }, [props.active, allowed, mounted, started]);
+    }, [props.active, props.mode, allowed, mounted, started]);
     return props.active && allowed ? (
       <driver.View
         ref={bindCamera}

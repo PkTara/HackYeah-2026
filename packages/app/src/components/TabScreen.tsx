@@ -17,13 +17,13 @@ import { trailFor } from '../navigation/trail';
 import { useGame } from '../state/GameProvider';
 import { useDemo } from '../demo/DemoProvider';
 
-type TabRoute = Extract<RouteName, 'Profile' | 'Log' | 'Hands' | 'Tests'>;
+type TabRoute = Extract<RouteName, 'Profile' | 'Log' | 'Hands' | 'Data'>;
 
 const TABS: readonly Tab<TabRoute>[] = [
   { key: 'Profile', label: 'Profile', icon: 'profile' },
   { key: 'Log', label: 'Log', icon: 'log' },
   { key: 'Hands', label: 'Hands', icon: 'hands' },
-  { key: 'Tests', label: 'Tests', icon: 'tests' },
+  { key: 'Data', label: 'Data', icon: 'tests' },
 ];
 
 type Props = {

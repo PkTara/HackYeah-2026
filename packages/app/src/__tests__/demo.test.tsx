@@ -7,12 +7,19 @@ import { setup } from '../testing/cameraFixture';
 import { demoStorage } from '../demo/settings';
 
 type Renderer = ReactTestRenderer.ReactTestRenderer;
-const capabilities = (): Capabilities => ({
-  platform: 'web',
-  platformLabel: 'Test browser',
-  haptics: { isAvailable: false, tap: () => {} },
-  storage: createMemoryStore(),
-});
+const capabilities = (): Capabilities => {
+  const storage = createMemoryStore();
+  storage.setItem(
+    'climbing-monkey/privacy/v1',
+    JSON.stringify({ cameraAnalysis: true, handPhotos: true }),
+  );
+  return {
+    platform: 'web',
+    platformLabel: 'Test browser',
+    haptics: { isAvailable: false, tap: () => {} },
+    storage,
+  };
+};
 
 it('reset also clears an edited non-sample demo profile and survives reopening', async () => {
   const c = capabilities();
@@ -23,14 +30,14 @@ it('reset also clears an edited non-sample demo profile and survives reopening',
     screen,
     'Sample profile, Example climbs, hand flags, tests and 40 XP.',
   );
-  await press(screen, 'Close demo controls');
+  await press(screen, 'Back to Data');
   await press(screen, 'Do dead hang');
   await press(screen, 'Use demo result');
   await press(screen, 'Save result');
   expect(text(screen)).toContain('35 s');
   await press(screen, 'Demo controls');
   await press(screen, 'Reset demo');
-  await press(screen, 'Close demo controls');
+  await press(screen, 'Back to Data');
   expect(text(screen)).not.toContain('35 s');
   await act(async () => screen.unmount());
   screen = await render(c);
@@ -43,7 +50,7 @@ it('saves a simulated hand journal entry, updates its finger flag and shows the 
   const screen = await render(c);
   await press(screen, 'Demo controls');
   await press(screen, 'Demo mode, Use a separate demo profile.');
-  await press(screen, 'Close demo controls');
+  await press(screen, 'Back to Data');
   await press(screen, 'Hands');
   await press(screen, 'Add a photo');
   await press(screen, 'Start camera');
@@ -52,10 +59,6 @@ it('saves a simulated hand journal entry, updates its finger flag and shows the 
   await press(screen, 'Photo of the palm');
   await press(screen, 'Index finger');
   await press(screen, 'Pain 3');
-  await press(
-    screen,
-    'Upload and keep, I agree to keep this entry in the demo journal. Photo storage is simulated.',
-  );
   await press(screen, 'Save to journal');
   await press(screen, 'Hands');
   expect(text(screen)).toContain('Left index finger: pain 3');
@@ -72,7 +75,7 @@ it('lets a home test use a simulated result and resets saved demo changes for th
   const screen = await render(c);
   await press(screen, 'Demo controls');
   await press(screen, 'Demo mode, Use a separate demo profile.');
-  await press(screen, 'Close demo controls');
+  await press(screen, 'Back to Data');
   await press(screen, 'Redo dead hang');
   await press(screen, 'Use demo result');
   await press(screen, 'Save result');
@@ -89,30 +92,79 @@ it('lets a home test use a simulated result and resets saved demo changes for th
   await press(screen, 'Done');
   await press(screen, 'Nice');
   expect(text(screen)).toContain('Lvl 2');
-  await press(screen, 'Tests');
+  await press(screen, 'Data');
   await press(screen, 'Demo controls');
   await press(screen, 'Reset demo');
-  await press(screen, 'Close demo controls');
+  await press(screen, 'Back to Data');
   await press(screen, 'Profile');
   expect(text(screen)).toContain('Lvl 1');
   expect(await c.storage.getItem('climbing-monkey/game/v1')).toBeNull();
   await act(async () => screen.unmount());
 });
 
-it('offers labelled previews for unavailable tests and hides them when unticked', async () => {
-  const screen = await render(capabilities());
+it('records actual shoulder and instrument features in the isolated demo profile', async () => {
+  const c = capabilities();
+  const screen = await render(c);
   await press(screen, 'Demo controls');
   await press(screen, 'Demo mode, Use a separate demo profile.');
-  await press(screen, 'Close demo controls');
-  await press(screen, 'Preview Shoulder reach');
-  expect(text(screen)).toContain('Left 165°, right 160°');
-  expect(text(screen)).toContain('Simulated preview');
+  await press(screen, 'Back to Data');
+  await press(screen, 'Shoulder reach assessment');
+  await press(screen, 'Record');
+  await advanceFrames(9);
+  expect(text(screen)).toContain('Review your result: Left 170° · Right 170°');
+  await press(screen, 'Save result');
+  await press(screen, 'Back to Data');
+  await press(screen, 'Finger strength');
+  await press(screen, 'Fill example reading');
+  await press(screen, 'Review result');
+  expect(text(screen)).toContain('320 newtons');
+  await press(screen, 'Save result');
+  const saved = await createLocalBackend(demoStorage(c.storage)).load();
+  expect(saved.assessments).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        metric: 'shoulder_reach_left',
+        value: 170,
+        side: 'left',
+        simulated: true,
+      }),
+      expect.objectContaining({
+        metric: 'shoulder_reach_right',
+        value: 170,
+        side: 'right',
+        simulated: true,
+      }),
+      expect.objectContaining({
+        metric: 'finger_force',
+        value: 320,
+        unit: 'N',
+        method: 'manual',
+        simulated: true,
+        setup: {
+          instrument: 'Demo load cell',
+          grip: 'half_crimp',
+          edge_mm: 20,
+          arm_position: 'straight',
+          effort_seconds: 5,
+        },
+      }),
+    ]),
+  );
+  expect(
+    (await createLocalBackend(c.storage, emptyGame).load()).assessments,
+  ).toEqual([]);
+  await press(screen, 'Back to Data');
   await press(screen, 'Demo controls');
+  expect(text(screen)).not.toContain('Unavailable tests');
   await press(
     screen,
-    'Unavailable tests, Show simulated previews for tests that need hardware or unfinished features.',
+    'Manual assessment examples, Offer example home-test and instrument-force results.',
   );
-  await press(screen, 'Close demo controls');
+  await press(screen, 'Back to Data');
+  await press(screen, 'Finger strength');
+  expect(text(screen)).not.toContain('Fill example reading');
+  await press(screen, 'Back to Data');
+  expect(text(screen)).toContain('Shoulder reach assessment');
   expect(text(screen)).not.toContain('Preview Shoulder reach');
   await act(async () => screen.unmount());
 });
@@ -125,16 +177,16 @@ it('unticking sample profile uses an empty isolated profile offline and restores
     screen,
     'Sample profile, Example climbs, hand flags, tests and 40 XP.',
   );
-  await press(screen, 'Close demo controls');
+  await press(screen, 'Back to Data');
   await press(screen, 'Profile');
   expect(text(screen)).toContain('No climbs logged yet.');
-  await press(screen, 'Tests');
+  await press(screen, 'Data');
   await press(screen, 'Demo controls');
   await press(
     screen,
     'Sample profile, Example climbs, hand flags, tests and 40 XP.',
   );
-  await press(screen, 'Close demo controls');
+  await press(screen, 'Back to Data');
   await press(screen, 'Profile');
   expect(text(screen)).toContain('V4');
   await act(async () => screen.unmount());
@@ -144,14 +196,14 @@ it('switches simulated integration feeds independently and keeps them out of nor
   const screen = await render(capabilities());
   await press(screen, 'Demo controls');
   await press(screen, 'Demo mode, Use a separate demo profile.');
-  await press(screen, 'Close demo controls');
+  await press(screen, 'Back to Data');
   await press(screen, 'Profile');
   expect(text(screen)).toContain('Strava: Bouldering, 60 min');
   expect(text(screen)).toContain('Apple Health: Sleep, 7 h 45 min');
-  await press(screen, 'Tests');
+  await press(screen, 'Data');
   await press(screen, 'Demo controls');
   await press(screen, 'Strava, Simulate workouts.');
-  await press(screen, 'Close demo controls');
+  await press(screen, 'Back to Data');
   await press(screen, 'Profile');
   expect(text(screen)).not.toContain('Strava: Bouldering, 60 min');
   expect(text(screen)).toContain('Apple Health: Sleep, 7 h 45 min');
@@ -185,40 +237,43 @@ beforeEach(() =>
 );
 afterEach(() => jest.useRealTimers());
 
-it('demonstrates photo analysis and saving without a server or webcam', async () => {
+async function advanceFrames(count: number) {
+  for (let i = 0; i < count; i++) {
+    await act(async () => jest.advanceTimersByTime(500));
+  }
+}
+
+it('demonstrates live recording and reviewed saving without a server or webcam', async () => {
   const c = capabilities();
   const screen = await render(c);
   await press(screen, 'Demo controls');
   await press(screen, 'Demo mode, Use a separate demo profile.');
-  await press(screen, 'Close demo controls');
-  await press(screen, 'Camera assessment');
-  await press(screen, 'Start camera');
+  await press(screen, 'Back to Data');
+  await press(screen, 'Leg spread assessment');
+  await press(screen, 'Record');
   expect(text(screen)).toContain('Simulated camera');
-  await press(screen, 'Take photo');
-  await press(
-    screen,
-    'Send for analysis, I agree to simulate this capture locally.',
-  );
-  await press(screen, 'Analyse photo');
-  expect(text(screen)).toContain('Estimated image-plane angle: 92 degrees');
-  expect(text(screen)).toContain('Simulated result');
-  expect(text(screen)).toContain('No capture is uploaded');
-  await press(
-    screen,
-    'I have reviewed it, Keep this simulated result in the demo profile',
-  );
+  expect(text(screen)).toContain('Simulated analysis');
+  await advanceFrames(5);
+  expect(text(screen)).toContain('Review your result: 91°');
   await press(screen, 'Save result');
-  expect(text(screen)).toContain('Saved');
+  expect(text(screen)).toContain('Saved simulated result to your demo profile');
   expect(await c.storage.getItem('media/assessments')).toBeNull();
-  const saved = JSON.parse(
-    (await c.storage.getItem('climbing-monkey/demo/v1/media/assessments')) ??
-      '[]',
+  const saved = await createLocalBackend(demoStorage(c.storage)).load();
+  expect(saved.assessments).toContainEqual(
+    expect.objectContaining({
+      metric: 'leg_spread',
+      value: 91,
+      simulated: true,
+      method: 'camera',
+    }),
   );
-  expect(saved[0]).toMatchObject({ value: 92, simulated: true });
+  expect(
+    (await createLocalBackend(c.storage, emptyGame).load()).assessments,
+  ).toEqual([]);
   await act(async () => screen.unmount());
 });
 
-it('uses the real camera while keeping analysis simulated when webcam mocking is unticked', async () => {
+it('uses the real camera while keeping live analysis simulated when webcam mocking is unticked', async () => {
   const fixture = setup();
   const screen = await render(fixture.capabilities);
   await press(screen, 'Demo controls');
@@ -227,22 +282,39 @@ it('uses the real camera while keeping analysis simulated when webcam mocking is
     screen,
     'Webcam input, Use an animated sample instead of the real camera.',
   );
-  await press(screen, 'Close demo controls');
-  await press(screen, 'Camera assessment');
-  await press(screen, 'Start camera');
+  await press(screen, 'Back to Data');
+  await press(screen, 'Leg spread assessment');
+  await press(screen, 'Record');
   expect(fixture.preview.active).toBe(true);
   expect(text(screen)).not.toContain('Simulated camera');
-  await press(screen, 'Take photo');
-  expect(text(screen)).toContain('Captured photo');
-  await press(
-    screen,
-    'Send for analysis, I agree to simulate this capture locally.',
-  );
-  await press(screen, 'Analyse photo');
-  expect(text(screen)).toContain('Estimated image-plane angle: 92 degrees');
+  expect(text(screen)).toContain('Simulated analysis');
+  await advanceFrames(5);
+  expect(text(screen)).toContain('Review your result: 91°');
+  expect(fixture.preview.active).toBe(false);
   expect(fixture.requests).toEqual([]);
   await act(async () => screen.unmount());
 });
+
+it('entering demo mode does not grant either missing privacy preference', async () => {
+  const c = capabilities();
+  await c.storage.removeItem('climbing-monkey/privacy/v1');
+  const screen = await render(c);
+  await press(screen, 'Demo controls');
+  await press(screen, 'Demo mode, Use a separate demo profile.');
+  await press(screen, 'Back to Data');
+  await press(screen, 'Leg spread assessment');
+  const record = screen.root.find(
+    n =>
+      typeof n.props.onPress === 'function' &&
+      n.props.accessibilityLabel === 'Record',
+  );
+  expect(record.props.disabled).toBe(true);
+  await press(screen, 'Record');
+  expect(text(screen)).toContain('Allow live camera analysis in Settings');
+  expect(await c.storage.getItem('climbing-monkey/privacy/v1')).toBeNull();
+  await act(async () => screen.unmount());
+});
+
 async function render(
   c: Capabilities,
   seed: GameState = { ...emptyGame, onboardingSkipped: true },
@@ -266,7 +338,7 @@ it('enables a populated demo without changing the real profile, and remembers th
   let screen = await render(c);
   await press(screen, 'Demo controls');
   await press(screen, 'Demo mode, Use a separate demo profile.');
-  await press(screen, 'Close demo controls');
+  await press(screen, 'Back to Data');
   await press(screen, 'Profile');
   expect(text(screen)).toContain('Demo');
   expect(text(screen)).toContain('V4');
@@ -274,10 +346,10 @@ it('enables a populated demo without changing the real profile, and remembers th
   screen = await render(c);
   await press(screen, 'Profile');
   expect(text(screen)).toContain('V4');
-  await press(screen, 'Tests');
+  await press(screen, 'Data');
   await press(screen, 'Demo controls');
   await press(screen, 'Demo mode, Use a separate demo profile.');
-  await press(screen, 'Close demo controls');
+  await press(screen, 'Back to Data');
   await press(screen, 'Profile');
   expect(text(screen)).toContain('No climbs logged yet.');
   const real = await createLocalBackend(c.storage, emptyGame).load();
@@ -290,7 +362,9 @@ it('can enter demo mode on first launch before doing onboarding', async () => {
   const screen = await render(capabilities(), emptyGame);
   await press(screen, 'Demo controls');
   await press(screen, 'Demo mode, Use a separate demo profile.');
-  await press(screen, 'Close demo controls');
-  expect(text(screen)).toContain('Home tests');
+  await press(screen, 'Back to Setup');
+  expect(text(screen)).toContain('A few quick questions');
+  await press(screen, 'Skip setup');
+  expect(text(screen)).toContain('Strength & endurance');
   await act(async () => screen.unmount());
 });

@@ -7,6 +7,7 @@ import {
   type PoseResultDto,
 } from '@hackyeah/data';
 import type { KeyValueStore } from '@hackyeah/platform';
+import { demoLivePose, type DemoPoseCamera } from './pose';
 
 export const demoPose: PoseResultDto = {
   status: 'ok',
@@ -121,23 +122,27 @@ export function createDemoMedia(options: {
         date: new Date().toISOString(),
       });
     },
-    async startLive(camera, allowed, handlers) {
+    async startLive(camera, allowed, handlers, selection) {
       consent(allowed);
       if (!options.analysis) {
-        if (options.simulatedInput) {
+        if (options.simulatedInput || camera.simulated) {
           throw new MediaError(
             'Real analysis needs a real capture. Untick Webcam input, or tick Analysis results.',
             0,
           );
         }
-        return (await real()).startLive(camera, allowed, handlers);
+        return (await real()).startLive(camera, allowed, handlers, selection);
       }
       let count = 0;
       let stopped = false;
-      const timer = setInterval(
-        () => handlers.onResult({ ...demoPose, value: 90 + (count++ % 5) }),
-        500,
-      );
+      const timer = setInterval(() => {
+        if (stopped) {
+          return;
+        }
+        const result = demoLivePose(selection?.metric ?? 'leg_spread', count++);
+        (camera as DemoPoseCamera).showPose?.(result);
+        handlers.onResult(result);
+      }, 500);
       const stop = () => {
         if (stopped) {
           return;

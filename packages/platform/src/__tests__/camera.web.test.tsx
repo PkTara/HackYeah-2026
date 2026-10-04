@@ -16,12 +16,14 @@ test('web preview connects a live stream and releases it on unmount', async () =
     value: { mediaDevices: { getUserMedia: async () => stream } },
   });
   let session: CameraSession | null = null;
+  const onGeometry = jest.fn();
   let renderer!: ReturnType<typeof create>;
   try {
     await act(async () => {
       renderer = create(
         <CameraPreview
           active
+          onGeometry={onGeometry}
           mode="assessment"
           onReady={value => {
             session = value;
@@ -41,6 +43,12 @@ test('web preview connects a live stream and releases it on unmount', async () =
       );
     });
     expect(session).not.toBeNull();
+    expect(onGeometry).toHaveBeenCalledWith({
+      imageWidth: 640,
+      imageHeight: 480,
+      mirrored: false,
+      fit: 'contain',
+    });
     await act(async () => renderer.unmount());
     expect(track.stopped).toBe(true);
     expect(session).toBeNull();
