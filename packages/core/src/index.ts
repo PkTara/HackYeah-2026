@@ -10,5 +10,6 @@ export * from './sports';
 export * from './sample';
 export * from './spots';
 export * from './dates';
+export * from './logRange';
 export * from './evidence';
 export * from './flow';

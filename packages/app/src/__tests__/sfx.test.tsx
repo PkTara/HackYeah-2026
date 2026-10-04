@@ -173,6 +173,7 @@ describe('sounds in the app', () => {
     const renderer = await renderApp(capabilities(sfx), 'Profile');
     pressLabel(renderer, 'Switch to gazelle mode');
     pressLabel(renderer, 'Log');
+    pressLabel(renderer, 'Log run');
     for (const label of ['Easy', 'Trail', '5 km', '30 min', 'Finished']) {
       pressLabel(renderer, label);
     }

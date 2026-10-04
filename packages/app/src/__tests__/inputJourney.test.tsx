@@ -11,6 +11,7 @@ it('after logging a climb, says what changed and points to the profile until the
     setup({ state: { ...emptyGame, onboardingSkipped: true } }),
     'Log',
   );
+  await press(screen, 'Log climb');
   await press(screen, 'Vertical', 'Controlled', 'V3', 'Sent', 'Save climb');
   expect(text(screen)).toContain('Saved V3 vertical, sent');
   expect(text(screen)).toContain(
@@ -23,6 +24,66 @@ it('after logging a climb, says what changed and points to the profile until the
   await press(screen, 'Save climb', 'See your profile');
   expect(control(screen, 'Save climb')).toBeUndefined();
   expect(text(screen)).toContain('From your logged climbs only');
+  await act(async () => screen.unmount());
+});
+
+it('after logging a climb, See your climbs returns to the list with the climb framed', async () => {
+  const screen = await render(
+    setup({ state: { ...emptyGame, onboardingSkipped: true } }),
+    'Log',
+  );
+  expect(text(screen)).toContain('No climbs logged yet.');
+  // The empty list offers a second way in.
+  expect(control(screen, 'Log a climb')).toBeDefined();
+  await press(screen, 'Log climb');
+  expect(control(screen, 'Save climb')).toBeDefined();
+  expect(control(screen, 'Close')).toBeDefined();
+  await press(screen, 'Vertical', 'Controlled', 'V3', 'Sent', 'Save climb');
+  await press(screen, 'See your climbs');
+  expect(control(screen, 'Save climb')).toBeUndefined();
+  expect(text(screen)).toContain('1 climb this week: 1 sent.');
+  const framed = screen.root.findAll(
+    n =>
+      typeof n.props.accessibilityLabel === 'string' &&
+      n.props.accessibilityLabel.startsWith('Just saved. Climb, 2026-10-03'),
+  );
+  expect(framed.length).toBeGreaterThan(0);
+  // Today has it too; nothing was logged in the rest of the month.
+  await press(screen, 'Today');
+  expect(text(screen)).toContain('1 climb today: 1 sent.');
+  await act(async () => screen.unmount());
+});
+
+it('shows an empty state with a way to log for a filter with no climbs', async () => {
+  const screen = await render(
+    setup({
+      state: {
+        ...emptyGame,
+        onboardingSkipped: true,
+        logs: [
+          {
+            id: 'old',
+            date: '2026-09-01',
+            terrain: 'slab',
+            movements: ['controlled'],
+            holds: [],
+            grade: 'V2',
+            sent: true,
+          },
+        ],
+      },
+    }),
+    'Log',
+  );
+  // This week is empty, so the list opens on all climbs.
+  expect(text(screen)).toContain('1 climb in total: 1 sent.');
+  await press(screen, 'Today');
+  expect(text(screen)).toContain('No climbs today. Log one.');
+  await press(screen, 'Log a climb');
+  expect(control(screen, 'Save climb')).toBeDefined();
+  await press(screen, 'Close');
+  expect(control(screen, 'Save climb')).toBeUndefined();
+  expect(control(screen, 'This week')).toBeDefined();
   await act(async () => screen.unmount());
 });
 

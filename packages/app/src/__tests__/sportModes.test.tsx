@@ -105,13 +105,16 @@ describe('gazelle mode', () => {
   it('logs a run from the Log tab', async () => {
     const renderer = await renderApp();
     press(renderer, 'Switch to gazelle mode', 'Log');
+    // The tab opens on the runs; the form is a subpage.
+    expect(screenText(renderer)).toContain('Your runs');
+    press(renderer, 'Log run');
     press(renderer, 'Easy', 'Trail', '5 km', '30 min', 'Finished', 'Save run');
     await settle();
-    // The note says what changed; today's runs start folded away.
+    // The note says what changed, then the list shows the new run.
     expect(screenText(renderer)).toContain('Saved ');
     expect(screenText(renderer)).toMatch(/Easy: \d+ of \d+ finished\./);
-    expect(screenText(renderer)).toContain('1 run logged today.');
-    press(renderer, "Show today's runs");
+    press(renderer, 'See your runs', 'Today');
+    expect(screenText(renderer)).toContain('1 run today: 1 finished.');
     expect(screenText(renderer)).toContain('6:00 /km');
     act(() => renderer.unmount());
   });
@@ -170,7 +173,7 @@ describe('dolphin mode', () => {
 
   it('logs a swim with pace per 100 m', async () => {
     const renderer = await renderApp();
-    press(renderer, 'Switch to dolphin mode', 'Log');
+    press(renderer, 'Switch to dolphin mode', 'Log', 'Log swim');
     press(
       renderer,
       'Free',
@@ -181,7 +184,7 @@ describe('dolphin mode', () => {
       'Save swim',
     );
     await settle();
-    press(renderer, "Show today's swims");
+    press(renderer, 'See your swims');
     expect(screenText(renderer)).toContain('2:30 /100 m');
     act(() => renderer.unmount());
   });

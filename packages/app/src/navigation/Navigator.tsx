@@ -74,6 +74,12 @@ type NavigationApi<Route extends string> = {
   goBack: () => void;
   /** Goes back to the last step of a breadcrumb trail; see stackBackTo. */
   backTo: (trail: readonly TrailStep<Route>[]) => void;
+  /**
+   * Starts a fresh stack along a trail, like `reset` for a page inside a
+   * tab: opening Log > Log a climb from the Profile tab shows the Log tab,
+   * and going back lands on the Log list.
+   */
+  openTrail: (trail: readonly TrailStep<Route>[]) => void;
 };
 
 const NavigationContext = createContext<NavigationApi<string> | null>(null);
@@ -122,7 +128,20 @@ export function Navigator<Route extends string>({
     [],
   );
   const backTo = useCallback(
-    (trail: readonly TrailStep<Route>[]) => setStack(s => stackBackTo(s, trail)),
+    (trail: readonly TrailStep<Route>[]) =>
+      setStack(s => stackBackTo(s, trail)),
+    [],
+  );
+  const openTrail = useCallback(
+    (trail: readonly TrailStep<Route>[]) =>
+      setStack(s =>
+        trail.length
+          ? trail.map(step => ({
+              route: step.route,
+              params: step.params ?? {},
+            }))
+          : s,
+      ),
     [],
   );
 
@@ -155,8 +174,9 @@ export function Navigator<Route extends string>({
       reset,
       goBack,
       backTo,
+      openTrail,
     }),
-    [top, root, canGoBack, navigate, reset, goBack, backTo],
+    [top, root, canGoBack, navigate, reset, goBack, backTo, openTrail],
   );
   const ScreenComponent: ComponentType = screens[top.route];
 
