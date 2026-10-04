@@ -1,6 +1,6 @@
 # HackYeah 2026 project
 
-Hackathon project for HackYeah 2026 (3–4 Oct 2026, Kraków). **Submission deadline: 11:00 PM, 4 October 2026.**
+Hackathon project for HackYeah 2026 (3 to 4 Oct 2026, Kraków). **Submission deadline: 11:00 PM, 4 October 2026.**
 
 Read `context/00-OVERVIEW.md` first. It has the track comparison, prizes, judging weights, the submission checklist and the known inconsistencies in the materials.
 
@@ -15,18 +15,18 @@ Read `context/00-OVERVIEW.md` first. It has the track comparison, prizes, judgin
 
 ## Codebase
 
-- **Backend:** `backend/` is Python 3.12–3.13 + FastAPI/Pydantic + SQLite, with optional MediaPipe Tasks image analysis. Setup/API notes: `backend/README.md`; design: `docs/backend-design.md`. Use Canon TDD: one behavior, observed red, minimal green, regression. Run `npm run backend:check` after backend virtualenv setup. Authoritative profile/quest/XP rules live in Python; clients consume API output. Do not store runtime databases, tokens, photos or model binaries in Git.
+- **Backend:** `backend/` is Python 3.12 or 3.13 + FastAPI/Pydantic + SQLite, with optional MediaPipe Tasks pose analysis (photos, clips, live frames). Setup/API notes: `backend/README.md`; design: `docs/backend-design.md`. Use Canon TDD: one behavior, observed red, minimal green, regression. Run `npm run backend:check` after backend virtualenv setup. Authoritative profile/quest/XP rules live in Python; clients consume API output. Do not store runtime databases, tokens, photos or model binaries in Git.
 
 Climbing Monkey's track and product brief is **Open: Sport & Healthcare** (see `context/tracks/open-sport-healthcare.md` and `docs/climbing-monkey-alignment.md`). The product is profile first: connect climbing/activity evidence to an understandable profile and one achievable next action. The app is React Native 0.84.1 for Android and iOS (`apps/mobile`) and the web (`apps/web`, react-native-web + Vite). The README covers setup and layout.
 
 - **Shared code lives in `packages/`** and is imported as `@hackyeah/<name>`. Hosts in `apps/` stay thin.
   - `core`: pure TS, no React or react-native.
-  - `data`: the `ClimbingBackend` contract, on-device backend and HTTP backend. Endpoints in `endpoints.ts`, JSON shapes in `wire.ts`.
+  - `data`: the `ClimbingBackend` contract, on-device backend and HTTP backend; the on-device `SportBackend` (`sports.ts`); the camera `MediaClient` (`media.ts`). Endpoints in `endpoints.ts`, JSON shapes in `wire.ts`.
   - `platform`: capability interfaces + `capabilities.ts` (Android, iOS) / `capabilities.web.ts`.
   - `ui`: jungle pixel UI kit; everything is drawn with Views (no SVG, images or font files).
-  - `vision`: on-device pose counters (pull-ups, dead hang, plank) and climbing-form observations. Pure TS with no react-native or MediaPipe import; the host passes the pose landmarker in. See its README.
+  - `vision`: on-device pose counters (pull-ups, dead hang, plank) and climbing-form observations. Pure TS with no react-native or MediaPipe import; the host passes the pose landmarker in. Only its browser harness uses it so far. See its README.
   - `app`: screens, navigation, `<App/>`.
-- **Screens never fetch.** They use `useGame()`; data goes through the backend in `packages/data`.
+- **Screens never fetch.** They use `useGame()`, `useSport()` and `useMedia()`; data goes through `packages/data`.
 - **Platform-specific code** goes in `packages/platform` as `*.web.ts` siblings (or `*.android.ts` / `*.ios.ts` if the phones differ), behind an interface in `types.ts`. Don't use `Platform.OS` branches in screens.
 - **No npm workspaces.** Each app has its own `node_modules`. Metro, Vite, Jest and tsconfig all resolve shared-package imports from the host app.
 - **Native libraries** need a native rebuild and won't run in the web host, so put them behind a capability with a web fallback. Prefer pure-JS solutions where possible.

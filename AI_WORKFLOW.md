@@ -412,3 +412,13 @@ The Codex design-drafting step used the `superpowers:using-superpowers` and `sup
 **What the agent did (Claude Code):** applied the dolphin commit (entry 32) on top of entry 31 as one squashed commit. `RunProvider` gave way to `SportProvider`, which now plays the same sounds as entry 31 (`success` for a logged session, `success` or `levelUp` for a quest). The kept navigation stack now remembers its pet mode, because the gazelle and the dolphin share routes, so switching between them still starts on the new pet's profile. The monkey tabs keep Data, the demo caption stays hidden in both sport modes, and the finger strength test wraps its screen in a `SportProvider`.
 
 **Validation:** `npm run check` (1043 Jest tests), `npm run backend:check`, the web build and the Android bundle. Playwright at 1280 px: skip setup, switch to the dolphin, log a 1500 m swim, switch to the gazelle and back to the monkey, then reload; all three worlds draw with the music key and there are no console errors. No new libraries, models or APIs.
+
+### 34. Documentation cleanup after the merges (2026-10-04)
+
+**Prompt:** Clean up the docs after the demo mode, Data hub, music, sound effects, onboarding, gazelle and dolphin merges: fix stale facts, remove duplication, credit third-party code correctly, and leave `context/` and earlier log entries alone.
+
+**What the agent did (Claude Code):** checked the README, `CLAUDE.md`, the package READMEs, `backend/README.md` and `docs/*.md` against the code and fixed what had drifted. The README now opens with a short list of what works, has one section for music and sound instead of three, a shorter demo section that points to the demo guide, the backend and docs folders in the layout, `ui → core` in the dependency rule, the in-memory phone storage as a known gap, and credits for MediaPipe, react-native-camera-kit, react-native-permissions, PyAV and vision-demos next to ZzFX. The data README gained `saveAssessment`, the assessment records and the demo backend swap, and says the Data tab where it said Tests. Exact test counts were dropped from the camera guide, and the backend TDD record is marked as a dated snapshot. Doc comments that still named the Tests tab, `SavannaHero` or `mediaWire.ts` were corrected. No behaviour changed.
+
+**Tools:** Claude Code (Anthropic). No new libraries, models or APIs.
+
+**Validation:** `npm run check` (typecheck, lint with no errors, all Jest tests). A script checked that every relative link and anchor in the edited Markdown resolves.

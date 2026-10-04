@@ -1,6 +1,6 @@
 # Demonstrating Climbing Monkey
 
-Open **Data → Demo controls**, next to **About this build**, and tick **Demo mode**. All mock switches start selected. Controls are also available on About, during first-run setup and on the backend loading/retry screen.
+Open **Data → Demo controls** and tick **Demo mode**. All mock switches start selected. The controls are also on About, Settings, every first-run setup step and the backend loading and retry screen.
 
 | Switch | Selected | Unselected |
 |---|---|---|
@@ -16,7 +16,9 @@ For a live presentation with a real webcam but no pose model, unselect **Webcam 
 
 Profile shows the selected provider feeds. **Sync demo integrations** demonstrates a refresh with deterministic example data. These feeds provide activity context; they are not route logs and do not affect climbing scores. Provider accounts, OAuth and real health imports are not implemented.
 
-Saved camera and instrument-force results appear on Data and Profile with history and simulation provenance; saved hand entries appear on Hands. Finger strength has a real instrument-reading form: **Fill example reading** fills labelled values for review and save. All demo screens display a Demo marker. Running mode and automatic scoring remain outside the available app flows.
+Saved camera and instrument-force results appear on Data and Profile with their history and a simulated label; saved hand entries appear on Hands. Finger strength has a real instrument-reading form: **Fill example reading** fills labelled values for review and save. All demo screens show a Demo marker.
+
+Gazelle (running) and dolphin (swimming) modes are not part of the demo. Their sessions stay in normal on-device storage, are not reset by **Reset demo**, and the Demo marker is hidden while either is shown. No app flow computes an ability score.
 
 ## Repeating the presentation
 

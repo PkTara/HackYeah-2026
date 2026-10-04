@@ -1,8 +1,8 @@
-# Climbing Monkey — initial design
+# Climbing Monkey: initial design
 
 Date: 3 October 2026
 
-Status: working draft. Profile-first direction is confirmed; detailed scope, scoring and technical choices remain proposals.
+Status: working draft. Profile-first direction is confirmed; detailed scope, scoring and technical choices remain proposals. What has been built so far is listed in the [README](../README.md#what-works).
 
 Primary brief: [Open: Sport & Healthcare](../context/tracks/open-sport-healthcare.md). Detailed fit and recommended priorities: [alignment analysis](climbing-monkey-alignment.md).
 
@@ -16,7 +16,7 @@ Working initial audience: recreational indoor boulderers who struggle to decide 
 
 The problem is fragmented information: a grade or activity log does not by itself explain style differences, a mobility test lacks climbing context, and a hand observation can get lost when planning the next session. Climbing Monkey connects those records into an explained focus and an achievable action. This is the product's direct response to the sports brief, not a claim that physical tests can predict grades.
 
-## Product direction — confirmed: profile first
+## Product direction: profile first (confirmed)
 
 The main product is a clear, actionable climbing profile. People should immediately see how they are doing across climbing styles, understand what supports that picture, and choose something useful to do next. The profile is the home screen and the destination after every assessment or new climbing observation.
 
@@ -26,7 +26,7 @@ The core experience is **see your shape → understand a strength or focus area 
 
 A companion pet makes that action loop rewarding: the user improves their climbing habits while leveling up a character. The pet lives alongside the profile and helps present its next action.
 
-## Visual identity — confirmed: jungle theme
+## Visual identity: jungle theme (confirmed)
 
 The app is called **Climbing Monkey**, and its companion is a monkey. The visual direction is a welcoming jungle: canopy greens, warm cream surfaces, earthy accents and restrained leaf/vine details. Use a brighter accent for the selected focus and primary action, with accessible contrast across text, controls and charts.
 
@@ -130,13 +130,13 @@ Photos document visible changes. They do not establish internal tissue condition
 
 Hand symptoms influence the profile as a temporary constraint. They must not reduce a permanent ability score. The initial rule is to pause suggestions that load a flagged region and explain why.
 
-## 5. Form coach — later extension
+## 5. Form coach (later extension)
 
 Use the same camera and landmark pipeline to review a small set of defined movements. Start with controlled assessment or exercise footage before attempting arbitrary climbing videos.
 
 Potential outputs include timestamped observations about joint angles, left/right differences and movement consistency. Feedback should reference visible evidence and acknowledge inadequate framing or occlusion. Camera setup, wall angle and movement context must be considered before making climbing-technique claims.
 
-## 6. Guided pain walkthrough — optional extension
+## 6. Guided pain walkthrough (optional extension)
 
 This fits naturally inside the hand journal: tap a region → describe the issue → answer structured questions → save the report → receive an appropriate next step.
 
@@ -183,6 +183,8 @@ Reward reflection, assessments and appropriate recovery actions as well as pract
 4. **Hands:** visual map, photo capture, annotations and history.
 5. **Activity:** session logs and optional connected sources.
 
+The built app has four tabs: Profile, Log, Hands and Data. Data holds the assessments and the activity and recovery context in one hub. Gazelle (running) and dolphin (swimming) modes reuse the same loop for other sports.
+
 Primary demo flow: open clearly labeled previous climb/assessment evidence → inspect the visual profile → choose one supported focus and its explanation → add a hand/wellbeing observation → see any affected quest paused or replaced by an eligible option → complete/log that option → see monkey XP → return later with new evidence to compare progress. Include one live assessment/manual entry in the flow. Ability changes require new evidence, whereas quest completion changes pet XP.
 
 ### Low-effort regular use and accessibility
@@ -206,13 +208,13 @@ Use the repository's existing React Native structure: one codebase for Android, 
 
 Data flow: camera/manual/imported input → quality checks and normalization → confirmed observation → persisted history → profile rules → explained result.
 
-Backend implementation now exists for anonymous profiles, confirmed records, descriptive style summaries, assessment trends, private hand photos, historical discomfort maps, eligible journal/reflection quests, pet XP and optional image, video and live pose analysis. The web app saves to the FastAPI backend when `VITE_MONKEY_API_URL` is set. Climbs, finger flags, reach, the setup goal and two home tests go to the server; quests and XP come from it. Other setup answers and home tests stay on the device. Server measurements and stored records are opt-in capabilities; the client must show what leaves the device and obtain upload/retention consent. Camera previews stay local until explicit analysis or upload consent, and image workflows use reviewed snapshots. See the [camera/video guide](camera-video.md) and [scientific citation handoff](climbing-scientific-evidence.md).
+Backend implementation now exists for anonymous profiles, confirmed records, descriptive style summaries, assessment trends, private hand photos, historical discomfort maps, eligible journal/reflection quests, pet XP and optional image, video and live pose analysis. The web app saves to the FastAPI backend when `VITE_MONKEY_API_URL` is set. Climbs, finger flags, reach, the setup goal, two home tests and assessment records (camera results and finger force) go to the server; quests and XP come from it. Other setup answers and home tests stay on the device. Camera analysis and hand-photo retention are separate permissions, offered in setup and changeable in Settings. Camera frames leave the device only while analysis is allowed and the climber is recording, and a result is saved only after review. See the [camera/video guide](camera-video.md) and [scientific citation handoff](climbing-scientific-evidence.md).
 
 Core records: `ClimberProfile`, `AssessmentResult`, `ActivityRecord`, `HandObservation`, `PhotoAsset` and `ProfileInsight`. An insight references the observations and rule version that produced it. A hand observation records side, view, anatomical region, timestamp, symptoms and optional photo; hand landmark detection must not silently decide the affected region.
 
 Gamification records: `PetProgress`, versioned `QuestDefinition`, `AssignedQuest` and `QuestCompletion`. An assigned quest references its supporting profile insight and selection rule. Completion records its timestamp, reporting method and awarded XP; pet progression is persisted separately from ability measurements.
 
-MediaPipe is a candidate, not a settled dependency. Google documents body landmarks in image/world coordinates and hand landmark detection, which could support overlays and movement estimates. Those capabilities do not themselves provide calibrated anthropometry or injury assessment. See the [Pose Landmarker guide](https://developers.google.com/edge/mediapipe/solutions/vision/pose_landmarker) and [Hand Landmarker guide](https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker).
+The backend uses MediaPipe Pose Landmarker as an optional extra; hand landmark detection is not used. Google documents body landmarks in image/world coordinates and hand landmark detection, which could support overlays and movement estimates. Those capabilities do not themselves provide calibrated anthropometry or injury assessment. See the [Pose Landmarker guide](https://developers.google.com/edge/mediapipe/solutions/vision/pose_landmarker) and [Hand Landmarker guide](https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker).
 
 The documentation reviewed does not establish a ready-to-use React Native integration for Android or iOS. The Python backend provides optional MediaPipe Tasks IMAGE and VIDEO adapters; real image, clip and live-session inference succeeded outside the macOS sandbox, and the browser camera and recording flow passed a fake-device end-to-end check. Android and iOS previews use react-native-camera-kit; physical operation and native builds remain unverified. This does not establish on-device feasibility on phones. Validate native capture, client consent, latency and any native inference bridge separately. Manual assessment entry remains available; demonstration data must be labeled.
 

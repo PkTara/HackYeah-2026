@@ -1,5 +1,7 @@
 # Backend TDD and validation record
 
+This is the record of the first backend implementation (3 October 2026), before the video, live camera and assessment work; numbers below are from then. Run `npm run backend:check` for the current state.
+
 Implemented on `codex/climbing-monkey-backend`, beginning with a pytest/HTTPX fixture and an otherwise empty FastAPI app. The first executable behavioral failure was `/health` returning 404 instead of 200; the health handler was added only after that run.
 
 ## Method
@@ -45,10 +47,8 @@ A localhost Uvicorn smoke test exercised health, identity creation, evidence sub
 
 An official public sample image with Google's Pose Landmarker heavy model produced a real inference result outside the macOS sandbox. This establishes adapter integration, not physical-test accuracy; camera geometry remains uncalibrated. The sandbox prevented Metal initialization and aborted native inference, so the model must run in a supported execution environment.
 
-## Other repository checks
+## Other checks
 
-Existing React Native typechecking passed, and all eight frontend tests passed. The pre-existing root lint command failed because it scanned generated native build and dependency files (149 errors, 339 warnings). Those files were not changed by the backend work. Backend Ruff checks are separate.
+The test stack emits one upstream Starlette/AnyIO deprecation warning. It does not change test outcomes. Clinical content, OAuth/provider integrations and calibrated style scoring are explicitly later work; no tests or mocks claim they are implemented.
 
-The test stack emits one upstream Starlette/AnyIO deprecation warning. It does not change test outcomes. Clinical content, OAuth/provider integrations, calibrated style scoring and frontend API wiring are explicitly subsequent work; no tests or mocks claim they are implemented.
-
-Final verification: **114 passed**, **99% statement coverage**, Ruff checks and formatting passed, dependency check passed. Fresh core-only environment: **112 passed, two optional MediaPipe-container tests skipped**. The final scoped re-review approved all four initial findings. GitHub CI configuration was added but has not been run remotely in this local-only branch.
+Final verification: **114 passed**, **99% statement coverage**, Ruff checks and formatting passed, dependency check passed. Fresh core-only environment: **112 passed, two optional MediaPipe-container tests skipped**. The final scoped re-review approved all four initial findings. `.github/workflows/backend.yml` runs the same tests and Ruff checks on pushes and pull requests that touch `backend/`.

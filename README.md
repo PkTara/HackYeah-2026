@@ -3,17 +3,23 @@
 
 # HackYeah 2026
 
-**Climbing Monkey** is a jungle-themed, profile-first climbing app: understand your climbing styles, choose an achievable next action, and grow a monkey companion through consistent participation. It is built for the [Open: Sport & Healthcare](context/tracks/open-sport-healthcare.md) track. Read the [product design](docs/climbing-app-design.md) and [alignment analysis](docs/climbing-monkey-alignment.md). A working prototype of the profile loop (profile, focus, quests, climb log, hand flags, monkey XP) runs on labelled sample data. **Gazelle mode** (running) and **dolphin mode** (swimming) apply the same loop to other sports: switch pets from the Pets panel on any profile and the app redraws itself as a savanna or an ocean. Each has a log (run type or stroke, where, distance, time), a three-corner profile, one focus, one quest, sore-spot flags that pause quests, and its own XP and unlocks. Both share one engine (`packages/core/src/sport.ts`) with a definition per sport (`packages/core/src/sports/`). They keep their data on the device; the server does not handle these sports yet. The rest of the design is still proposals.
+**Climbing Monkey** is a jungle-themed, profile-first climbing app: understand your climbing styles, choose one achievable next action, and grow a monkey companion by taking part. It is built for the [Open: Sport & Healthcare](context/tracks/open-sport-healthcare.md) track. Read the [product design](docs/climbing-app-design.md) and the [alignment analysis](docs/climbing-monkey-alignment.md).
 
 ![Climbing Monkey screens: profile, evidence, level up, night mode, log, hands, paused quest, tests](docs/assets/jungle-ui-screens.png)
 
 ![Climbing Monkey on phone and desktop: profile, finger close-up, desktop profile with side rail, desktop climb log](docs/assets/jungle-ui-web.png)
 
-The [Python/FastAPI backend](backend/README.md) implements the confirmed-evidence → profile → quest → pet XP loop, with SQLite persistence, private hand photos and optional MediaPipe pose analysis of photos, recorded clips and a sampled live camera. The web app saves to it when `VITE_MONKEY_API_URL` is set (see [Connecting a backend](#connecting-a-backend)). See the backend README for setup, API contracts and TDD checks, the [camera and video guide](docs/camera-video.md) for the capture flows, and the [scientific evidence notes](docs/climbing-scientific-evidence.md) for what the research does and does not support. Use `npm run backend:check` after creating its virtualenv.
+## What works
 
-**Sound effects.** Quiet clicks for buttons, chips and toggles, a soft murmur while the monkey's speech bubble types, and a short chime when a climb, a test result, setup or a quest is saved (an arpeggio on a level up). They are made in code with [ZzFX](https://github.com/KilledByAPixel/ZzFX) (`packages/platform/src/sfx`), no audio files, and peak about 24 dB below full scale, well under the music. They are on by default, play nothing before the first tap or key press and nothing while the page is hidden, and can be turned off with the Sound effects switch in Settings (Data, then Settings; remembered on the device). Web only for now, like the music.
+- **Profile loop.** Log climbs (wall angle, controlled or dynamic movement, holds, grade, sent or not). The profile shows a terrain triangle and a style chart, one focus with the evidence behind it, one quest, and the monkey's XP, level and unlocks. Sample data is labelled Example.
+- **Setup.** First-run questions (places, experience, grade, goal, body, connected apps) and six home tests with a stopwatch or rep counter. The guide monkey holds a different prop for each question, and the timer and counter numbers can be tapped to type a result.
+- **Hands.** Flag a finger and mark the sore spots; quests that load the fingers pause until it is cleared. A layered hand anatomy viewer and a private hand photo journal (photos need the server).
+- **Data hub.** The Data tab groups body and reach, mobility and movement (live camera leg-spread and shoulder-reach assessments, which need the server), strength and endurance (home tests, finger strength read from an external instrument) and activity and recovery. Settings (camera-analysis and hand-photo permissions, sound effects) and About open from here.
+- **Demo mode** simulates the profile, health-provider feeds, webcam, pose analysis and photo storage for a presentation. See [Demo mode](#demo-mode).
+- **Gazelle mode** (running) and **dolphin mode** (swimming) apply the same loop to other sports: switch pets from the Pets panel on any profile and the app redraws itself as a savanna or an ocean. Each has a log (run type or stroke, where, distance, time), a three-corner profile, one focus, one quest, sore-spot flags that pause quests, and its own XP and unlocks. Both run on one engine (`packages/core/src/sport.ts`) with a definition per sport (`packages/core/src/sports/`). Their data stays on the device; the server does not know these sports yet.
+- **Music and sound effects** on the web. See [Music and sound](#music-and-sound).
 
-**Music.** A small speaker key in the top-right corner of every page, setup included, plays background music: an original island loop composed in code and synthesised with Web Audio (`packages/platform/src/music`), no audio files. It is off until pressed and remembers the choice; if it was left on, it starts again at the first tap or key press, never by itself. On the web only for now: Android and iOS need a native audio library behind the same `music` capability, and the key is hidden there.
+The [Python/FastAPI backend](backend/README.md) holds the authoritative profile, quest and XP rules, with SQLite storage, private hand photos and optional MediaPipe pose analysis of photos, recorded clips and a sampled live camera. The app saves to it when a server address is set (see [Connecting a backend](#connecting-a-backend)); without one everything stays on the device. See the [camera and video guide](docs/camera-video.md) for the capture flows and the [scientific evidence notes](docs/climbing-scientific-evidence.md) for what the research does and does not support.
 
 A React Native app for **Android, iOS and the web**: one codebase, with a native host for the phones and react-native-web in the browser.
 
@@ -42,11 +48,15 @@ packages/            Shared code, imported as @hackyeah/<name>
   ui/                Jungle pixel UI kit (react-native primitives only, see its README)
   app/               Screens, navigation, root <App/>
   vision/            On-device pose: pull-up counter, dead hang and plank timers, climbing form
-                     observations (plain TypeScript; the web host passes MediaPipe in)
+                     observations. Plain TypeScript, MediaPipe is passed in. Only its browser
+                     harness uses it so far; the app screens do not
+backend/             Python/FastAPI server: profile, quests, XP, photos, pose analysis
+docs/                Product design, backend design, camera guide, demo guide, research notes
+assets/, tools/      Pet sprites and the script that draws them
 context/             Hackathon brief, rules and judging criteria (Markdown)
 ```
 
-Dependencies only flow downwards: `app → ui, data, platform, core`, and `data → core, platform`. `core` depends on nothing, and the hosts in `apps/` stay thin. To add another target (a tablet layout, a different web shell, a desktop app), write a new host that renders `@hackyeah/app`. If the target needs different native behaviour, add a `capabilities.<platform>.ts` file in `packages/platform`.
+Dependencies only flow downwards: `app → ui, data, platform, core`, `data → core, platform` and `ui → core`. `core` and `platform` depend on no other package, and the hosts in `apps/` stay thin. To add another target (a tablet layout, a different web shell, a desktop app), write a new host that renders `@hackyeah/app`. If the target needs different native behaviour, add a `capabilities.<platform>.ts` file in `packages/platform`.
 
 ### How platform-specific code is selected
 
@@ -67,9 +77,18 @@ To use the FastAPI backend, run `npm run backend:setup` once, then `MONKEY_CORS_
 
 ### Demo mode
 
-Open **Data → Demo controls**, beside **About this build**, and tick **Demo mode**. The controls are also available in About, during setup and when the backend cannot load. Individual checkboxes simulate the profile, health-provider feeds, webcam, pose analysis, hand-photo storage, home-test results. Finger strength uses the same instrument-reading form with a demo-fill action. Untick **Webcam input** to use your real camera while keeping **Analysis results** simulated. The default demo needs no backend, physical webcam, provider accounts or pose model. Enable optional camera-analysis permission in setup or Settings before pressing Record; simulated frames remain local.
+Open **Data → Demo controls** and tick **Demo mode**. The controls are also on About, Settings, during setup and on the screen shown when the backend cannot load. Each switch simulates one thing: the sample profile, each health provider, the webcam, pose analysis, hand-photo storage and example home-test and finger-strength readings. With everything ticked the demo needs no backend, webcam, provider account or pose model. Untick **Webcam input** to use a real camera while **Analysis results** stays simulated.
 
-Choices survive refreshes. Demo data, tokens and server identities are separate from your normal profile; switching demo mode off restores it. **Reset demo** starts a fresh presentation scenario. See [the demo guide](docs/demo-mode.md) for the switches and limitations.
+Demo data and server identities are kept apart from your normal profile, and switching demo mode off brings it back. **Reset demo** starts a fresh scenario. The gazelle and dolphin are not part of the demo: their data stays in normal on-device storage. See [the demo guide](docs/demo-mode.md) for every switch and its limits.
+
+### Music and sound
+
+Both are made in code, with no audio files, and play only on the web for now.
+
+- **Music:** an original island loop, synthesised with Web Audio (`packages/platform/src/music`). A small speaker key in the top-right corner of every page, setup included, turns it on. It is off until pressed and remembers the choice; if it was left on, it starts again at the first tap or key press, never by itself.
+- **Sound effects:** quiet clicks for buttons, chips and toggles, a soft murmur while the monkey's speech bubble types, and a chime when a climb, a session, a test result, setup or a quest is saved (an arpeggio on a level up). They are generated with [ZzFX](https://github.com/KilledByAPixel/ZzFX) (`packages/platform/src/sfx`) and play well below the music. They are on by default, play nothing before the first tap or key press or while the page is hidden, and can be turned off in **Settings** (remembered on the device).
+
+Music and sound effects share one AudioContext. On Android and iOS the `music` and `sfx` capabilities are undefined, so the music key is hidden and the app is silent (see [Native features](#native-features)).
 
 ## Setup
 
@@ -119,9 +138,9 @@ Use `--platform ios` for the iOS bundle. Don't write bundles into `android/` or 
 
 React Native provides the core APIs (`Platform`, `Vibration`, `BackHandler`, `SafeAreaView`, …) on both phones. For anything else, add a native module to the Android and iOS projects and wrap it behind an interface in `packages/platform/src/types.ts`. Implement it in `capabilities.ts`, with a fallback in `capabilities.web.ts`.
 
-**Music on Android and iOS** is not there yet. The web plays it with Web Audio (`capabilities.web.ts`); a phone needs a native audio library (for example one that plays a rendered loop) wrapped as the `music` capability in `capabilities.ts`. Until then `music` is undefined and the app hides the music key.
-
-**Sound effects on Android and iOS** are not there yet either, for the same reason. On the web the `sfx` capability plays them with Web Audio, sharing one AudioContext with the music. On the phones `sfx` is undefined: the app is silent and the Settings page says sound effects are not available.
+Not done on the phones yet:
+- **Storage:** `capabilities.ts` uses an in-memory store, so data on Android and iOS is lost when the app closes. Swap it for a persistent store (for example `@react-native-async-storage/async-storage`).
+- **Music and sound effects:** a phone needs a native audio library (for example one that plays a rendered loop) wrapped as the `music` and `sfx` capabilities. Until then the music key is hidden and Settings says sound effects are not available.
 
 **Third-party libraries:** a library with native code needs a native rebuild (and `pod install` on iOS), and it won't run in the web host, so keep it behind a capability with a web fallback. Pure-JS libraries work everywhere as they are.
 
@@ -135,8 +154,12 @@ React Native provides the core APIs (`Platform`, `Vibration`, `BackHandler`, `Sa
 ## Third-party code
 
 - **ZzFX** by Frank Force, MIT licence ([KilledByAPixel/ZzFX](https://github.com/KilledByAPixel/ZzFX)). The sound generator from version 1.4.0 is vendored in `packages/platform/src/sfx/zzfx.ts` with its original copyright and licence header. Only the part that builds samples was kept and ported to TypeScript; the sounds are unchanged. The npm package was not used because it creates an AudioContext as soon as it is imported, which browsers block before a tap and which does not exist in Jest or on the phones. The About and Settings pages credit it too.
+- **MediaPipe** by Google, Apache-2.0. The backend's optional pose analysis uses the `mediapipe` Python package with a Pose Landmarker model that you download yourself (`POSE_MODEL_PATH`, never committed). The web host depends on `@mediapipe/tasks-vision` for the `packages/vision` harness. See [backend/README.md](backend/README.md) and [packages/vision/README.md](packages/vision/README.md).
+- **react-native-camera-kit** and **react-native-permissions**, both MIT, for the camera on Android and iOS. A small patch to camera-kit lives in `apps/mobile/patches/` (see the [camera guide](docs/camera-video.md#native-adapters)).
+- **PyAV**, BSD-3-Clause, decodes recorded clips in the backend's optional video extra.
+- **[jeremyipark/vision-demos](https://github.com/jeremyipark/vision-demos)**, Apache-2.0: design ideas for the rep counter in `packages/vision`, rewritten in TypeScript rather than copied.
 
-Libraries installed from npm are listed in `apps/mobile/package.json` and `apps/web/package.json`.
+Every other library is listed in `apps/mobile/package.json`, `apps/web/package.json` and `backend/pyproject.toml`.
 
 ## AI usage
 

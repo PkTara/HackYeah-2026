@@ -2,7 +2,7 @@
 
 Counts pull-ups and times dead hangs and planks **live**, from body keypoints, while the camera runs. It also describes a **recorded climb** (straight arms, pauses, foot re-placements, fast moves). Everything here runs on the device and this package makes no network calls. Pure TypeScript: no React, no react-native, no MediaPipe import, so it bundles unchanged for Android, iOS and the web.
 
-The server-side pose step is in `backend/`: `POST /v1/pose/image` (MediaPipe on one uploaded image) and `POST /v1/pose/landmarks` (leg-spread angle from landmarks the client sends). See `backend/README.md`.
+The app screens do not use this package yet; only the [web harness](#web-harness) does. The app's live camera assessments run pose on the server instead: `backend/` runs MediaPipe on uploaded images (`POST /v1/pose/image`), clips (`POST /v1/pose/video`) and sampled live frames (the `/v1/pose/stream` WebSocket), and `POST /v1/pose/landmarks` measures leg spread from landmarks the client sends. See `backend/README.md`.
 
 ```
 camera -> KeypointSource (per platform) -> PoseFrame -> PullupCounter / HoldTimer -> live state + TestResult
@@ -15,6 +15,7 @@ recorded clip -> PoseFrame[] -> analyzeClimbForm() -> ClimbFormReport
 |---|---|
 | `pose.ts` | `PoseFrame`: named landmarks (x, y normalised to 0..1, visibility 0..1) plus a timestamp and the image size. Maps MediaPipe's 33 points and the 17 COCO points to one set of names. |
 | `geometry.ts` | Angles and distances in pixels, so portrait frames do not squash angles. |
+| `smoothing.ts` | `RunningMedian`, the 3-frame running median every live signal goes through. |
 | `repCounter.ts`, `pullups.ts` | A rep state machine fed one frame at a time, and the pull-up rule. `PullupCounter` is the class screens use. |
 | `holdTimer.ts`, `postures.ts` | A hold timer fed one frame at a time, and the plank and dead hang rules. |
 | `result.ts` | `TestResult`, quality verdicts and capture statistics shared by all tests. |
@@ -100,9 +101,9 @@ Assumptions: a still camera, one climber, filmed from behind or from the side; l
 
 | Platform | Source | State |
 |---|---|---|
-| Web | MediaPipe Pose Landmarker in the browser (WASM). The web host imports `@mediapipe/tasks-vision` and passes the landmarker to `createMediaPipeSource`. | Works in the harness, including real inference in headless Chromium. Not wired into app screens. |
+| Web | MediaPipe Pose Landmarker in the browser (WASM). The harness imports `@mediapipe/tasks-vision` (a dependency of `apps/web`) and passes the landmarker to `createMediaPipeSource`. | Works in the harness, including real inference in headless Chromium. Not wired into app screens. |
 | Android, iOS | MediaPipe Tasks Pose Landmarker for Android and iOS (the same models), in a native module that runs on camera frames and sends the 33 landmarks to JS, where `fromMediaPipeLandmarks()` turns them into PoseFrames. | Not built. Native support does not exist today: use `createUnavailableSource()` (or the labelled `createSimulatedSource()`) until it does. |
-| Server | `backend/`: `/v1/pose/image` and `/v1/pose/landmarks`. | Owned by the backend. |
+| Server | `backend/`: `/v1/pose/image`, `/v1/pose/video`, `/v1/pose/stream` and `/v1/pose/landmarks`. | Owned by the backend. |
 
 Until a platform has a source, `createSimulatedSource(test)` plays a synthetic session in real time. Its results carry `simulated: true` and must be labelled as simulated on screen.
 

@@ -1,6 +1,6 @@
-# Climbing Monkey — Sport & Healthcare alignment
+# Climbing Monkey: Sport & Healthcare alignment
 
-Date: 3 October 2026. Assessment of the **design**, not a claim that proposed features are implemented or a prediction of jury scores.
+Date: 3 October 2026. Assessment of the **design**, written before most of the app was built. It is not a claim that proposed features are implemented or a prediction of jury scores; the [README](../README.md#what-works) lists what works.
 
 ## Overall assessment
 
@@ -29,11 +29,11 @@ The brief's suggested directions are examples. We do not need to implement careg
 
 | Criterion | Assessment of the proposal | Best evidence to prepare |
 |---|---|---|
-| **Innovation — 30%** | Promising combination of style-specific understanding and an evidence-linked action loop; uniqueness is not established | Explain the specific decision improved beyond an ordinary climb log, generic radar or pet habit tracker; compare relevant alternatives before claiming novelty |
-| **Category fit — 20%** | Strong: informed physical activity, wellbeing context and achievable action | One climber scenario connecting previously separate records to a useful next step |
-| **Usability — 20%** | Good intention, with scope and routine-effort risks | Watch users interpret a chart, choose an action and complete a check-in; document misunderstandings and fixes |
-| **Design — 20%** | Clear visual direction: terrain triangle, movement radar, monkey and jungle | A polished consistent screen with readable labels, missing-data states and accessible controls |
-| **Completeness — 10%** | Unproven at product level; the existing scaffold is not the full experience | A working persistent loop with traceable explanations, quest completion and duplicate-XP handling |
+| **Innovation (30%)** | Promising combination of style-specific understanding and an evidence-linked action loop; uniqueness is not established | Explain the specific decision improved beyond an ordinary climb log, generic radar or pet habit tracker; compare relevant alternatives before claiming novelty |
+| **Category fit (20%)** | Strong: informed physical activity, wellbeing context and achievable action | One climber scenario connecting previously separate records to a useful next step |
+| **Usability (20%)** | Good intention, with scope and routine-effort risks | Watch users interpret a chart, choose an action and complete a check-in; document misunderstandings and fixes |
+| **Design (20%)** | Clear visual direction: terrain triangle, movement radar, monkey and jungle | A polished consistent screen with readable labels, missing-data states and accessible controls |
+| **Completeness (10%)** | Unproven at product level; the existing scaffold is not the full experience | A working persistent loop with traceable explanations, quest completion and duplicate-XP handling |
 
 These judgments concern fit, not numeric scores. Neither paper research nor the brief establishes that a mobility test can predict style-specific grades.
 
@@ -75,7 +75,7 @@ Sports has no required OS or native feature. Demonstrate on whichever host runs 
 
 Sports weights are **30/20/20/20/10** for innovation/category/usability/design/completeness. No criterion scores native platform capabilities.
 
-Required track materials: title, team, 1–6 members, description and a PDF deck of at most 10 slides. Prepare to the supplied upload form's English requirements, five-word title limit, 500-word description limit and required gallery image. “Climbing Monkey” fits the title limit. Significant AI/external-resource disclosure is required; maintain the existing AI log.
+Required track materials: title, team, 1 to 6 members, description and a PDF deck of at most 10 slides. Prepare to the supplied upload form's English requirements, five-word title limit, 500-word description limit and required gallery image. “Climbing Monkey” fits the title limit. Significant AI/external-resource disclosure is required; maintain the existing AI log.
 
 Deadline: **4 October 2026, 11:00 PM**. Confirm the source discrepancy between HackTribe and Challenge Rocket and the suspicious 11:00 PM start-time wording with organizers.
 
