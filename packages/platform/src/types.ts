@@ -30,6 +30,26 @@ export interface CameraCapability {
   MediaPreview: ComponentType<{ capture: MediaCapture }>;
 }
 
+/**
+ * Background music: an original loop, made in code (see music/song.ts).
+ * Browsers only allow sound after the person taps, clicks or presses a key,
+ * so play() must run inside such a gesture, or from onNextGesture.
+ */
+export interface MusicCapability {
+  /** True from play() until stop(), also while the page is hidden. */
+  readonly playing: boolean;
+  /** Starts the loop from the top, fading in. Does nothing if playing. */
+  play(): Promise<void>;
+  /** Fades out and stops. */
+  stop(): void;
+  /**
+   * Calls `listener` once, on the next tap, click or key press anywhere.
+   * Used to resume music that was left on, without autoplaying. Returns a
+   * function that cancels the wait.
+   */
+  onNextGesture(listener: () => void): () => void;
+}
+
 export interface Capabilities {
   readonly platform: PlatformName;
   /** Human-readable description of the OS, for display and diagnostics. */
@@ -38,4 +58,9 @@ export interface Capabilities {
   readonly storage: KeyValueStore;
   /** Missing where there is no camera; the camera screens say so. */
   readonly camera?: CameraCapability;
+  /**
+   * Missing where there is no music player yet (Android and iOS need a
+   * native audio library); the music button is then hidden.
+   */
+  readonly music?: MusicCapability;
 }

@@ -23,6 +23,7 @@ export {
 } from './components/FingerMap';
 export { Gazelle } from './components/Gazelle';
 export { Icon } from './components/Icon';
+export { IconButton, ICON_BUTTON_SIZE } from './components/IconButton';
 export { JungleHero } from './components/JungleHero';
 export { Meter, Pips } from './components/Meter';
 export { Monkey } from './components/Monkey';
@@ -34,7 +35,11 @@ export { Panel, type PanelVariant } from './components/Panel';
 export { PixelArt } from './components/PixelArt';
 export { PixelBox } from './components/PixelBox';
 export { PixelText } from './components/PixelText';
-export { Screen } from './components/Screen';
+export {
+  Screen,
+  ScreenCornerContext,
+  useCornerReserve,
+} from './components/Screen';
 export {
   Column,
   Columns,

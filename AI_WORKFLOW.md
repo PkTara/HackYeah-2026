@@ -255,3 +255,18 @@ The Codex design-drafting step used the `superpowers:using-superpowers` and `sup
 
 **Not verified:** a real camera, Android or iOS native builds, and runtime permission dialogs on a phone.
 
+### 22. Background music (2026-10-04)
+
+**Prompt:** "Royalty-free chill music (similar to BTD5 music), but with a non-obtrusive audio button (probably top-right)." The team chose music in the app (not the deck), and an original composition made in code with Web Audio rather than a downloaded file.
+
+**Output:**
+- `packages/platform/src/music`: the song as plain data (`song.ts`: "Canopy Breeze", F major, 100 BPM, swung eighths, 24 bars in A, B and A2 sections), a look-ahead scheduler on the audio clock (`scheduler.ts`), the synthesised band (`voices.ts`: steel drum lead, marimba chords, kalimba arpeggios, round bass, shaker and hand drums, a generated reverb, master gain 0.18 into a compressor) and the browser player (`webMusic.ts`: AudioContext made on the first press, 1.5 s fade in, 0.4 s fade out, suspended while the page is hidden).
+- An optional `music` capability in `packages/platform/src/types.ts`; the web provides it, Android and iOS leave it undefined.
+- `packages/ui`: speaker and muted-speaker 12x12 icons, an `IconButton` key and a corner slot on `Screen` that keeps room for it. `packages/app`: `music.tsx` (off by default, choice saved under `climbing-monkey/music/v1`, a saved "on" waits for the first tap or key press).
+
+**Originality:** the melody, chords, rhythms and sounds were written for this app by the AI agent in code. Only the mood was taken from the request (laid-back island music, like tower defence menu music). No melody, chord sequence or rhythm from any existing game or song was copied or approximated, and no samples or audio files are used.
+
+**Validation:** Jest tests for the song data (every bar fills the meter, notes in range, loop length, sections), the scheduler with a fake clock (look-ahead, stop, seamless wrap), the player with a fake AudioContext (lazy context, fades, suspend on hide) and the App (button only with the capability, play and mute, label, saved choice, waiting for a gesture). An OfflineAudioContext render of the same engine in headless Chromium (64 s, one loop plus the wrap) peaked at -7.6 dBFS with an RMS of -25.1 dBFS, no NaN samples, no gap at the loop seam and no silence of 0.3 s or more. Playwright checked the button at 360, 390, 1280 and 1440 px in light and dark, and that no AudioContext exists before a press or, after a reload with music left on, before the first click. `npm run check`, the web build and the Android bundle pass.
+
+**Not verified:** listening on real phone and laptop speakers, and Safari.
+

@@ -14,7 +14,7 @@ Everything you see in Climbing Monkey is drawn with plain React Native `View`s. 
 | Component | What it is |
 |---|---|
 | `Panel` | The main container: a sign with stepped pixel corners, a hard shadow and an optional wooden title tab. Variants: `sign`, `banana` (focus), `wood`, `quiet` (symptom screens), `alert`. |
-| `Button`, `Chip` | Chunky keys that sink onto their shadow when pressed. |
+| `Button`, `Chip`, `IconButton` | Chunky keys that sink onto their shadow when pressed. `IconButton` is a small icon-only key (the music toggle) with a 44 px touch target. |
 | `PixelBox` | The stepped-corner rectangle all of the above are built from. |
 | `PixelText`, `Icon`, `PixelArt` | Bitmap text, 12x12 icons, any sprite. |
 | `Meter`, `Pips`, `Tag` | Segmented XP bar, one square per logged climb, small state stamps such as EXAMPLE or PAUSED. |

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { View } from 'react-native';
+import { ScreenCornerContext } from '@hackyeah/ui';
 import {
   createBackend,
   createMedia,
@@ -13,6 +14,7 @@ import {
 import { CapabilitiesContext } from './capabilities';
 import { CelebrationOverlay } from './components/CelebrationOverlay';
 import { MediaContext } from './media';
+import { MusicButton, MusicProvider } from './music';
 import { StatusGate } from './components/StatusGate';
 import { SyncNotice } from './components/SyncNotice';
 import { Navigator } from './navigation/Navigator';
@@ -54,23 +56,33 @@ export function App({
     () => (media === undefined ? createMedia(capabilities.storage) : media),
     [media, capabilities.storage],
   );
+  // The music button sits in the top-right corner of every page, setup
+  // included. Without a music player there is no button and no space kept.
+  const corner = useMemo(
+    () => (capabilities.music ? <MusicButton /> : null),
+    [capabilities.music],
+  );
   return (
     <CapabilitiesContext.Provider value={capabilities}>
       <MediaContext.Provider value={camera}>
-        <GameProvider backend={data} today={today}>
-          <View style={{ flex: 1 }}>
-            <StatusGate>
-              <OnboardingGate>
-                <Navigator<RouteName>
-                  initialRoute={initialRoute}
-                  screens={screens}
-                />
-              </OnboardingGate>
-            </StatusGate>
-            <CelebrationOverlay />
-            <SyncNotice />
-          </View>
-        </GameProvider>
+        <MusicProvider>
+          <ScreenCornerContext.Provider value={corner}>
+            <GameProvider backend={data} today={today}>
+              <View style={{ flex: 1 }}>
+                <StatusGate>
+                  <OnboardingGate>
+                    <Navigator<RouteName>
+                      initialRoute={initialRoute}
+                      screens={screens}
+                    />
+                  </OnboardingGate>
+                </StatusGate>
+                <CelebrationOverlay />
+                <SyncNotice />
+              </View>
+            </GameProvider>
+          </ScreenCornerContext.Provider>
+        </MusicProvider>
       </MediaContext.Provider>
     </CapabilitiesContext.Provider>
   );

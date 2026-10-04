@@ -68,6 +68,15 @@ describe('ICONS', () => {
   it('draws the bin the same on both sides', () => {
     expect(mirror(ICONS.bin)).toEqual(ICONS.bin);
   });
+
+  it('draws the music speakers in ink and paper, the same speaker in both', () => {
+    for (const rows of [ICONS.speaker, ICONS.speakerOff]) {
+      expect([...keysOf(rows)].sort()).toEqual(['#', '.', 'W']);
+    }
+    const speaker = (rows: readonly string[]) => rows.map(row => row.slice(0, 7));
+    expect(speaker(ICONS.speakerOff)).toEqual(speaker(ICONS.speaker));
+    expect(ICONS.speakerOff).not.toEqual(ICONS.speaker);
+  });
 });
 
 describe('monkeyRows', () => {

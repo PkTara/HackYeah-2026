@@ -7,6 +7,7 @@ import {
   PX,
   PixelText,
   Screen,
+  useCornerReserve,
   useLayout,
   useTheme,
 } from '@hackyeah/ui';
@@ -58,7 +59,12 @@ export function StepFrame({ step, from, line, back, skip, next, children }: Prop
     <Screen
       hero={
         <View>
-          <Progress step={step} column={column} gutter={layout.gutter} />
+          <Progress
+            step={step}
+            column={column}
+            gutter={layout.gutter}
+            width={width}
+          />
           <MonkeyGuide
             line={line}
             spot={perchOf(step)}
@@ -83,12 +89,17 @@ function Progress({
   step,
   column,
   gutter,
+  width,
 }: {
   step: StepId;
   column: number;
   gutter: number;
+  width: number;
 }) {
   const { colors: c } = useTheme();
+  // On narrow screens the plank row runs to the right edge; stop it short of
+  // the music button in the corner.
+  const clash = useCornerReserve() - (width - column) / 2;
   const chapter = chapterOf(step);
   const label =
     step === 'welcome'
@@ -107,7 +118,12 @@ function Progress({
         },
       ]}
     >
-      <View style={[styles.plankRow, { maxWidth: column }]}>
+      <View
+        style={[
+          styles.plankRow,
+          { maxWidth: column, paddingRight: Math.max(0, clash) },
+        ]}
+      >
         <PixelText
           text={label}
           color={PLANK_TEXT}
