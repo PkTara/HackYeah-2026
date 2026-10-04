@@ -1,5 +1,6 @@
 import { Pressable, View } from 'react-native';
 import type { IconName } from '../pixel/sprites';
+import { useUiSound } from '../sound';
 import { PX, useTheme } from '../theme';
 import { Icon } from './Icon';
 import { PixelBox } from './PixelBox';
@@ -29,6 +30,7 @@ export function Chip({
 }: Props) {
   const theme = useTheme();
   const c = theme.colors;
+  const playSound = useUiSound();
   const fill = selected ? (warn ? c.danger : c.primary) : c.surface;
   const ink = selected ? (warn ? c.onDanger : c.onPrimary) : c.text;
   return (
@@ -38,7 +40,11 @@ export function Chip({
       // aria-selected maps to accessibilityState on native and also reaches
       // screen readers on the web.
       aria-selected={selected}
-      onPress={onPress}
+      onPress={() => {
+        // Choosing gets a brighter tick than letting go.
+        playSound(selected ? 'tap' : 'select');
+        onPress();
+      }}
       hitSlop={3}
     >
       {({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => (

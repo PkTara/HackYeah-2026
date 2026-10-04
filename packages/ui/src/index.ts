@@ -1,5 +1,11 @@
 export * from './theme';
 export { ToneContext, useTone, type Tone } from './tone';
+export {
+  UiSoundContext,
+  useUiSound,
+  type PlayUiSound,
+  type UiSound,
+} from './sound';
 export { useReducedMotion, useTicker } from './hooks';
 export { AppText } from './components/AppText';
 export { Breadcrumbs, fitCrumbs, type Crumb } from './components/Breadcrumbs';
@@ -53,6 +59,7 @@ export {
 } from './layout';
 export { TabBar, type Tab } from './components/TabBar';
 export { Tag } from './components/Tag';
+export { Toggle } from './components/Toggle';
 export { WarningSign } from './components/WarningSign';
 export {
   TerrainTriangle,

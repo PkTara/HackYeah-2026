@@ -5,6 +5,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import type { IconName } from '../pixel/sprites';
+import { useUiSound } from '../sound';
 import { PX, useTheme } from '../theme';
 import { Icon } from './Icon';
 import { PixelBox } from './PixelBox';
@@ -41,12 +42,16 @@ export function IconButton({
 }: Props) {
   const theme = useTheme();
   const c = theme.colors;
+  const playSound = useUiSound();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityState={selected === undefined ? undefined : { selected }}
-      onPress={onPress}
+      onPress={() => {
+        playSound('tap');
+        onPress();
+      }}
       style={[styles.target, style]}
     >
       {({ pressed, hovered }: PressState) => (

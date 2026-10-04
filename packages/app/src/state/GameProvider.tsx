@@ -31,6 +31,7 @@ import {
   type Side,
 } from '@hackyeah/core';
 import type { ClimbingBackend } from '@hackyeah/data';
+import { useSfx } from '../sfx';
 
 export type Celebration = Readonly<{
   id: number;
@@ -128,6 +129,9 @@ export function GameProvider({ children, backend, today: fixedToday }: Props) {
   const [celebration, setCelebration] = useState<Celebration | null>(null);
   const today = fixedToday ?? toLocalDate(new Date());
   const celebrationId = useRef(1);
+  // Saving something worth keeping gets a short happy sound (quiet, and only
+  // when sound effects are on; see sfx.tsx).
+  const { play } = useSfx();
 
   const reload = useCallback(async () => {
     try {
@@ -207,6 +211,7 @@ export function GameProvider({ children, backend, today: fixedToday }: Props) {
       const before = petStatus(state.completed);
       const after = petStatus([...state.completed, id]);
       const levelUp = after.level > before.level ? after.level : null;
+      play(levelUp ? 'levelUp' : 'success');
       setCelebration({
         id: celebrationId.current++,
         xp: after.xp - before.xp,
@@ -219,7 +224,7 @@ export function GameProvider({ children, backend, today: fixedToday }: Props) {
         backend.completeQuest(id),
       );
     },
-    [state.completed, commit, backend],
+    [state.completed, commit, backend, play],
   );
 
   const setFingerSpots = useCallback(
@@ -279,6 +284,7 @@ export function GameProvider({ children, backend, today: fixedToday }: Props) {
         commit({ type: 'skipQuest', questId: id }, () => backend.skipQuest(id)),
       logClimb: input => {
         const log: ClimbLog = { ...input, id: newId(), date: today };
+        play('success');
         commit({ type: 'logClimb', log }, () => backend.addClimb(log));
       },
       removeClimb: id =>
@@ -287,16 +293,20 @@ export function GameProvider({ children, backend, today: fixedToday }: Props) {
         const reach: Reach = { ...input, date: today };
         commit({ type: 'saveReach', reach }, () => backend.saveReach(reach));
       },
-      finishOnboarding: result =>
+      finishOnboarding: result => {
+        play('success');
         commit({ type: 'finishOnboarding', result }, () =>
           backend.finishOnboarding(result),
-        ),
+        );
+      },
       skipOnboarding: () =>
         commit({ type: 'skipOnboarding' }, () => backend.skipOnboarding()),
-      saveBaseline: result =>
+      saveBaseline: result => {
+        play('success');
         commit({ type: 'saveBaseline', result }, () =>
           backend.saveBaseline(result),
-        ),
+        );
+      },
       // Not shown before it is done: a failed reset must leave the profile.
       resetProfile: () => {
         backend.resetProfile().then(
@@ -332,6 +342,7 @@ export function GameProvider({ children, backend, today: fixedToday }: Props) {
       clearFinger,
       toggleFlag,
       commit,
+      play,
     ],
   );
 

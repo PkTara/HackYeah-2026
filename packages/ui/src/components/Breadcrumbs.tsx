@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { textWidth } from '../pixel/font';
 import { art } from '../pixel/raster';
+import { useUiSound } from '../sound';
 import { PX, useTheme } from '../theme';
 import { useTone } from '../tone';
 import { PixelArt } from './PixelArt';
@@ -90,6 +91,7 @@ type PressState = { pressed: boolean; hovered?: boolean; focused?: boolean };
 export function Breadcrumbs({ crumbs }: { crumbs: readonly Crumb[] }) {
   const c = useTheme().colors;
   const tone = useTone();
+  const playSound = useUiSound();
   const [room, setRoom] = useState(0);
   const labels = fitCrumbs(crumbs, room);
   const chevronColors = useMemo(() => ({ '#': tone.textMuted }), [tone.textMuted]);
@@ -118,7 +120,10 @@ export function Breadcrumbs({ crumbs }: { crumbs: readonly Crumb[] }) {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Back to ${crumb.label}`}
-                onPress={press}
+                onPress={() => {
+                  playSound('tap');
+                  press();
+                }}
                 hitSlop={4}
                 style={styles.target}
               >

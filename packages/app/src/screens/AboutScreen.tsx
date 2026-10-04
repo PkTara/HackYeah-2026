@@ -7,11 +7,13 @@ import {
   Monkey,
   Panel,
   PixelText,
+  Toggle,
   useLayout,
 } from '@hackyeah/ui';
 import { useCapabilities } from '../capabilities';
 import { Crumbs } from '../components/Crumbs';
 import { PageHeader } from '../components/PageHeader';
+import { useSfx } from '../sfx';
 import { TabScreen } from '../components/TabScreen';
 import { useGame } from '../state/GameProvider';
 
@@ -81,6 +83,7 @@ export function AboutScreen() {
               one they run on.
             </AppText>
           </Panel>
+          <SoundPanel />
           {wide ? <HonestBits /> : null}
         </Column>
 
@@ -102,6 +105,31 @@ export function AboutScreen() {
         </Column>
       </Columns>
     </TabScreen>
+  );
+}
+
+/**
+ * The sound effects switch. It lives here because About is the app's only
+ * settings page; the music keeps its own key in the corner.
+ */
+function SoundPanel() {
+  const { available, on, setOn } = useSfx();
+  return (
+    <Panel title="Sound">
+      {available ? (
+        <Toggle
+          name="Sound effects"
+          detail="Quiet clicks, typing and a chime when you save. The music has its own key in the corner."
+          value={on}
+          onValueChange={setOn}
+        />
+      ) : (
+        <AppText>Sound effects are not available on this device yet.</AppText>
+      )}
+      <AppText variant="caption" muted>
+        Sound effects made with ZzFX by Frank Force (MIT).
+      </AppText>
+    </Panel>
   );
 }
 

@@ -2,7 +2,12 @@
 import { CameraPreview } from './camera';
 import { CaptureMediaPreview } from './capturePreview';
 import { createMemoryStore } from './memoryStore';
-import { browserMusicEnvironment, createWebMusic } from './music/webMusic';
+import {
+  browserMusicEnvironment,
+  createWebMusic,
+  sharedBrowserAudioContext,
+} from './music/webMusic';
+import { browserSfxEnvironment, createWebSfx } from './sfx/webSfx';
 import type { Capabilities, KeyValueStore } from './types';
 
 // Typed locally so shared code doesn't need the DOM lib in its tsconfig.
@@ -17,11 +22,22 @@ type BrowserGlobals = {
 
 const browser = globalThis as BrowserGlobals;
 
-/** Web Audio music, where the browser has it. Nothing is created until play(). */
-function createMusic() {
-  const environment = browserMusicEnvironment();
-  return environment ? createWebMusic(environment) : undefined;
+/**
+ * Web Audio music and sound effects, where the browser has it. They share
+ * one AudioContext, which is not made until the first play() after a tap.
+ */
+function createAudio() {
+  const context = sharedBrowserAudioContext();
+  const musicEnvironment = context ? browserMusicEnvironment(context) : null;
+  const music = musicEnvironment ? createWebMusic(musicEnvironment) : undefined;
+  const sfxEnvironment = context
+    ? browserSfxEnvironment(context, () => music?.playing ?? false)
+    : null;
+  const sfx = sfxEnvironment ? createWebSfx(sfxEnvironment) : undefined;
+  return { music, sfx };
 }
+
+const audio = createAudio();
 
 /**
  * localStorage can be missing or throw (private windows, blocked site data,
@@ -76,5 +92,6 @@ export const capabilities: Capabilities = {
   },
   storage: createLocalStorageStore(),
   camera: { Preview: CameraPreview, MediaPreview: CaptureMediaPreview },
-  music: createMusic(),
+  music: audio.music,
+  sfx: audio.sfx,
 };

@@ -1,5 +1,6 @@
 import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 import type { IconName } from '../pixel/sprites';
+import { useUiSound } from '../sound';
 import { PX, useTheme } from '../theme';
 import { Icon } from './Icon';
 import { PixelBox } from './PixelBox';
@@ -26,7 +27,7 @@ type PressState = { pressed: boolean; hovered?: boolean };
 
 /**
  * Chunky game button. It sits on a solid shadow and drops onto it when
- * pressed, like a real key.
+ * pressed, like a real key, with a soft click (see sound.ts).
  */
 export function Button({
   title,
@@ -41,6 +42,7 @@ export function Button({
 }: Props) {
   const theme = useTheme();
   const c = theme.colors;
+  const playSound = useUiSound();
   const fill = disabled
     ? c.surfaceShade
     : variant === 'primary'
@@ -77,7 +79,10 @@ export function Button({
       accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled }}
       disabled={disabled}
-      onPress={onPress}
+      onPress={() => {
+        playSound('tap');
+        onPress();
+      }}
       hitSlop={4}
       style={style}
     >

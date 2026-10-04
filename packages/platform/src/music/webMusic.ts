@@ -149,17 +149,42 @@ type BrowserGlobals = EventTargetLike & {
  * Events that count as a user gesture for audio in current browsers: a key
  * press, a mouse button, or the end of a touch.
  */
-const GESTURES = ['pointerup', 'keydown', 'touchend'];
+export const GESTURES = ['pointerup', 'keydown', 'touchend'];
 
-/** The real browser, or null where Web Audio is missing. */
-export function browserMusicEnvironment(): MusicEnvironment | null {
+/**
+ * One AudioContext for the whole page, shared by the music and the sound
+ * effects, made the first time the returned function is called (always
+ * after a tap). Null where the browser has no Web Audio.
+ *
+ * It uses the default "interactive" latency, so a tap sound follows the tap.
+ * The music schedules ahead on the audio clock, so it does not mind.
+ */
+export function sharedBrowserAudioContext(): (() => AudioContextLike) | null {
   const browser = globalThis as unknown as BrowserGlobals;
   const AudioContextClass = browser.AudioContext ?? browser.webkitAudioContext;
-  if (!AudioContextClass || typeof browser.addEventListener !== 'function') {
+  if (!AudioContextClass) {
+    return null;
+  }
+  let ctx: AudioContextLike | null = null;
+  return () => {
+    ctx = ctx ?? new AudioContextClass();
+    return ctx;
+  };
+}
+
+/**
+ * The real browser, or null where Web Audio is missing. Pass the page's
+ * shared context; without one the music gets a context of its own.
+ */
+export function browserMusicEnvironment(
+  createContext = sharedBrowserAudioContext(),
+): MusicEnvironment | null {
+  const browser = globalThis as unknown as BrowserGlobals;
+  if (!createContext || typeof browser.addEventListener !== 'function') {
     return null;
   }
   return {
-    createContext: () => new AudioContextClass({ latencyHint: 'playback' }),
+    createContext,
     every(tick, ms) {
       const id = browser.setInterval(tick, ms);
       return () => browser.clearInterval(id);

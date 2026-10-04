@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
 import { RAIL_WIDTH } from '../layout';
+import { useUiSound } from '../sound';
 import { PX, useTheme } from '../theme';
 import { ToneContext } from '../tone';
 import { Icon } from './Icon';
@@ -70,12 +71,16 @@ function RailItem<Key extends string>({
   const theme = useTheme();
   const c = theme.colors;
   const ink = selected ? c.onPrimary : '#F4E2C0';
+  const playSound = useUiSound();
   return (
     <Pressable
       accessibilityRole="tab"
       accessibilityLabel={tab.label}
       aria-selected={selected}
-      onPress={onPress}
+      onPress={() => {
+        playSound('tap');
+        onPress();
+      }}
     >
       {({ pressed, hovered, focused }: { pressed: boolean; hovered?: boolean; focused?: boolean }) => (
         <View

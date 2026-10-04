@@ -11,6 +11,12 @@ Use this file for significant AI/external-resource disclosure in the Sport & Hea
 | Codex (with subagents) | GPT-6.1 Sol, reviewed by GPT-6 Astra | The FastAPI backend, its video and live camera APIs, the first camera adapters and capture screens, and the scientific evidence notes (log entries 11 and 20) |
 | Claude Code (claude.ai cloud session, with parallel subagents) | Claude | Pixel-art pets, the jungle pixel UI kit, the climbing profile rules, the app screens, the web layout, onboarding, connecting the app to the backend, and the camera screens |
 
+### Third-party code in the app
+
+| Code | Licence | Where | Used for |
+|---|---|---|---|
+| ZzFX 1.4.0 by Frank Force ([KilledByAPixel/ZzFX](https://github.com/KilledByAPixel/ZzFX)) | MIT | `packages/platform/src/sfx/zzfx.ts`, vendored with its copyright and licence header | Generating the sound effects in code (log entry 25) |
+
 The Codex design-drafting step used the `superpowers:using-superpowers` and `superpowers:brainstorming` skills, plus web browsing of official MediaPipe documentation.
 
 ## AI features in the app
@@ -300,3 +306,18 @@ The Codex design-drafting step used the `superpowers:using-superpowers` and `sup
 
 **Not verified:** listening on real speakers.
 
+### 25. Sound effects (2026-10-04)
+
+**Prompt:** "Add typing sounds when text is typing out in the tutorial. Add quiet SFX for buttons and stuff - just use an open-source library if possible. Credit it appropriately."
+
+**Library:** ZzFX by Frank Force (MIT), a tiny sound generator that builds each effect from about 20 numbers, with no audio files. The npm package `zzfx` 1.4.0 was checked (licence file, source) but not installed: it creates an AudioContext when imported, which browsers block before a tap and which does not exist in Jest or on Android and iOS. Its sample generator (`ZZFX.buildSamples`) was vendored into `packages/platform/src/sfx/zzfx.ts` with the original copyright and MIT licence header and a note on the source, version and changes (TypeScript, sample rate as an argument, no playback code). A scratch comparison against the original file gave bit-identical samples for 14 parameter sets. Credited in the file, the README (Third-party code), the table above and on the About page.
+
+**Output:**
+- `packages/platform/src/sfx/effects.ts`: five effects as data, all in the music's key with low-pass filters and no randomness. `typing` (46 ms, a low triangle blip whose pitch steps through a G pentatonic by letter), `tap` (39 ms, a soft falling click), `select` (59 ms, a tick that steps up a fourth), `success` (418 ms, D5 then G5) and `levelUp` (423 ms, a G major arpeggio).
+- `webSfx.ts` and an optional `sfx` capability (`play(name, variant)`, `enabled`, `setEnabled`) in `types.ts`. The web plays the effects through one gain of 0.1 on the AudioContext it now shares with the music (made lazily, default latency). Nothing is made or resumed before the first tap or key press; effects asked for earlier, or while the page is hidden, are dropped. The context rests 2 s after the last effect when the music is off. Android and iOS leave `sfx` undefined.
+- `packages/ui`: a `UiSoundContext`, so `Button`, `IconButton`, `Toggle`, `CheckRow`, the tab bar, rail and breadcrumbs click once per press, and `Chip` ticks when chosen. `SpeechBubble` murmurs once per typing step (about every second letter, none on spaces or punctuation) and stops when the line is out, skipped, changed or unmounted. A new `Toggle` switch.
+- `packages/app`: `sfx.tsx` (on by default, choice saved under `climbing-monkey/sfx/v1`) and a Sound panel on About with the switch and the credit line. About is the app's only settings page; the corner key stays music-only. `GameProvider` plays `success` for a saved climb, test result or setup, and `success` or `levelUp` for a done quest.
+
+**Validation:** Jest tests for the effect table (lengths, volumes, filters, no clipping, determinism, pitch steps), the capability with a fake AudioContext (no context before a gesture, nothing when off, setting kept, silent when hidden, buffers reused, sound scheduled before the context wakes, resting only without music), the kit (one tap per Button press, select for a chosen chip, the switch's role and state, the typing murmur's rhythm, silence on spaces and after a skip) and the App (switch on by default, off and remembered across a restart, taps from tabs, a chime after Done, nothing breaks without the capability). Playwright in headless Chromium (20 checks): no AudioContext and no sound before the first click while the welcome line types, one context after it, real typing and tap buffers started, select for a chip, typing stops on a skip, the switch turns off, is saved and stays off after a reload, no console errors. An OfflineAudioContext render through the real capability peaked at -28.7 dBFS (typing), -25.8 (tap), -26.9 (select), -23.5 (success) and -23.7 dBFS (level up), about 17 dB under the music's peak. The first render showed that a DynamicsCompressorNode adds about +11 dB of make-up gain, so the effects use no compressor. `npm run check`, the web build and the Android bundle pass.
+
+**Not verified:** listening on real speakers, Safari and Firefox, and phones (no sound there yet). Whether the effects are loud enough to hear over the music.

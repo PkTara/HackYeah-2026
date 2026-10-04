@@ -25,4 +25,7 @@ export const capabilities: Capabilities = {
   // No music yet: playing audio on Android and iOS needs a native audio
   // library behind the same MusicCapability. The music button stays hidden.
   music: undefined,
+  // No sound effects either, for the same reason: the app stays silent and
+  // hides the sound effects switch.
+  sfx: undefined,
 };

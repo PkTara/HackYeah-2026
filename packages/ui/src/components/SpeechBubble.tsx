@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
   Platform,
@@ -9,6 +9,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useReducedMotion, useTicker } from '../hooks';
+import { useUiSound } from '../sound';
 import { PX, useTheme } from '../theme';
 import { ToneContext } from '../tone';
 import { AppText } from './AppText';
@@ -23,6 +24,12 @@ const CHARS_PER_TICK = 2;
  * announce changes to a live region, not what it held when it appeared.
  */
 const ANNOUNCE_MS = 120;
+/**
+ * Letters and digits murmur as they type; spaces and punctuation are
+ * silent. Latin-1 and Latin Extended-A cover the accented letters in
+ * Polish and the other languages the app may get.
+ */
+const VOICED = /[A-Za-z0-9\u00C0-\u017F]/;
 
 /**
  * Tail pointing up at the speaker. 'O' is outline, 'F' is fill. The last two
@@ -52,17 +59,21 @@ type Props = {
 
 /**
  * A pixel speech bubble. The line types out letter by letter like an old
- * game; a tap shows all of it. With reduced motion it shows the whole line at
- * once. Screen readers get the whole line in one go from a live region.
+ * game, with a soft murmur for each pair of letters; a tap shows all of it
+ * and stops the murmur. With reduced motion it shows the whole line at
+ * once, silently. Screen readers get the whole line in one go from a live
+ * region.
  */
 export function SpeechBubble({ text, speaker, tailX, style }: Props) {
   const theme = useTheme();
   const c = theme.colors;
   const reduced = useReducedMotion();
 
-  // Letters shown so far, for the text they belong to. A new text starts
-  // from zero in the same render, so the old count never flashes.
-  const [typed, setTyped] = useState({ text, count: 0 });
+  // Letters shown so far, for the text they belong to, and where the last
+  // tick started (`from`). A new text starts from zero in the same render,
+  // so the old count never flashes. A tap to skip sets `from` to the end, so
+  // the skip itself makes no sound.
+  const [typed, setTyped] = useState({ text, from: 0, count: 0 });
   const count = reduced
     ? text.length
     : typed.text === text
@@ -73,14 +84,30 @@ export function SpeechBubble({ text, speaker, tailX, style }: Props) {
     if (tick === 0) {
       return;
     }
-    setTyped(t => ({
-      text,
-      count: Math.min(
-        text.length,
-        (t.text === text ? t.count : 0) + CHARS_PER_TICK,
-      ),
-    }));
+    setTyped(t => {
+      const from = t.text === text ? t.count : 0;
+      return {
+        text,
+        from,
+        count: Math.min(text.length, from + CHARS_PER_TICK),
+      };
+    });
   }, [tick, text]);
+
+  // One murmur per tick (about every second letter), pitched by the first
+  // letter that tick showed, so a line sounds the same every time.
+  const playSound = useUiSound();
+  const voiced = useRef(typed);
+  useEffect(() => {
+    if (voiced.current === typed || typed.text !== text || reduced) {
+      return;
+    }
+    voiced.current = typed;
+    const letter = VOICED.exec(text.slice(typed.from, typed.count));
+    if (letter) {
+      playSound('typing', letter[0].charCodeAt(0));
+    }
+  }, [typed, text, reduced, playSound]);
 
   const [spoken, setSpoken] = useState('');
   useEffect(() => {
@@ -111,7 +138,9 @@ export function SpeechBubble({ text, speaker, tailX, style }: Props) {
         accessible
         accessibilityLabel={spoken}
         accessibilityHint={count < text.length ? 'Shows the whole line' : undefined}
-        onPress={() => setTyped({ text, count: text.length })}
+        onPress={() =>
+          setTyped({ text, from: text.length, count: text.length })
+        }
       >
         <ToneContext.Provider value={tone}>
           <PixelBox

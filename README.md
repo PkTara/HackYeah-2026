@@ -11,6 +11,8 @@
 
 The [Python/FastAPI backend](backend/README.md) implements the confirmed-evidence → profile → quest → pet XP loop, with SQLite persistence, private hand photos and optional MediaPipe pose analysis of photos, recorded clips and a sampled live camera. The web app saves to it when `VITE_MONKEY_API_URL` is set (see [Connecting a backend](#connecting-a-backend)). See the backend README for setup, API contracts and TDD checks, the [camera and video guide](docs/camera-video.md) for the capture flows, and the [scientific evidence notes](docs/climbing-scientific-evidence.md) for what the research does and does not support. Use `npm run backend:check` after creating its virtualenv.
 
+**Sound effects.** Quiet clicks for buttons, chips and toggles, a soft murmur while the monkey's speech bubble types, and a short chime when a climb, a test result, setup or a quest is saved (an arpeggio on a level up). They are made in code with [ZzFX](https://github.com/KilledByAPixel/ZzFX) (`packages/platform/src/sfx`), no audio files, and peak about 24 dB below full scale, well under the music. They are on by default, play nothing before the first tap or key press and nothing while the page is hidden, and can be turned off with the Sound effects switch on the About page (remembered on the device). Web only for now, like the music.
+
 **Music.** A small speaker key in the top-right corner of every page, setup included, plays background music: an original island loop composed in code and synthesised with Web Audio (`packages/platform/src/music`), no audio files. It is off until pressed and remembers the choice; if it was left on, it starts again at the first tap or key press, never by itself. On the web only for now: Android and iOS need a native audio library behind the same `music` capability, and the key is hidden there.
 
 A React Native app for **Android, iOS and the web**: one codebase, with a native host for the phones and react-native-web in the browser.
@@ -113,6 +115,8 @@ React Native provides the core APIs (`Platform`, `Vibration`, `BackHandler`, `Sa
 
 **Music on Android and iOS** is not there yet. The web plays it with Web Audio (`capabilities.web.ts`); a phone needs a native audio library (for example one that plays a rendered loop) wrapped as the `music` capability in `capabilities.ts`. Until then `music` is undefined and the app hides the music key.
 
+**Sound effects on Android and iOS** are not there yet either, for the same reason. On the web the `sfx` capability plays them with Web Audio, sharing one AudioContext with the music. On the phones `sfx` is undefined: the app is silent and the About page says sound effects are not available.
+
 **Third-party libraries:** a library with native code needs a native rebuild (and `pod install` on iOS), and it won't run in the web host, so keep it behind a capability with a web fallback. Pure-JS libraries work everywhere as they are.
 
 ## Notes and troubleshooting
@@ -121,6 +125,12 @@ React Native provides the core APIs (`Platform`, `Vibration`, `BackHandler`, `Sa
   - RN 0.84 warns that `SafeAreaView` is deprecated. The built-in one needs no extra native dependency, so we keep it and silence that single warning in `apps/mobile/index.js`.
   - To switch to `react-native-safe-area-context`, change `packages/ui/src/components/Screen.tsx` only.
 - **Release signing.** Android release builds are signed with the template's debug keystore (`android/app/debug.keystore`). Generate your own key before publishing and never commit it; other `*.keystore` files are gitignored.
+
+## Third-party code
+
+- **ZzFX** by Frank Force, MIT licence ([KilledByAPixel/ZzFX](https://github.com/KilledByAPixel/ZzFX)). The sound generator from version 1.4.0 is vendored in `packages/platform/src/sfx/zzfx.ts` with its original copyright and licence header. Only the part that builds samples was kept and ported to TypeScript; the sounds are unchanged. The npm package was not used because it creates an AudioContext as soon as it is imported, which browsers block before a tap and which does not exist in Jest or on the phones. The About page credits it too.
+
+Libraries installed from npm are listed in `apps/mobile/package.json` and `apps/web/package.json`.
 
 ## AI usage
 

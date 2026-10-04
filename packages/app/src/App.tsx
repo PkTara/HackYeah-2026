@@ -15,6 +15,7 @@ import { CapabilitiesContext } from './capabilities';
 import { CelebrationOverlay } from './components/CelebrationOverlay';
 import { MediaContext } from './media';
 import { MusicButton, MusicProvider } from './music';
+import { SfxProvider } from './sfx';
 import { StatusGate } from './components/StatusGate';
 import { SyncNotice } from './components/SyncNotice';
 import { Navigator } from './navigation/Navigator';
@@ -66,22 +67,24 @@ export function App({
     <CapabilitiesContext.Provider value={capabilities}>
       <MediaContext.Provider value={camera}>
         <MusicProvider>
-          <ScreenCornerContext.Provider value={corner}>
-            <GameProvider backend={data} today={today}>
-              <View style={{ flex: 1 }}>
-                <StatusGate>
-                  <OnboardingGate>
-                    <Navigator<RouteName>
-                      initialRoute={initialRoute}
-                      screens={screens}
-                    />
-                  </OnboardingGate>
-                </StatusGate>
-                <CelebrationOverlay />
-                <SyncNotice />
-              </View>
-            </GameProvider>
-          </ScreenCornerContext.Provider>
+          <SfxProvider>
+            <ScreenCornerContext.Provider value={corner}>
+              <GameProvider backend={data} today={today}>
+                <View style={{ flex: 1 }}>
+                  <StatusGate>
+                    <OnboardingGate>
+                      <Navigator<RouteName>
+                        initialRoute={initialRoute}
+                        screens={screens}
+                      />
+                    </OnboardingGate>
+                  </StatusGate>
+                  <CelebrationOverlay />
+                  <SyncNotice />
+                </View>
+              </GameProvider>
+            </ScreenCornerContext.Provider>
+          </SfxProvider>
         </MusicProvider>
       </MediaContext.Provider>
     </CapabilitiesContext.Provider>

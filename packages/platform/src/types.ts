@@ -50,6 +50,29 @@ export interface MusicCapability {
   onNextGesture(listener: () => void): () => void;
 }
 
+/** The short sound effects, made in code with ZzFX (see sfx/effects.ts). */
+export type SfxName = 'typing' | 'tap' | 'select' | 'success' | 'levelUp';
+
+/**
+ * Quiet sound effects for taps, typing and rewards. On by default; the
+ * person can turn them off (the app saves that choice, not this object).
+ *
+ * play() never throws and never makes sound before the person has tapped,
+ * clicked or pressed a key on the page (browsers block it), while turned
+ * off, or while the page is hidden. Those calls are dropped, not queued.
+ */
+export interface SfxCapability {
+  /**
+   * Plays one effect. `variant` picks a small fixed pitch step, so the
+   * typing murmur can follow the letters and still sound the same every
+   * time (no randomness). Other effects ignore it.
+   */
+  play(name: SfxName, variant?: number): void;
+  /** False after setEnabled(false). */
+  readonly enabled: boolean;
+  setEnabled(on: boolean): void;
+}
+
 export interface Capabilities {
   readonly platform: PlatformName;
   /** Human-readable description of the OS, for display and diagnostics. */
@@ -63,4 +86,10 @@ export interface Capabilities {
    * native audio library); the music button is then hidden.
    */
   readonly music?: MusicCapability;
+  /**
+   * Missing where there is no sound effect player yet (Android and iOS
+   * need a native audio library); the app is then silent and the switch
+   * is hidden.
+   */
+  readonly sfx?: SfxCapability;
 }

@@ -1,5 +1,6 @@
 import { Pressable, View } from 'react-native';
 import type { IconName } from '../pixel/sprites';
+import { useUiSound } from '../sound';
 import { PX, useTheme } from '../theme';
 import { Icon } from './Icon';
 import { PixelText } from './PixelText';
@@ -24,6 +25,7 @@ export function TabBar<Key extends string>({
 }: Props<Key>) {
   const theme = useTheme();
   const c = theme.colors;
+  const playSound = useUiSound();
   return (
     <View
       accessibilityRole="tablist"
@@ -47,7 +49,10 @@ export function TabBar<Key extends string>({
             accessibilityRole="tab"
             accessibilityLabel={tab.label}
             aria-selected={selected}
-            onPress={() => onSelect(tab.key)}
+            onPress={() => {
+              playSound('tap');
+              onSelect(tab.key);
+            }}
             style={{ flex: 1 }}
           >
             {({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => (

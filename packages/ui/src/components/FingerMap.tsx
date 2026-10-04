@@ -15,6 +15,7 @@ import {
   type FingerLayer,
   type FingerPart,
 } from '../pixel/finger';
+import { useUiSound } from '../sound';
 import { PX, useTheme } from '../theme';
 import { useTone } from '../tone';
 import { AppText } from './AppText';
@@ -139,12 +140,16 @@ export function CheckRow({
   const c = useTheme().colors;
   // Ink colour for the box edge, so an empty box shows on dark panels too.
   const ink = useTone().text;
+  const playSound = useUiSound();
   return (
     <Pressable
       accessibilityRole="checkbox"
       accessibilityLabel={detail ? `${name}, ${detail}` : name}
       aria-checked={checked}
-      onPress={onPress}
+      onPress={() => {
+        playSound('tap');
+        onPress();
+      }}
       style={[styles.row, style]}
     >
       {(state: PressState) => (
