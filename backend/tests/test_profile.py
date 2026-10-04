@@ -274,3 +274,118 @@ def test_profile_derivation_preserves_inputs_and_returns_independent_record_snap
     profile["active_hand_flags"][0]["pain"] = 10
     assert inputs == original
     assert build_profile(*inputs)["assessment_trends"]["leg_spread"]["latest"]["value"] == 95
+
+
+def test_radar_axis_is_scored_once_three_matching_climbs_are_logged():
+    climbs = [climb("s1", completed=True), climb("s2", completed=True), climb("s3")]
+
+    footwork = build_profile(climbs, [], [], [])["radar"]["precise_footwork"]
+
+    assert footwork == {
+        "level": 1,
+        "level_name": "Started",
+        "points": 2,
+        "climb_count": 3,
+        "sent_count": 2,
+        "test_points": None,
+        "long_sessions": 0,
+        "evidence_ids": ["s1", "s2", "s3"],
+    }
+
+
+def test_dead_hang_scores_sustained_effort_by_team_marks_without_climbs():
+    def hang(record_id, value, occurred_at):
+        return assessment(
+            record_id,
+            value,
+            occurred_at,
+            metric="hang_duration",
+            unit="seconds",
+            protocol="dead-hang-v1",
+        )
+
+    radar = build_profile(
+        [],
+        [hang("old", 70, "2026-09-01T08:00:00Z"), hang("new", 45, "2026-10-01T08:00:00Z")],
+        [],
+        [],
+    )["radar"]
+
+    assert radar["sustained_effort"] == {
+        "level": 1,
+        "level_name": "Started",
+        "points": 2,
+        "climb_count": 0,
+        "sent_count": 0,
+        "test_points": 2,
+        "long_sessions": 0,
+        "evidence_ids": ["new"],
+    }
+    assert radar["body_tension"] is None
+
+
+def test_long_sessions_add_sustained_effort_points_once_the_axis_is_scored():
+    def on(record_id, day, **changes):
+        return {**climb(record_id, **changes), "occurred_at": f"{day}T12:00:00Z"}
+
+    long_day = [on(f"d{i}", "2026-09-30") for i in range(5)]
+    short_day = [on(f"e{i}", "2026-09-29") for i in range(4)]
+    endurance = [
+        on(f"x{i}", f"2026-09-0{i + 1}", movement="endurance", completed=True) for i in range(3)
+    ]
+
+    radar = build_profile(long_day + short_day + endurance, [], [], [])["radar"]
+    alone = build_profile(long_day + short_day, [], [], [])["radar"]
+
+    assert radar["sustained_effort"]["long_sessions"] == 1
+    assert radar["sustained_effort"]["points"] == 4
+    assert radar["sustained_effort"]["level_name"] == "Building"
+    assert alone["sustained_effort"] is None
+
+
+# The app's demo climbs (packages/core/src/sample.ts): date, wall, styles, sent.
+APP_SAMPLE = [
+    ("2026-09-21", "slab", ["controlled"], True),
+    ("2026-09-21", "slab", ["controlled"], True),
+    ("2026-09-21", "vertical", ["controlled"], False),
+    ("2026-09-21", "overhang", ["dynamic"], True),
+    ("2026-09-24", "vertical", ["dynamic"], False),
+    ("2026-09-24", "slab", ["controlled"], True),
+    ("2026-09-24", "overhang", ["controlled", "dynamic"], False),
+    ("2026-09-24", "vertical", ["controlled"], True),
+    ("2026-09-27", "slab", ["dynamic"], False),
+    ("2026-09-27", "overhang", ["controlled"], True),
+    ("2026-09-27", "vertical", ["controlled", "dynamic"], False),
+    ("2026-09-27", "slab", ["controlled"], True),
+    ("2026-09-30", "vertical", ["dynamic"], True),
+    ("2026-09-30", "overhang", ["dynamic"], True),
+    ("2026-09-30", "vertical", ["controlled"], False),
+    ("2026-09-30", "slab", ["controlled"], True),
+    ("2026-09-30", "overhang", ["controlled", "dynamic"], False),
+]
+
+
+def test_radar_matches_the_app_rule_on_its_demo_climbs():
+    climbs = [
+        {
+            **climb(f"sample-{index}", terrain=terrain, movement=styles[0], completed=sent),
+            "movements": styles,
+            "occurred_at": f"{day}T12:00:00Z",
+        }
+        for index, (day, terrain, styles, sent) in enumerate(APP_SAMPLE, start=1)
+    ]
+
+    radar = build_profile(climbs, [], [], [])["radar"]
+
+    # Same levels and points as packages/core/src/__tests__/movement.test.ts.
+    summary = {
+        axis: None if value is None else (value["level"], value["points"])
+        for axis, value in radar.items()
+    }
+    assert summary == {
+        "precise_footwork": (2, 6),
+        "balance": (2, 5),
+        "body_tension": (1, 3),
+        "sustained_effort": None,
+        "dynamic_coordination": (1, 3),
+    }

@@ -315,3 +315,54 @@ describe('radialChart', () => {
     );
   });
 });
+
+describe('radialChart partial fill (movement radar)', () => {
+  const chart = (values: readonly (number | null)[], striped = false) =>
+    radialChart({ ...RADAR, values, partial: true, striped });
+  const centre: Point = [RADAR.cx, RADAR.cy];
+  const tips = chart([1, 1, 1, 1, 1]).tips;
+  const fill = (rows: readonly string[]) => [
+    ...find(rows, 'F'),
+    ...find(rows, 'S'),
+  ];
+
+  it('draws the same closed shape as before when every axis is known', () => {
+    const values = [0.6, 0.7, 0.4, 0.8, 0.5];
+    expect(chart(values).rows).toEqual(radialChart({ ...RADAR, values }).rows);
+  });
+
+  it('fills between neighbouring known axes and never across an unknown one', () => {
+    const { rows } = chart([2 / 3, 2 / 3, 1 / 3, null, 1 / 3]);
+    expect(fill(rows).length).toBeGreaterThan(0);
+    // Away from the centre, no fill pixel sits on the unknown spoke.
+    const onUnknown = fill(rows).filter(
+      p =>
+        distanceToSegment(p, centre, tips[3]) < 1 &&
+        Math.hypot(p[0] - centre[0], p[1] - centre[1]) > 3,
+    );
+    expect(onUnknown).toEqual([]);
+    // The unknown axis keeps its dashed spoke.
+    const dashes = find(rows, 'h');
+    expect(dashes.length).toBeGreaterThan(0);
+    expect(dashes.filter(p => distanceToSegment(p, centre, tips[3]) > 1)).toEqual(
+      [],
+    );
+  });
+
+  it('leaves a known axis with no known neighbour as a spoke and a point', () => {
+    const { rows } = chart([2 / 3, null, null, null, null]);
+    expect(fill(rows)).toEqual([]);
+    expect(at(rows, along(RADAR, 0, 2 / 3))).toBe('E');
+  });
+
+  it('draws only guides when nothing is known', () => {
+    const { rows } = chart([null, null, null, null, null], true);
+    expect([...new Set(rows.join(''))].sort()).toEqual(['.', 'd', 'g', 'h']);
+  });
+
+  it('stripes the partial fill for example data', () => {
+    const values = [2 / 3, 2 / 3, 1 / 3, null, 1 / 3];
+    expect(find(chart(values).rows, 'S')).toEqual([]);
+    expect(find(chart(values, true).rows, 'S').length).toBeGreaterThan(0);
+  });
+});

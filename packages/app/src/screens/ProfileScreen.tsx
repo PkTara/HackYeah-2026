@@ -1,16 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, StyleSheet, View } from 'react-native';
 import {
-  MOVEMENTS,
   explainFocus,
   explainQuest,
   explainPause,
   explainTerrain,
-  explainMovement,
   TERRAINS,
   XP_PER_LEVEL,
   XP_PER_QUEST,
-  movementTallies,
   shortDate,
   terrainTallies,
 } from '@hackyeah/core';
@@ -23,10 +20,8 @@ import {
   Icon,
   JungleHero,
   Meter,
-  MovementRadar,
   PX,
   Panel,
-  Pips,
   PixelText,
   SampleMark,
   Tag,
@@ -36,17 +31,14 @@ import {
   useContentWidth,
   useLayout,
   useTheme,
-  type MovementAxis,
 } from '@hackyeah/ui';
-import {
-  explainXP,
-  explainExampleRadar,
-} from '../components/resultExplanations';
+import { explainXP } from '../components/resultExplanations';
+import { MovementRadarSection } from '../components/MovementRadarSection';
+import { StyleTallies } from '../components/StyleTallies';
 import { DecisionHelp } from '../components/DecisionHelp';
 import { DataRow } from '../components/DataRow';
 import { TabScreen } from '../components/TabScreen';
 import {
-  MOVEMENT_NAME,
   TERRAIN_ICON,
   TERRAIN_NAME,
   fingerLabel,
@@ -59,18 +51,8 @@ import { ActivitySummary } from './ActivityScreen';
 import { AssessmentSummary } from '../components/AssessmentSummary';
 import { ExportEntry } from '../components/ExportEntry';
 import { PetsPanel } from '../components/PetsPanel';
-import { StateLabel } from '../components/StateLabel';
 
 const STEPS = XP_PER_LEVEL / XP_PER_QUEST;
-
-// Illustrative values; their provenance is available in the radar explanation.
-const EXAMPLE_MOVES: readonly MovementAxis[] = [
-  { label: 'Footwork', value: 0.45 },
-  { label: 'Balance', value: 0.75 },
-  { label: 'Tension', value: 0.55 },
-  { label: 'Stamina', value: 0.6 },
-  { label: 'Dynos', value: 0.35 },
-];
 
 export function ProfileScreen() {
   const theme = useTheme();
@@ -81,7 +63,6 @@ export function ProfileScreen() {
   const wide = useLayout().columns === 2;
 
   const terrain = terrainTallies(state.logs);
-  const moves = movementTallies(state.logs);
   const questsToGo = STEPS - pet.xpInLevel / XP_PER_QUEST;
   const recent = [...state.logs].reverse().slice(0, 4);
   const measured = [
@@ -426,59 +407,10 @@ export function ProfileScreen() {
             </Disclosure>
           </Panel>
 
-          {/* Each style is counted separately, including multi-style climbs. */}
+          {/* Styles you logged, then the movement radar built on them. */}
           <Panel title="Style">
-            {MOVEMENTS.map(m => (
-              <View key={m} style={{ gap: 6 }}>
-                <DecisionHelp
-                  label={`${MOVEMENT_NAME[m]} tally`}
-                  explanation={explainMovement(m, state.logs)}
-                >
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 10,
-                    }}
-                  >
-                    <PixelText text={MOVEMENT_NAME[m]} />
-                    <AppText variant="caption" muted>
-                      {moves[m].sent} of {moves[m].logged} sent
-                    </AppText>
-                  </View>
-                </DecisionHelp>
-                <Pips
-                  results={state.logs
-                    .filter(l => l.movements.includes(m))
-                    .map(l => l.sent)}
-                  accessibilityLabel={`${MOVEMENT_NAME[m]}: ${moves[m].sent} of ${moves[m].logged} sent`}
-                />
-              </View>
-            ))}
-            <AppText variant="caption" muted>
-              A climb can use several styles. Each selected style counts here.
-            </AppText>
-            <View
-              style={{
-                height: 3,
-                backgroundColor: theme.colors.surfaceShade,
-                marginVertical: 4,
-              }}
-            />
-            <View style={styles.radarHead}>
-              <DecisionHelp
-                label="Movement radar"
-                explanation={explainExampleRadar(EXAMPLE_MOVES)}
-              >
-                <PixelText text="Movement radar" />
-              </DecisionHelp>
-              <StateLabel state="later" />
-            </View>
-            <MovementRadar axes={EXAMPLE_MOVES} example />
-            <AppText variant="caption" muted>
-              Not scored yet. It needs movement evidence before it shows real
-              values.
-            </AppText>
+            <StyleTallies logs={state.logs} />
+            <MovementRadarSection />
           </Panel>
 
           {wide ? null : recentPanel}
@@ -621,12 +553,6 @@ const styles = StyleSheet.create({
   grow: { flex: 1 },
   rule: { height: PX },
   tallyRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  radarHead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
   choices: { gap: spacing.sm + 2 },
   choicesSide: { flexDirection: 'row', gap: spacing.sm + 2 },
 });

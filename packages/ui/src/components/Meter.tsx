@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { PX, useTheme } from '../theme';
 
 type MeterProps = {
@@ -99,3 +99,54 @@ export function Pips({ results, max = 12, accessibilityLabel }: PipsProps) {
     </View>
   );
 }
+
+type ShareBarProps = {
+  /** 0 to 1, or null when there is too little to show a share. */
+  share: number | null;
+  height?: number;
+};
+
+/**
+ * A bar for a share, such as climbs sent out of climbs logged. It fills the
+ * width it is given and never grows with the count, so a list of them stays
+ * one line each. A null share is a dashed empty bar, never a zero.
+ * Decoration only: the row it sits in says the numbers.
+ */
+export function ShareBar({ share, height = 12 }: ShareBarProps) {
+  const c = useTheme().colors;
+  const known = share !== null;
+  return (
+    <View
+      aria-hidden
+      importantForAccessibility="no-hide-descendants"
+      style={[
+        shareStyles.bar,
+        known ? null : shareStyles.unknown,
+        {
+          height: height + 2 * (PX - 1),
+          borderColor: known ? c.outline : c.textMuted,
+          backgroundColor: known ? c.surfaceShade : undefined,
+        },
+      ]}
+    >
+      {known && share > 0 ? (
+        <View
+          style={[
+            shareStyles.fill,
+            {
+              width: `${Math.round(Math.min(share, 1) * 100)}%`,
+              backgroundColor: c.leafLight,
+              borderRightColor: c.leaf,
+            },
+          ]}
+        />
+      ) : null}
+    </View>
+  );
+}
+
+const shareStyles = StyleSheet.create({
+  bar: { flex: 1, borderWidth: PX - 1, overflow: 'hidden' },
+  unknown: { borderStyle: 'dashed' },
+  fill: { height: '100%', borderRightWidth: PX - 1 },
+});

@@ -1,6 +1,7 @@
 /**
  * Explanations for results the app itself computes on this screen layer:
- * XP and level, reach, home tests and the example radar. Same contract and
+ * XP and level, reach and home tests. The movement radar is explained in
+ * core (explainMovementAxis), next to its rule. Same contract and
  * tone as packages/core/src/evidence.ts: records, the rule in plain words,
  * research only where a published claim is made, then one or two limits.
  */
@@ -219,25 +220,6 @@ export function explainHomeTest(
     limitations: [
       'A draft home test, not a calibrated score or a diagnosis. Technique, equipment and timing change the result.',
       'Home test results do not change your focus or quests.',
-    ],
-  };
-}
-
-export function explainExampleRadar(
-  axes: readonly Readonly<{ label: string; value: number | null }>[],
-): DecisionExplanation {
-  return {
-    summary: 'These are example values. The movement radar is not scored yet.',
-    status: 'example',
-    rule: 'The five axes show fixed example values from 0 to 1. The app has no movement scoring yet.',
-    evidence: axes.map(axis => ({
-      id: `example-${axis.label}`,
-      label: axis.label,
-      detail: `${axis.value ?? 'not assessed'} of 1, a fixed example.`,
-    })),
-    sourceIds: [],
-    limitations: [
-      'Not calculated from your records, and says nothing about your ability.',
     ],
   };
 }

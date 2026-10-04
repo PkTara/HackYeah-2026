@@ -158,8 +158,8 @@ it('explains camera geometry and visibility without claiming validated range or 
 });
 
 it('provides original research links and explicit reading depth and limitations for all scoped sources', () => {
-  expect(RESEARCH_SOURCES).toHaveLength(37);
-  expect(new Set(RESEARCH_SOURCES.map(source => source.id)).size).toBe(37);
+  expect(RESEARCH_SOURCES).toHaveLength(44);
+  expect(new Set(RESEARCH_SOURCES.map(source => source.id)).size).toBe(44);
   // Where no DOI was confirmed, the link goes to a public record instead,
   // and the limits say so. No DOI is made up.
   const noConfirmedDoi = ['wolff2011', 'harkin2016', 'coleman2012', 'foster2001'];

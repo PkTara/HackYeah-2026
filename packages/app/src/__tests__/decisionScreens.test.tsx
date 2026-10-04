@@ -127,7 +127,18 @@ it('offers disclosures beside the profile quest and each calculated chart or rew
       expect(read(screen)).toContain('counts once in each');
     }
     await press(screen, 'Why: Movement radar');
-    expect(read(screen)).toContain('fixed example values');
+    expect(read(screen)).toContain('4 of 5 axes are scored');
+    expect(read(screen)).toContain('never drawn as zero');
+    // An axis name opens that axis's sheet, with its research and limits.
+    await closeAll(screen);
+    await press(screen, 'Footwork: Building');
+    expect(read(screen)).toContain('Footwork is at Building: 6 points');
+    expect(read(screen)).toContain('Background only');
+    expect(read(screen)).toContain('not a skill test');
+    await closeAll(screen);
+    await press(screen, 'How each axis is scored', 'Why: Stamina axis');
+    expect(read(screen)).toContain('Stamina is not scored yet');
+    expect(read(screen)).toContain('Do the dead hang test');
   } finally {
     await act(async () => screen.unmount());
   }

@@ -338,6 +338,8 @@ export type BaselineResult = Readonly<{
   method: ResultMethod;
   /** Local date, YYYY-MM-DD. */
   date: string;
+  /** Shipped demo data, not the climber's own result. */
+  sample?: boolean;
 }>;
 
 // The whole result

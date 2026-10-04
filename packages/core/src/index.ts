@@ -14,3 +14,4 @@ export * from './logRange';
 export * from './evidence';
 export * from './flow';
 export * from './export';
+export * from './movement';

@@ -100,6 +100,32 @@ export function movementTallies(
   ) as Record<Movement, Tally>;
 }
 
+export type StyleRow = Readonly<{ movement: Movement; tally: Tally }>;
+
+/**
+ * The style list on Profile, sized by what was logged rather than by how
+ * many styles exist: styles with climbs, most logged first, and the names
+ * of the styles with none, which the screen folds into one line. Ties keep
+ * the MOVEMENTS order, so the list does not jump around between equal
+ * counts.
+ */
+export function styleSummary(logs: readonly ClimbLog[]): Readonly<{
+  logged: readonly StyleRow[];
+  empty: readonly Movement[];
+}> {
+  const tallies = movementTallies(logs);
+  const rows = MOVEMENTS.map(movement => ({
+    movement,
+    tally: tallies[movement],
+  }));
+  return {
+    logged: rows
+      .filter(row => row.tally.logged > 0)
+      .sort((a, b) => b.tally.logged - a.tally.logged),
+    empty: rows.filter(row => row.tally.logged === 0).map(row => row.movement),
+  };
+}
+
 /** One cell of the terrain x movement grid. */
 export function cellTally(
   logs: readonly ClimbLog[],
