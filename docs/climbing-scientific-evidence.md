@@ -187,3 +187,65 @@ These examples are a handoff contract, not implemented schemas or live scoring c
 5. Any exercise library or symptom-based clinical flow needs real, documented content review and its own evidence. No review has been invented here. Do not introduce treatment/stretch dosage, provocative self-tests, photo-based healing estimates or automatic return-to-climb decisions.
 
 For the hackathon, the defensible story is: **a profile grounded in the climber's recorded observations, accompanied by clearly scoped research and honest unknowns**. It is not a validated diagnostic, grade-prediction or rehabilitation system.
+
+
+## Further primary research and remaining gaps — 4 October 2026
+
+This extension preserves the original 12-source handoff above. It adds five original journal investigations and one separately identified conference paper. Verification date for every entry in this extension is **2026-10-04**. Links point to the original publisher, DOI or institutional copy. This was a targeted investigation of the current quest and camera claims, not an exhaustive systematic search; “no direct support located” does not mean that a practice is ineffective.
+
+### `walker2020`: combined expert modeling and feedback
+
+Seth G. Walker, Stephanie L. Mattson, Tyra P. Sellers. **Increasing accuracy of rock-climbing techniques in novice athletes using expert modeling and video feedback.** *Journal of Applied Behavior Analysis* 53(4):2260–2270, 2020. DOI: [10.1002/jaba.694](https://doi.org/10.1002/jaba.694). [Original abstract](https://pubmed.ncbi.nlm.nih.gov/32130736/). Reading: **abstract only**, checked through publisher and PubMed; full-text access was unavailable.
+
+Original intervention using a multiple-baseline design across skills in novice adult climbers. A package combining expert video modeling with video and verbal feedback improved accurate execution of three targeted skills. The accessible primary abstract does not state the participant count or enough protocol detail to identify these skills reliably; sample size remains **unverified**, not zero. Supports feedback as a candidate learning approach. It does not isolate the effect of video, establish automated feedback accuracy, or validate this app’s cues, drills, doses or grade outcomes.
+
+### `sanchez2012`: preview changes form, not demonstrated completion
+
+X. Sanchez, Ph. Lambert, G. Jones, D. J. Llewellyn. **Efficacy of pre-ascent climbing route visual inspection in indoor sport climbing.** *Scandinavian Journal of Medicine & Science in Sports* 22(1):67–72, 2012. DOI: [10.1111/j.1600-0838.2010.01151.x](https://doi.org/10.1111/j.1600-0838.2010.01151.x). [Institutional original-paper record](https://research.rug.nl/en/publications/efficacy-of-pre-ascent-climbing-route-visual-inspection-in-indoor/). Reading: **abstract only**; the institutional full-text PDF returned 403 and another repository required an item request.
+
+Preview/no-preview experiment in **29 male intermediate, advanced and expert climbers**, on indoor sport routes at and where applicable below their level. A three-minute preview was associated with fewer/shorter ascent stops, but did **not** improve route completion. Stop-duration benefits varied with expertise. Randomization/counterbalancing details were not verified from the abstract. Supports a narrow preview/form claim and motivates reflection; does not establish guaranteed sends, a universal preview method, or the app’s two-problem/five-minute planning tasks.
+
+### `medernach2021`: decisions differ by experience
+
+Jerry Prosper Medernach, Daniel Memmert. **Effects of decision-making on indoor bouldering performances: A multi-experimental study approach.** *PLOS ONE* 16(5):e0250701, 2021. DOI: [10.1371/journal.pone.0250701](https://doi.org/10.1371/journal.pone.0250701). [Original full text](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0250701). Reading: **full-text methods/results/discussion**.
+
+Three-task comparative experiment: 86 volunteers, with 9 women excluded from the main analysis; **77 men** analyzed (18 novice, 18 intermediate, 41 advanced). A separate retest involved **13 elite women** examining experts’ proposed solutions. Advanced participants generally showed shorter decision times and fewer movement mistakes. Ability groups were not randomized training groups. The authors question a universal expert “best solution,” especially for the more complex task. Supports recording a climber’s intended sequence and context; cannot prove that the app’s planning intervention causes improvement or that deviations from one expert sequence are errors.
+
+### `langer2024`: training trial with important uncertainty
+
+Kaja Langer, Vidar Andersen, Nicolay Stien. **The effects of five weeks of climbing training, on and off the wall, on climbing specific strength, performance, and training experience in female climbers—A randomized controlled trial.** *PLOS ONE* 19(7):e0306300, 2024. DOI: [10.1371/journal.pone.0306300](https://doi.org/10.1371/journal.pone.0306300). [Original full text](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0306300). Reading: **full-text methods/results/discussion**.
+
+Three-group randomized trial: **31 female lower-grade to advanced climbers** assigned; methods report **26 completers**, with expert technique ratings available for **21**. Discussion separately says 27 included, an internal count discrepancy. Participants replaced part of usual climbing with a five-week on-wall or off-wall program. Performance improved descriptively in all groups; strength analysis found only anecdotal evidence for the tested alternatives. Technique effects remained uncertain, and on-wall enjoyment ratings were higher. Small sample, differing total climbing exposure and rater limitations constrain interpretation. This supports studying specific protocols and preferences; it does not validate this app’s individual drills, doses, automated scoring, lasting adherence or injury prevention.
+
+### `stien2024`: targeted practice pilot without a between-group advantage
+
+Nicolay Stien, Kaja Langer, Vidar Andersen, Gunn Helene Engelsrud, Elias Olsen, Atle Hole Saeterbakken. **Development of Specific Motor Skills through System Wall Bouldering Training: A Pilot Study.** *Translational Sports Medicine* 2024:5584962, 2024. DOI: [10.1155/2024/5584962](https://doi.org/10.1155/2024/5584962). [Original full text](https://onlinelibrary.wiley.com/doi/10.1155/2024/5584962). Reading: **full-text methods/results/discussion**.
+
+Randomized pilot (lot drawing) in **13 advanced female boulderers**, 7 system-wall practice and 6 usual-training controls. Five weeks of targeted movement practice replaced part of usual climbing. Experts rated videos from two test problems; some within-group measures improved, but changes in technique ratings and attempt counts did **not** establish a significant between-group advantage. Small sample, limited tasks and variable individual responses restrict conclusions. Indirect background for practice design and observable movement descriptions; it does not establish the app’s cue efficacy, drill dosage, personalized selection or camera scoring.
+
+### Separately labeled proceedings context: `marino1988`
+
+G. Wayne Marino, Patrick Kelly. **Modifications of Force Distribution in Novice Rock Climbing Technique.** *6th International Symposium on Biomechanics in Sports* proceedings, 1988, pp. 347–353. [Original archive record](https://ojs.ub.uni-konstanz.de/cpa/article/view/2123); [original PDF](https://ojs.ub.uni-konstanz.de/cpa/article/download/2123/1981). Reading: **full-text methods/results/conclusions**. This is original conference research; **peer-review status was not independently verified**, so do not silently categorize it with the journal investigations.
+
+Within-person before/after study of **16 novices (11 men, 5 women)** supporting themselves on instrumented simulated foothold/handhold apparatus at three slopes. Bundled instruction on feet, legs, arms and balance reduced handhold force in that setup. It supplies limited biomechanical context for load sharing, but no isolated quiet-feet manipulation, genuine boulder ascent, dose comparison or delayed learning outcome. It cannot establish that every foot cut is wrong or that the exact app drill reduces a user’s arm/finger load.
+
+### Claim-to-source-to-gap mapping
+
+The source relationship below is **background or indirect** whenever the app’s own intervention or measurement is the claim. Published study participants are not the user’s personal evidence.
+
+| App claim / rule | Closest verified sources | What remains unsupported or unvalidated | Disclosure treatment |
+|---|---|---|---|
+| Quiet feet: four easy vertical problems, silence on every foot placement, 15 minutes | `walker2020`, `stien2024`; separately `marino1988` for bundled load-sharing instruction | No located direct trial of this exact drill, sound criterion, count/dose or lower-send-rate selection; the app does not measure arm load | **Draft practice**; count and minutes are product choices |
+| Trust the rubber: three easy slabs, hips over feet throughout, 15 minutes | `orth2018`, `stien2024`; separately `marino1988` | No located direct test of this prescription or universal hip position across slabs | **Draft practice**; route/body context can change useful movement |
+| Keep feet on: three easy overhangs with no foot cuts, 15 minutes | `orth2018`, `stien2024`; separately `marino1988` | No located direct trial of the exact cue/dose; foot cuts can be part of a chosen sequence, and the camera does not measure limb loading | **Draft practice**; no inferred physical deficit |
+| Preview footholds, smears or hooks on two problems, five minutes | `sanchez2012`, `seifert2017`, `medernach2021` | The app’s tasks/doses and resulting sends are untested; experience-group associations do not establish an intervention effect | Research-informed candidate with **product task/dose** |
+| Three climbs suffice to show a rate or choose a focus | None located for this threshold | No scientific minimum, error bound or grade/difficulty adjustment; route selection and exposure confound comparison | **App rule**; show all records and threshold |
+| Lowest completion rate means a terrain-specific technique deficit | None | Outcome logs do not isolate technique, strength, mobility, fear, route difficulty or familiarity | Reflection prompt, never a diagnosis or ability score |
+| Discomfort pauses loading suggestions / prioritizes a check-in | `klauser2002` only for internal-imaging boundary; no located intervention validating this software rule | No proven injury prevention, healing inference, pain threshold or return-to-climb clearance | **Conservative app eligibility rule**; current self-reports drive it |
+| Projected hip-midpoint-to-ankle angle measures mobility | `draga2020`, `stenum2021`, `barzegar2024` are contextual and use other tests/tasks | Reference accuracy, repeatability, anatomical range interpretation and flexibility-to-terrain mapping are missing | **Image-plane estimate**, visibility is not accuracy |
+| Pose pauses, straight arms, foot re-placements and hip path diagnose technique | `orth2018`, `seifert2017`, `stien2024`, `walker2020` supply movement/feedback context | Exact model, thresholds, task validity and usefulness of automated interpretation remain unvalidated | **Candidate observations** with frame/time evidence; confirm against original video |
+| A journal/check-in shows internal recovery or prevents injury | No located direct support; `klauser2002` distinguishes specialized imaging | Journal efficacy and internal healing claims are untested | User report/history only; no recovery prediction |
+
+### Search and access record
+
+Targeted queries covered the exact drill phrases with “study,” “trial” and “randomized,” foot placement training, climbing decision-making, preview, symptom-driven app pausing and the three-log threshold. Coaching pages, commercial apps, forum anecdotes and theses were not promoted to journal evidence. The six original records above were read only to the stated depth. No medical protocol or exercise treatment dose was derived. No actual coach/clinician content-review record was located or invented. Further work should define an exact intended claim, obtain unavailable methods, and test the app’s actual protocol and intended population before strengthening its wording.
