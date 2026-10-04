@@ -2,6 +2,7 @@
 import { CameraPreview } from './camera';
 import { CaptureMediaPreview } from './capturePreview';
 import { createMemoryStore } from './memoryStore';
+import { browserMusicEnvironment, createWebMusic } from './music/webMusic';
 import type { Capabilities, KeyValueStore } from './types';
 
 // Typed locally so shared code doesn't need the DOM lib in its tsconfig.
@@ -15,6 +16,12 @@ type BrowserGlobals = {
 };
 
 const browser = globalThis as BrowserGlobals;
+
+/** Web Audio music, where the browser has it. Nothing is created until play(). */
+function createMusic() {
+  const environment = browserMusicEnvironment();
+  return environment ? createWebMusic(environment) : undefined;
+}
 
 /**
  * localStorage can be missing or throw (private windows, blocked site data,
@@ -69,4 +76,5 @@ export const capabilities: Capabilities = {
   },
   storage: createLocalStorageStore(),
   camera: { Preview: CameraPreview, MediaPreview: CaptureMediaPreview },
+  music: createMusic(),
 };

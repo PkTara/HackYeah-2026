@@ -22,4 +22,7 @@ export const capabilities: Capabilities = {
   // TODO: swap for persistent storage (e.g. @react-native-async-storage/async-storage).
   storage: createMemoryStore(),
   camera: { Preview: CameraPreview, MediaPreview: CaptureMediaPreview },
+  // No music yet: playing audio on Android and iOS needs a native audio
+  // library behind the same MusicCapability. The music button stays hidden.
+  music: undefined,
 };

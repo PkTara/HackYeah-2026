@@ -255,3 +255,48 @@ The Codex design-drafting step used the `superpowers:using-superpowers` and `sup
 
 **Not verified:** a real camera, Android or iOS native builds, and runtime permission dialogs on a phone.
 
+### 22. Background music (2026-10-04)
+
+**Prompt:** "Royalty-free chill music (similar to BTD5 music), but with a non-obtrusive audio button (probably top-right)." The team chose music in the app (not the deck), and an original composition made in code with Web Audio rather than a downloaded file.
+
+**Output:**
+- `packages/platform/src/music`: the song as plain data (`song.ts`: "Canopy Breeze", F major, 100 BPM, swung eighths, 24 bars in A, B and A2 sections), a look-ahead scheduler on the audio clock (`scheduler.ts`), the synthesised band (`voices.ts`: steel drum lead, marimba chords, kalimba arpeggios, round bass, shaker and hand drums, a generated reverb, master gain 0.18 into a compressor) and the browser player (`webMusic.ts`: AudioContext made on the first press, 1.5 s fade in, 0.4 s fade out, suspended while the page is hidden).
+- An optional `music` capability in `packages/platform/src/types.ts`; the web provides it, Android and iOS leave it undefined.
+- `packages/ui`: speaker and muted-speaker 12x12 icons, an `IconButton` key and a corner slot on `Screen` that keeps room for it. `packages/app`: `music.tsx` (off by default, choice saved under `climbing-monkey/music/v1`, a saved "on" waits for the first tap or key press).
+
+**Originality:** the melody, chords, rhythms and sounds were written for this app by the AI agent in code. Only the mood was taken from the request (laid-back island music, like tower defence menu music). No melody, chord sequence or rhythm from any existing game or song was copied or approximated, and no samples or audio files are used.
+
+**Validation:** Jest tests for the song data (every bar fills the meter, notes in range, loop length, sections), the scheduler with a fake clock (look-ahead, stop, seamless wrap), the player with a fake AudioContext (lazy context, fades, suspend on hide) and the App (button only with the capability, play and mute, label, saved choice, waiting for a gesture). An OfflineAudioContext render of the same engine in headless Chromium (64 s, one loop plus the wrap) peaked at -7.6 dBFS with an RMS of -25.1 dBFS, no NaN samples, no gap at the loop seam and no silence of 0.3 s or more. Playwright checked the button at 360, 390, 1280 and 1440 px in light and dark, and that no AudioContext exists before a press or, after a reload with music left on, before the first click. `npm run check`, the web build and the Android bundle pass.
+
+**Not verified:** listening on real phone and laptop speakers, and Safari.
+
+### 23. Livelier music (2026-10-04)
+
+**Prompt:** after listening to entry 22: "Make the music more lively and exciting - climbing energy vibe."
+
+**Output:**
+- `packages/platform/src/music/song.ts` rewritten as "Top Out": G major, 124 BPM, sixteenths with a light swing, 28 bars that build like a climb. A 4-bar drum and bass groove with a run up into an 8-bar steel drum hook (call and response, phrases stepping upward), an 8-bar half-time lift with rising arpeggios, a rising run and a clap roll, and an 8-bar summit with brighter chords (maj7, add9), a kalimba countermelody and a higher hook that runs back into the groove.
+- `voices.ts`: a round kick (pitch drop, no distortion), a clap from band-passed noise bursts, congas and toms, a brighter bass with octave jumps that lock with the kick, a louder lead and a busier shaker. Master gain, compressor and fades are unchanged.
+- The corner key moved 8 px in from the top and right so the keyboard focus ring shows on every side. The setup progress plank is taller while the key is there, and the profile tree moved further from the right edge so the monkey stays clear of the key at 360 and 390 px.
+
+**Originality:** as in entry 22, the melody, chords, rhythms and sounds were written for this app in code; only the requested energy was taken as direction. Nothing from an existing tune was copied or approximated.
+
+**Validation:** the song tests were rewritten (tempo, form, meter of every bar, the intro and lift runs, the countermelody, kick and clap placement, a fill at the end of every section, ranges and loop length). An OfflineAudioContext render (66 s, one loop plus the wrap) peaked at -5.0 dBFS with an RMS of -21.7 dBFS, no NaN samples, no gap at the seam and no silence of 0.3 s or more. Playwright screenshots at 360, 390, 1280 and 1440 px in light and dark; `npm run check`, the web build and the Android bundle pass.
+
+**Not verified:** listening on real speakers.
+
+### 24. Groovier music without the piercing highs (2026-10-04)
+
+**Prompt:** after listening to entry 23: "Make the audio more groovy - the random high notes sound grating."
+
+**Output:**
+- `song.ts` rewritten as "Jungle Pocket": G major, 122 BPM, swung sixteenths (0.58), 28 bars of groove, hook, half-time lift and summit. The lead is one short riff with repeated notes that keeps coming back, between G4 and B5; nothing in any melodic voice goes above D6. The summit is bigger by fullness (warm keys chords on seventh chords, more kick pushes and congas, a low kalimba answer), not by pitch.
+- The rhythm section carries the energy: a pocket bassline with ghost notes and octave pops that lands with the kick, a syncopated kick (1, 3 and pushes around them) with claps on 2 and 4 and a ghost clap, off-beat marimba chops with ghost chops, and small fixed velocity nudges per step and instrument (no randomness, the same on every render).
+- `voices.ts`: softer steel drum (lower upper partials, slower attack), a soft low kalimba, a new warm keys voice, and gentle low-passes on the lead, marimba, kalimba, keys, clap and shaker buses.
+
+**Originality:** as in entries 22 and 23, everything was written for this app in code; nothing was copied or approximated.
+
+**Validation:** new song tests for the D6 ceiling on every melodic voice, the repeated hook riff, a summit bigger by fullness, the syncopated kick, ghost notes and octave pops in the bass, off-beat chops and deterministic humanising. An OfflineAudioContext render (66 s, one loop plus the wrap) peaked at -6.7 dBFS with an RMS of -21.8 dBFS, no NaN samples and no gap at the seam; energy above 2.5 kHz is about 4 dB lower than in entry 23 at the same loudness. `npm run check` and the web build pass.
+
+**Not verified:** listening on real speakers.
+

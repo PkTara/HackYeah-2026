@@ -11,6 +11,8 @@
 
 The [Python/FastAPI backend](backend/README.md) implements the confirmed-evidence → profile → quest → pet XP loop, with SQLite persistence, private hand photos and optional MediaPipe pose analysis of photos, recorded clips and a sampled live camera. The web app saves to it when `VITE_MONKEY_API_URL` is set (see [Connecting a backend](#connecting-a-backend)). See the backend README for setup, API contracts and TDD checks, the [camera and video guide](docs/camera-video.md) for the capture flows, and the [scientific evidence notes](docs/climbing-scientific-evidence.md) for what the research does and does not support. Use `npm run backend:check` after creating its virtualenv.
 
+**Music.** A small speaker key in the top-right corner of every page, setup included, plays background music: an original island loop composed in code and synthesised with Web Audio (`packages/platform/src/music`), no audio files. It is off until pressed and remembers the choice; if it was left on, it starts again at the first tap or key press, never by itself. On the web only for now: Android and iOS need a native audio library behind the same `music` capability, and the key is hidden there.
+
 A React Native app for **Android, iOS and the web**: one codebase, with a native host for the phones and react-native-web in the browser.
 
 | | Version |
@@ -108,6 +110,8 @@ Use `--platform ios` for the iOS bundle. Don't write bundles into `android/` or 
 ### Native features
 
 React Native provides the core APIs (`Platform`, `Vibration`, `BackHandler`, `SafeAreaView`, …) on both phones. For anything else, add a native module to the Android and iOS projects and wrap it behind an interface in `packages/platform/src/types.ts`. Implement it in `capabilities.ts`, with a fallback in `capabilities.web.ts`.
+
+**Music on Android and iOS** is not there yet. The web plays it with Web Audio (`capabilities.web.ts`); a phone needs a native audio library (for example one that plays a rendered loop) wrapped as the `music` capability in `capabilities.ts`. Until then `music` is undefined and the app hides the music key.
 
 **Third-party libraries:** a library with native code needs a native rebuild (and `pod install` on iOS), and it won't run in the web host, so keep it behind a capability with a web fallback. Pure-JS libraries work everywhere as they are.
 

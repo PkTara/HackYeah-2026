@@ -7,6 +7,7 @@ import {
   PX,
   PixelText,
   Screen,
+  useCornerReserve,
   useLayout,
   useTheme,
 } from '@hackyeah/ui';
@@ -14,6 +15,8 @@ import { CHAPTERS, PERCHES, chapterOf, perchOf, type StepId } from './flow';
 
 /** Width of the onboarding column on wide screens. */
 const COLUMN_MAX = 600;
+/** Height of the progress plank without the music button. */
+const PLANK_HEIGHT = 44;
 /** Wood-plank text, same as the tab bar and rail. */
 const PLANK_TEXT = '#FFF4DC';
 
@@ -58,7 +61,12 @@ export function StepFrame({ step, from, line, back, skip, next, children }: Prop
     <Screen
       hero={
         <View>
-          <Progress step={step} column={column} gutter={layout.gutter} />
+          <Progress
+            step={step}
+            column={column}
+            gutter={layout.gutter}
+            width={width}
+          />
           <MonkeyGuide
             line={line}
             spot={perchOf(step)}
@@ -83,12 +91,18 @@ function Progress({
   step,
   column,
   gutter,
+  width,
 }: {
   step: StepId;
   column: number;
   gutter: number;
+  width: number;
 }) {
   const { colors: c } = useTheme();
+  // The music button sits on the plank: make the plank tall enough for it,
+  // and on narrow screens stop the row short of it.
+  const reserve = useCornerReserve();
+  const clash = reserve.width - (width - column) / 2;
   const chapter = chapterOf(step);
   const label =
     step === 'welcome'
@@ -100,6 +114,7 @@ function Progress({
     <View
       style={[
         styles.plank,
+        { height: Math.max(PLANK_HEIGHT, reserve.height) },
         {
           backgroundColor: c.barkDark,
           borderBottomColor: c.outline,
@@ -107,7 +122,12 @@ function Progress({
         },
       ]}
     >
-      <View style={[styles.plankRow, { maxWidth: column }]}>
+      <View
+        style={[
+          styles.plankRow,
+          { maxWidth: column, paddingRight: Math.max(0, clash) },
+        ]}
+      >
         <PixelText
           text={label}
           color={PLANK_TEXT}
@@ -186,7 +206,6 @@ const styles = StyleSheet.create({
   grow: { flex: 1 },
   // Fixed height, so the jungle strip sits at the same place on every step.
   plank: {
-    height: 44,
     justifyContent: 'center',
     borderBottomWidth: PX,
   },
