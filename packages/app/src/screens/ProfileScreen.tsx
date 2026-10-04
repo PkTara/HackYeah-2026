@@ -269,44 +269,47 @@ export function ProfileScreen() {
           </Panel>
 
           {/* Active hand flags change what the monkey suggests */}
-          {state.flags.length > 0 ? (
-            <Panel variant="alert" title="Hands" icon="flag">
-              {state.flags.map(f => (
-                <View
-                  key={`${f.side}-${f.finger}`}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 10,
-                  }}
-                >
-                  <AppText style={{ flex: 1 }}>{flagText(f, today)}</AppText>
-                  <Button
-                    title="Edit"
-                    variant="secondary"
-                    small
-                    accessibilityLabel={`Edit ${fingerLabel(
-                      f.side,
-                      f.finger,
-                    ).toLowerCase()}`}
-                    onPress={() =>
-                      navigate('Finger', { side: f.side, finger: f.finger })
-                    }
-                  />
-                </View>
-              ))}
-              <AppText variant="caption" muted>
-                Finger-loading quests are paused. Your climbing profile stays
-                the same.
-              </AppText>
-              <Button
-                title="Update hands"
-                variant="secondary"
-                small
-                onPress={() => reset('Hands')}
-              />
-            </Panel>
-          ) : null}
+          <Panel
+            variant={state.flags.length > 0 ? 'alert' : 'quiet'}
+            title="Hands"
+            icon="flag"
+          >
+            {state.flags.map(f => (
+              <View
+                key={`${f.side}-${f.finger}`}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 10,
+                }}
+              >
+                <AppText style={{ flex: 1 }}>{flagText(f, today)}</AppText>
+                <Button
+                  title="Edit"
+                  variant="secondary"
+                  small
+                  accessibilityLabel={`Edit ${fingerLabel(
+                    f.side,
+                    f.finger,
+                  ).toLowerCase()}`}
+                  onPress={() =>
+                    navigate('Finger', { side: f.side, finger: f.finger })
+                  }
+                />
+              </View>
+            ))}
+            <AppText variant="caption" muted>
+              {state.flags.length > 0
+                ? 'Finger-loading quests are paused. Your climbing profile stays the same.'
+                : 'No finger discomfort is marked. Open the hand journal to check in.'}
+            </AppText>
+            <Button
+              title={state.flags.length > 0 ? 'Update hands' : 'Open Hands'}
+              variant="secondary"
+              small
+              onPress={() => reset('Hands')}
+            />
+          </Panel>
 
           {wide ? recentPanel : null}
         </Column>

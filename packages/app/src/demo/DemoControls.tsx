@@ -175,6 +175,7 @@ export function DemoControls() {
               variant="secondary"
             />
           </Panel>
+          <Button title="Done" variant="secondary" onPress={demo.close} />
           {demo.error ? (
             <AppText accessibilityRole="alert">{demo.error}</AppText>
           ) : null}

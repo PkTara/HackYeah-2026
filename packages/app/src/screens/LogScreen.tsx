@@ -36,8 +36,6 @@ import {
   holdsText,
   styleText,
 } from '../labels';
-import { useNavigation } from '../navigation/Navigator';
-import type { RouteName } from '../navigation/routes';
 import { useGame } from '../state/GameProvider';
 
 /** How long "Saved: ..." stays under the button. */
@@ -65,7 +63,6 @@ function toggle<T>(list: readonly T[], item: T): T[] {
  * save. The profile builds the terrain triangle and style tallies from these.
  */
 export function LogScreen() {
-  const { reset } = useNavigation<RouteName>();
   const { haptics } = useCapabilities();
   const { state, today, logClimb, removeClimb } = useGame();
 
@@ -263,19 +260,6 @@ export function LogScreen() {
                 </View>
               ))
             )}
-          </Panel>
-
-          <Panel variant="quiet">
-            <View style={styles.inline}>
-              <AppText style={styles.grow}>Fingers feeling it?</AppText>
-              <Button
-                title="Check hands"
-                variant="secondary"
-                small
-                onPress={() => reset('Hands')}
-                accessibilityHint="Opens the Hands tab"
-              />
-            </View>
           </Panel>
         </Column>
       </Columns>

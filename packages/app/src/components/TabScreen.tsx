@@ -16,6 +16,7 @@ import type { RouteName } from '../navigation/routes';
 import { trailFor } from '../navigation/trail';
 import { useGame } from '../state/GameProvider';
 import { useDemo } from '../demo/DemoProvider';
+import { SubpageFooter, type SubpageCompletion } from './SubpageFooter';
 
 type TabRoute = Extract<RouteName, 'Profile' | 'Log' | 'Hands' | 'Data'>;
 
@@ -29,6 +30,8 @@ const TABS: readonly Tab<TabRoute>[] = [
 type Props = {
   children: ReactNode;
   hero?: ReactNode;
+  /** Override a local detail stage, or false when it supplies its own completion. */
+  completion?: SubpageCompletion | false;
 };
 
 const isTab = (route: RouteName | undefined): route is TabRoute =>
@@ -39,7 +42,7 @@ const isTab = (route: RouteName | undefined): route is TabRoute =>
  * on wide screens. The active tab is the root of the navigation stack, or the
  * tab a linked screen belongs to (a link to a finger close-up shows Hands).
  */
-export function TabScreen({ children, hero }: Props) {
+export function TabScreen({ children, hero, completion }: Props) {
   const demo = useDemo();
   const { root, reset } = useNavigation<RouteName>();
   const home = trailFor(root, {})[0]?.route;
@@ -60,10 +63,11 @@ export function TabScreen({ children, hero }: Props) {
     >
       {demo.settings.enabled ? (
         <AppText variant="caption">
-          Demo — records stay in the separate demo profile.
+          Demo. Records stay in the separate demo profile.
         </AppText>
       ) : null}
       {children}
+      {completion !== false ? <SubpageFooter {...completion} /> : null}
     </Screen>
   );
 }
